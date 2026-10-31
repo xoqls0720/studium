@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Studium</title>
+<meta name="description" content="강의·책·영상·사진을 넣으면 기본서·카드·문제·시험 대비가 저절로 만들어지는 공부 서재">
+<meta name="theme-color" content="#f5f4f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1012" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Studium">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&display=swap">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header><div class="hbar">
+  <button class="iconbtn" id="back" hidden aria-label="뒤로"></button>
+  <img class="logo" id="logo" src="icon.svg" alt="">
+  <h1 id="title">Studium</h1><span id="sync"></span>
+</div></header>
+<main id="main"></main>
+<nav id="nav">
+  <button data-go="#/"><span data-i="home"></span>홈</button>
+  <button data-go="#/review"><span data-i="review"></span>복습</button>
+  <button data-go="#/focus"><span data-i="timer"></span>집중</button>
+  <button data-go="#/stats"><span data-i="chart"></span>기록</button>
+  <button data-go="#/set"><span data-i="set"></span>설정</button>
+</nav>
+<script src="js/01-core.js"></script>
+<script src="js/02-sync.js"></script>
+<script src="js/03-data.js"></script>
+<script src="js/04-ui.js"></script>
+<script src="js/05-srs.js"></script>
+<script src="js/10-home.js"></script>
+<script src="js/11-subject.js"></script>
+<script src="js/12-ink.js"></script>
+<script src="js/13-exam.js"></script>
+<script src="js/14-quiz.js"></script>
+<script src="js/15-settings.js"></script>
+<script src="js/16-cards.js"></script>
+<script src="js/17-focus.js"></script>
+<script src="js/18-add.js"></script>
+<script src="js/19-tools.js"></script>
+<script src="js/99-boot.js"></script>
+</body>
+</html>
