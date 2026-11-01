@@ -168,11 +168,9 @@ async function viewSummary(s) {
     : '<div class="card muted">요약집은 이 과목 자료가 모두 정리된 뒤 PC 생성기가 만들어요.</div>') + tools);
   $('#sq') && ($('#sq').onclick = () => startQuiz(shuffle(summaryQuestions(s, d)), s.name + ' 종합', `#/s/${s.id}/summary`));
   kvGet('mm:' + s.id).then(c => c ? mindmapPanel($('#mmbox'), s) : ($('#mmbox').innerHTML = `<div class="row"><span class="grow muted">과목 전체 개념 관계를 한 장으로 그려요.</span><button class="btn gem" id="mmgo">${ic('map', 18)}그리기</button></div>`, $('#mmgo').onclick = () => mindmapPanel($('#mmbox'), s)));
-  kvGet('pod:s:' + s.id).then(c => { if (c) podcastPanel($('#podbox'), 's:' + s.id, s.name, ''); });
-  $('#podgo').onclick = async () => {
-    const src_ = d ? `${d.overview}\n${(d.top || []).join('\n')}\n${(d.chapters || []).map(c => c.title + ': ' + c.gist).join('\n')}` : (await Promise.all(s.units.filter(u => u.ready).slice(0, 20).map(u => loadUnit(s, u).then(x => u.title + ': ' + (x.points || []).join(' / ')).catch(() => '')))).join('\n');
-    podcastPanel($('#podbox'), 's:' + s.id, s.name, src_);
-  };
+  const podSrc = async () => d ? `${d.overview}\n${(d.top || []).join('\n')}\n${(d.chapters || []).map(c => c.title + ': ' + c.gist).join('\n')}` : (await Promise.all(s.units.filter(u => u.ready).slice(0, 20).map(u => loadUnit(s, u).then(x => u.title + ': ' + (x.points || []).join(' / ')).catch(() => '')))).join('\n');
+  kvGet('pod:s:' + s.id).then(c => { if (c) podcastPanel($('#podbox'), 's:' + s.id, s.name, podSrc); });   // 다시 만들 때 쓸 글은 그때 모은다
+  $('#podgo').onclick = () => podcastPanel($('#podbox'), 's:' + s.id, s.name, podSrc);
 }
 
 function unitChecks(s, sel) {
@@ -237,7 +235,7 @@ async function wrongList(subs) {
     const mine = wrongIds.some(k => k.startsWith(x.id + ':'));
     if (!mine && !x.units.some(u => ids.has(u.id))) continue;
     const us = x.units.filter(u => ids.has(u.id)).map(u => u.id);
-    qs.push(...(await poolOf(x, us, {summary: mine, extra: true})).filter(q => isWrong(q.id)));
+    qs.push(...[...(await poolOf(x, us, {summary: mine, extra: false})), ...extraQuestions(x, null)].filter(q => isWrong(q.id)));
   }
   return [...new Map(qs.map(q => [q.id, q])).values()].sort((a, b) => (prog.q[b.id].lastWrong || 0) - (prog.q[a.id].lastWrong || 0));
 }

@@ -116,6 +116,9 @@ function viewAdd() {
   };
 }
 
+// 아이폰 카메라는 사진마다 'image.jpg' 라 이름이 같으면 앞 자료를 덮어쓴다 → 찍은 시각을 붙인 이름을 쓴다
+const shotName = ext => `사진_${new Date().toISOString().slice(0, 19).replace(/\D/g, '')}_${Math.random().toString(36).slice(2, 5)}.${ext}`;
+const takenName = (sid, file) => Object.values(prog.my || {}).some(m => !m.del && m.sid === sid && m.file === file);
 async function ingest({lib, libName, subject}, it, st) {
   const sid = await sha12(subjKey(lib, subject)), folder = `${libName}/${subject}`;
   let fileName, blob, mime, parts = [], kind = 'doc', title;
@@ -130,11 +133,15 @@ async function ingest({lib, libName, subject}, it, st) {
     title = it.title; fileName = safeName(title) + '.txt'; blob = new Blob([it.text], {type: 'text/plain'});
     parts = [{text: it.text}];
   } else if (it.kind === 'images') {
-    title = it.files[0].name.replace(/\.[^.]+$/, '') + ` 외 ${it.files.length - 1}장`; fileName = safeName(title) + '.zip.txt'; kind = 'image';
+    const f0 = it.files[0].name;
+    title = (/^image\.\w+$/i.test(f0) ? shotName('').slice(0, -1) : f0.replace(/\.[^.]+$/, '')) + ` 외 ${it.files.length - 1}장`; fileName = safeName(title) + '.zip.txt'; kind = 'image';
+    if (takenName(sid, fileName)) { title = shotName('').slice(0, -1) + ` 외 ${it.files.length - 1}장`; fileName = safeName(title) + '.zip.txt'; }
     st('사진 읽는 중…');
     for (const f of it.files) parts.push(await gemFilePart(f, mimeOf(f), f.name));
   } else {
-    const f = it.file; mime = mimeOf(f); kind = kindOf(mime); title = f.name.replace(/\.[^.]+$/, ''); fileName = f.name; blob = f;
+    const f = it.file; mime = mimeOf(f); kind = kindOf(mime); fileName = f.name; blob = f;
+    if (kind === 'image' && (/^image\.\w+$/i.test(f.name) || takenName(sid, f.name))) fileName = shotName(extOf(f.name) || 'jpg');
+    title = fileName.replace(/\.[^.]+$/, '');
     if (/^(docx|pptx|hwpx)$/.test(extOf(f.name))) { st('문서에서 글 꺼내는 중…'); parts = [{text: await officeText(f)}]; }
     else if (/^(txt|md)$/.test(extOf(f.name))) parts = [{text: await f.text()}];
     else { st(kind === 'doc' ? 'PDF 올리는 중…' : '파일 올리는 중…'); parts = [await gemFilePart(f, mime, f.name)]; }
@@ -144,7 +151,10 @@ async function ingest({lib, libName, subject}, it, st) {
   if (GD.valid()) {
     st('드라이브에 원본 올리는 중…');
     const base = `${INBOX}/${libName}/${subject}`;
-    if (it.kind === 'images') for (const f of it.files) await GD.put(`${base}/${safeName(title)}/${f.name}`, f).catch(() => {});
+    if (it.kind === 'images') {
+      const dup = new Set(it.files.map(f => f.name)).size < it.files.length;   // 카메라 사진은 모두 image.jpg 라 번호를 붙인다
+      for (const [i, f] of it.files.entries()) await GD.put(`${base}/${safeName(title)}/${dup ? `${i + 1}_` : ''}${f.name}`, f).catch(() => {});
+    }
     else await GD.put(`${base}/${fileName}`, blob).catch(e => console.warn(e));
   }
   if (!gemKey()) {
@@ -158,7 +168,7 @@ async function ingest({lib, libName, subject}, it, st) {
   const path = `${folder}/${uid}.json`, body = JSON.stringify(d);
   await cachePut(path, {stamp: 'app', data: d});
   state.units[uid] = d;
-  if (GD.valid()) { st('드라이브에 저장하는 중…'); await GD.put(`${FOLDER === '' ? '' : ''}${path}`, new Blob([body], {type: 'application/json'})).catch(e => console.warn(e)); }
+  if (GD.valid()) { st('드라이브에 저장하는 중…'); await GD.put(`${FOLDER === '' ? '' : ''}${path}`, new Blob([body], {type: 'application/json'})).catch(e => { console.warn(e); toast('드라이브 저장에 실패했어요 — 이 기기에서만 보여요. 다시 넣어 주세요'); }); }
   const n = d.mcq.length + (d.ox || []).length + (d.short || []).length;
   prog.my[uid] = {t: Date.now(), lib, libName, subject, sid, folder, title: d.title || title, file: fileName, n};
   state.subs = null; saveProg();

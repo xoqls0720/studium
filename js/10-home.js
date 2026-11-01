@@ -15,8 +15,8 @@ function viewHome() {
       <div class="stat" style="cursor:pointer" data-go="#/focus"><b>${fmtMin(mins)}</b><span>오늘 공부 · 목표 ${fmtMin(goal)}</span><div class="bar" style="margin:8px 0 0"><i style="width:${Math.min(100, mins / goal * 100)}%;background:var(--pri)"></i></div></div>
       <div class="stat" style="cursor:pointer" data-go="#/stats"><b style="display:flex;align-items:center;gap:6px">${streak}<span style="color:var(--gold)">${ic('flame', 22)}</span></b><span>연속 공부한 날</span></div>
       <div class="stat" style="cursor:pointer" data-go="#/review"><b id="h-due">·</b><span>오늘 복습</span></div></div></section>`;
-  if (!cfg.mode) h += `<div class="card callout" style="margin-top:16px"><div class="mark">${ic('link')}</div><div class="grow"><b>구글 드라이브를 연결하면</b><div class="faint">PC가 정리한 강의 자료를 받고, 폰·아이패드·노트북과 진도·필기가 맞춰져요</div></div><button class="btn sm" data-go="#/set">연결하기</button></div>`;
-  if (state.offline) h += `<div class="card callout" style="margin-top:16px"><div class="mark">${ic('bolt')}</div><div class="grow muted">지금은 기기에 받아 둔 자료로 보여 주고 있어요.</div>${state.offline instanceof NeedAuth ? '<button class="btn sm" id="relogin">구글 다시 로그인</button>' : cfg.mode === 'local' ? '<button class="btn sm" id="regrant">폴더 다시 열기</button>' : ''}</div>`;
+  if (!cfg.mode) h += `<div class="card callout" style="margin-top:16px"><div class="mark">${ic('link')}</div><div class="grow"><b>구글로 시작하면 끝이에요</b><div class="faint">로그인 한 번이면 PC가 정리한 강의 자료가 들어오고, 폰·아이패드·노트북과 진도·필기·Gemini 키가 저절로 맞춰져요</div></div><button class="btn pri sm" id="gstart">구글로 시작하기</button></div>`;
+  if (state.offline) h += `<div class="card callout" style="margin-top:16px"><div class="mark">${ic('bolt')}</div><div class="grow muted">지금은 기기에 받아 둔 자료로 보여 주고 있어요.</div>${state.offline instanceof NeedAuth ? '<button class="btn sm" id="relogin">다시 연결</button>' : cfg.mode === 'local' ? '<button class="btn sm" id="regrant">폴더 다시 열기</button>' : ''}</div>`;
   const today = [`<div class="card callout"><div class="mark">${ic('cards')}</div><div class="grow"><b id="h-q">오늘 복습을 모으는 중…</b><div class="faint">간격 반복으로 잊을 때쯤 다시 보여 줘요</div></div><button class="btn pri" data-go="#/review">복습 시작</button></div>`];
   if (lastU) today.push(`<div class="card callout" style="cursor:pointer" data-go="#/s/${lastS.id}/u/${lastU.id}"><div class="mark">${ic('book')}</div><div class="grow"><div class="faint">이어 읽기 · ${esc(lastS.name)}</div><b>${esc(lastU.title)}</b></div>${ic('chev', 18)}</div>`);
   for (const e of exams.slice(0, 3)) today.push(`<div class="card callout gold" style="cursor:pointer" data-go="#/s/${e.s.id}/exam"><div class="mark">${ic('cal')}</div><div class="grow"><div class="faint">${fmtDate(new Date(e.date))} 시험</div><b>${esc(e.s.name)}</b></div><span class="dday" style="font-size:22px">${ddayText(ddays(e.date))}</span></div>`);
@@ -30,7 +30,8 @@ function viewHome() {
   if (idx.updated) h += `<p class="faint" style="text-align:center;margin-top:28px">자료 ${esc(idx.updated.replace('T', ' ').slice(0, 16))} 기준</p>`;
   render(h);
   main_.querySelectorAll('[data-lib]').forEach(b => b.onclick = () => { store.set('homeLib', b.dataset.lib); viewHome(); });
-  $('#relogin') && ($('#relogin').onclick = async () => { try { await GD.login(); boot(); } catch (e) { toast(e.message); } });
+  $('#relogin') && ($('#relogin').onclick = startGoogle);
+  $('#gstart') && ($('#gstart').onclick = () => cfg.client ? startGoogle() : (location.hash = '#/set'));
   $('#regrant') && ($('#regrant').onclick = async () => { if (await Local.ready(true)) boot(); });
   $('#gemoff') && ($('#gemoff').onclick = () => { store.set('gemHintOff', true); viewHome(); });
   (async () => {

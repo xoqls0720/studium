@@ -53,7 +53,7 @@ async function podcastPanel(box, key, title, source) {
   async function make() {
     if (!gemKey()) { location.hash = '#/set'; return toast('설정에 Gemini 키를 넣어 주세요'); }
     box.innerHTML = thinking('Gemini가 대본을 쓰고 녹음하는 중… (1~2분)');
-    try { const c = await makePodcast(title, source); await kvPut('pod:' + key, c); paint(c); }
+    try { const c = await makePodcast(title, typeof source === 'function' ? await source() : source); await kvPut('pod:' + key, c); paint(c); }
     catch (e) { box.innerHTML = ''; toast(e.message); }
   }
   if (cached) paint(cached); else make();
@@ -146,7 +146,7 @@ function nlmCards(j) {   // 받은 플래시카드 JSON 을 {f, b} 로 (모양�
 function nlmQuiz(j) {
   const list = Array.isArray(j) ? j : j?.questions || j?.quiz || j?.items || [];
   return list.map(q => {
-    const opts = q.options || q.choices || q.answers || [];
+    const opts = q.options || q.choices || q.answerOptions || q.answers || [];   // notebooklm-py 는 answerOptions[{text, isCorrect}]
     const texts = opts.map(o => typeof o === 'string' ? o : o.text || o.answer || o.option);
     let a = typeof q.correct === 'number' ? q.correct : typeof q.answerIndex === 'number' ? q.answerIndex : opts.findIndex(o => o?.isCorrect || o?.correct);
     if (a < 0 && q.answer) a = texts.indexOf(q.answer);

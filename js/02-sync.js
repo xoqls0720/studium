@@ -35,6 +35,8 @@ function mergeProg(a, b) {
 }
 const pref = (k, d) => prog.pref?.[k]?.v ?? d;
 function setPref(k, v) { prog.pref[k] = {v, t: Date.now()}; saveProg(); }
+// 예전에 이 기기에만 넣어 둔 Gemini 키도 같이 맞춘다. t=1 이라 다른 기기에서 새로 넣은 키가 이긴다.
+if (store.get('gemKey', '') && !prog.pref.gemKey) prog.pref.gemKey = {v: store.get('gemKey'), t: 1};
 // 손글씨: 강의마다 {t, strokes}. 기기끼리는 강의 단위로 나중에 쓴 쪽이 이긴다.
 const INK_FILE = 'dongseo-ink.json';
 let ink = {};
@@ -68,37 +70,62 @@ async function syncFile(name, local, merge, isDirty) {
 async function syncNow() {
   if (!GD.valid()) { paintSync(); return false; }
   if (syncing) return syncing;
+  const dp = dirty.prog, di = dirty.ink;
   syncing = (async () => {
     $('#sync').innerHTML = '<span class="spin"></span>맞추는 중';
-    const dp = dirty.prog, di = dirty.ink;
     dirty.prog = dirty.ink = false;
     const p = await syncFile(PROG_FILE, prog, mergeProg, dp);
-    prog = p.data; store.set('prog', prog);
+    // 올리는 동안 바뀐 것(채점 등)은 받은 것과 합쳐 잃지 않는다. dirty 가 다시 서 있어 다음에 또 올린다.
+    prog = dirty.prog ? mergeProg(prog, p.data) : p.data; store.set('prog', prog);
     if (p.changed) state.subs = null;
     const k = await syncFile(INK_FILE, ink, mergeInk, di);
-    ink = k.data; kvPut('ink', ink);
+    ink = dirty.ink ? mergeInk(ink, k.data) : k.data; kvPut('ink', ink);
     lastSync = Date.now(); paintSync();
     if (p.changed && !state.inking && !/^#\/quiz/.test(location.hash) && !document.activeElement?.matches('textarea,input')) { const y = scrollY; state.onInk = null; await route(); scrollTo(0, y); }
     else if (k.changed) state.onInk?.();
     return true;
-  })().catch(e => { if (e instanceof NeedAuth) paintSync(); else $('#sync').textContent = '동기화 실패'; throw e; }).finally(() => syncing = null);
+  })().catch(e => { dirty.prog ||= dp; dirty.ink ||= di; if (e instanceof NeedAuth) paintSync(); else $('#sync').textContent = '동기화 실패'; throw e; }).finally(() => syncing = null);
   return syncing;
 }
 const syncProg = syncNow;
 function paintSync() {
   const el = $('#sync');
+  el.onclick = null;
   if (!cfg.client) { el.innerHTML = ''; return; }
-  if (!GD.valid()) { el.innerHTML = `<button class="btn sm gem" id="synclogin">동기화 켜기</button>`; $('#synclogin').onclick = async () => { try { await GD.login(); await syncNow(); } catch (e) { toast(e.message); } }; return; }
+  if (!GD.valid()) { el.innerHTML = `<button class="btn sm gem" id="synclogin">${cfg.mode === 'drive' ? '다시 연결' : '구글로 시작하기'}</button>`; $('#synclogin').onclick = e => { e.stopPropagation(); startGoogle(); }; return; }
   const d = new Date(lastSync);
   el.innerHTML = lastSync ? `${ic('check', 14, 2.2)}동기화 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '';
   el.onclick = () => syncNow().catch(e => toast(e.message));
 }
+// 구글로 시작하기: 로그인 한 번이면 드라이브 자료를 읽고 진도·필기·Gemini 키를 기기끼리 맞춘다
+async function startGoogle() {
+  try {
+    await GD.login();
+    if (cfg.mode !== 'drive') { cfg.mode = 'drive'; saveCfg(); }
+    GD.lists = {}; state.units = {}; state.summ = {}; state.offline = null;
+    await syncNow().catch(() => {});
+    await boot();
+    toast('구글과 연결했어요. 이제 기기끼리 저절로 맞춰져요');
+    return true;
+  } catch (e) { toast(e.message); return false; }
+}
+// 로그인은 한 시간쯤 가므로, 끊겼거나 곧 끊길 때 아무 곳이나 누르면 조용히 이어 간다(팝업은 누를 때만 열 수 있다).
+let reauthAt = 0;
+document.addEventListener('pointerup', () => {
+  if (cfg.mode !== 'drive' || !cfg.client || GD.logging || Date.now() - reauthAt < 60e3) return;
+  if (GD.tok && GD.tok.exp - Date.now() > 10 * 60e3) return;
+  reauthAt = Date.now();
+  const wasOff = !GD.valid();
+  GD.login().then(() => { if (wasOff) { state.offline = null; boot(); } else syncNow().catch(() => {}); })
+    .catch(() => { reauthAt = Date.now() + 9 * 60e3; paintSync(); });   // 닫았으면 10분은 다시 묻지 않는다
+}, true);
 const isRead = uid => prog.read[uid]?.on;
 const readCount = uid => prog.read[uid]?.on ? Math.max(1, prog.read[uid].n || 1) : 0;   // 회독 수
 // 다 읽으면 1회독. 6시간 넘게 지나 다시 끝까지 읽으면 회독이 하나 는다.
 function setRead(uid, on) {
   const r = prog.read[uid] || {}, now = Date.now();
-  const n = on ? (r.on ? (now - (r.at || r.t || 0) > 6 * 36e5 ? (r.n || 1) + 1 : (r.n || 1)) : (r.n || 0) + 1) : r.n || 0;
+  const again = now - (r.at || r.t || 0) > 6 * 36e5;   // 껐다 다시 켜도 6시간 안이면 회독이 늘지 않는다
+  const n = on ? (r.on ? (again ? (r.n || 1) + 1 : (r.n || 1)) : r.n && !again ? r.n : (r.n || 0) + 1) : r.n || 0;
   prog.read[uid] = {on, t: now, at: on ? now : r.at, n};
   saveProg(); logActivity();
 }

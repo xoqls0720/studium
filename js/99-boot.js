@@ -51,6 +51,7 @@ addEventListener('resize', () => state.onResize?.());
 
 async function boot() {
   setSync('');
+  if (cfg.client) GD.gis().catch(() => {});   // 첫 탭에서 바로 로그인 창이 뜨게 미리 받아 둔다
   ink = (await kvGet('ink')) || {};
   const cached = await cacheGet('index.json');
   if (cached) { state.index = cached.data; route(); }

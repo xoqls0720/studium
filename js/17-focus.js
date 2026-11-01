@@ -56,7 +56,7 @@ function tick() {
   if (T.running) {
     const len = tLen();
     if (len && tElapsed() >= len) phaseDone();
-    else if (!len && tElapsed() >= 3 * 36e5) { tStop(); toast('자유 타이머를 3시간에서 멈췄어요'); }
+    else if (!len && tElapsed() >= 3 * 36e5) { T.running = false; T.acc = 3 * 36e5; tStop(); toast('자유 타이머를 3시간에서 멈췄어요'); }
   }
   const el = $('#tpill');
   if (el) { el.hidden = !T.running && !T.acc; el.innerHTML = `${ic('timer', 14, 2)}${mmss(tLen() ? tLen() - tElapsed() : tElapsed())}`; el.classList.toggle('brk', T.phase === 'break'); }

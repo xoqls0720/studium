@@ -36,7 +36,7 @@ function srsPreview(id) {
   return [1, 2, 3, 4].map(g => { const n = srsNext(prog.srs[id], g); const m = (n.due - Date.now()) / 6e4; return m < 60 ? `${Math.round(m)}분` : m < 1440 ? `${Math.round(m / 60)}시간` : m < 43200 ? `${Math.round(m / 1440)}일` : `${(m / 43200).toFixed(1)}달`; });
 }
 const isDue = id => { const c = prog.srs[id]; return c && c.due <= endOfToday(); };
-const introducedToday = () => Object.values(prog.srs).filter(c => c.first === todayKey() && c.reps).length;
+const introducedToday = () => Object.entries(prog.srs).filter(([k, c]) => k.startsWith('c:') && c.first === todayKey() && c.reps).length;   // 새 카드만(문제는 세지 않는다)
 
 // ── 카드 만들기: 용어 카드 + 핵심 문장 빈칸 카드 + 내가 만든 카드 ──
 function cardsOf(s, u, d) {
@@ -87,7 +87,7 @@ async function dueQuestions() {
     const uids = s.units.filter(u => [...ids].some(k => k.startsWith(u.id + ':'))).map(u => u.id);
     const mine = [...ids].some(k => k.startsWith(s.id + ':'));
     if (!uids.length && !mine) continue;
-    out.push(...(await poolOf(s, uids, {summary: mine, extra: true})).filter(q => ids.has(q.id)));
+    out.push(...[...(await poolOf(s, uids, {summary: mine, extra: false})), ...extraQuestions(s, null)].filter(q => ids.has(q.id)));
   }
   return out;
 }

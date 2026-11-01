@@ -74,7 +74,10 @@ const kvGet = k => idb('kv', 'readonly', s => s.get(k)).catch(() => null);
 const kvPut = (k, v) => idb('kv', 'readwrite', s => s.put(v, k)).catch(() => {});
 
 // ── 자료 읽기: 내 컴퓨터 폴더 · 구글 드라이브 · 주소(serve.py) ─────────
+// 구글 로그인용 앱 ID(노벨리스트와 같은 주소라 같은 것을 쓴다). 비워 두면 설정 › 고급에서 넣는다.
+const CLIENT_ID = '';
 const cfg = Object.assign({mode: '', client: ''}, store.get('cfg', {}));
+cfg.client ||= CLIENT_ID;
 const saveCfg = () => store.set('cfg', cfg);
 const urlSrc = new URLSearchParams(location.search).get('src');
 if (urlSrc) cfg.mode = 'url';
@@ -110,16 +113,18 @@ const GD = {
     if (window.google?.accounts?.oauth2) return;
     await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.onload = res; s.onerror = () => rej(new Error('구글 로그인 스크립트를 받지 못했어요')); document.head.append(s); });
   },
-  async login() {
-    if (!cfg.client) throw new Error('설정에서 구글 클라이언트 ID를 먼저 넣어 주세요');
-    await this.gis();
-    return new Promise((res, rej) => {
-      const c = google.accounts.oauth2.initTokenClient({client_id: cfg.client, scope: SC, callback: r => {
-        if (r.error) return rej(new Error(r.error));
-        this.tok = {t: r.access_token, exp: Date.now() + (r.expires_in || 3600) * 1000}; store.set('tok', this.tok); res();
-      }, error_callback: e => rej(new Error(e?.message || '로그인을 닫았어요'))});
-      c.requestAccessToken({prompt: ''});
-    });
+  login() {
+    if (!cfg.client) return Promise.reject(new Error('설정 › 고급에서 구글 클라이언트 ID를 먼저 넣어 주세요'));
+    return this.logging ||= (async () => {
+      await this.gis();
+      await new Promise((res, rej) => {
+        const c = google.accounts.oauth2.initTokenClient({client_id: cfg.client, scope: SC, callback: r => {
+          if (r.error) return rej(new Error(r.error));
+          this.tok = {t: r.access_token, exp: Date.now() + (r.expires_in || 3600) * 1000}; store.set('tok', this.tok); res();
+        }, error_callback: e => rej(new Error(e?.message || '로그인을 닫았어요'))});
+        c.requestAccessToken({prompt: ''});
+      });
+    })().finally(() => this.logging = null);
   },
   async fetch(url, opt = {}) {
     if (!this.valid()) throw new NeedAuth();
@@ -218,7 +223,8 @@ async function readJSON(path, {fresh = true} = {}) {
 
 // ── Gemini (키는 이 기기에만) ────────────────────────────────────────
 const GEM_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest'];
-const gemKey = () => store.get('gemKey', '');
+// Gemini 키는 진도와 함께 드라이브 앱 전용 칸으로 기기끼리 맞춘다(한 기기에서 한 번만 넣으면 된다)
+const gemKey = () => prog.pref?.gemKey ? prog.pref.gemKey.v : store.get('gemKey', '');
 const S_ = {type: 'STRING'}, arr = items => ({type: 'ARRAY', items}), obj = p => ({type: 'OBJECT', properties: p, required: Object.keys(p)});
 const MCQ_S = obj({q: S_, c: arr(S_), a: {type: 'INTEGER'}, e: S_}), OX_S = obj({q: S_, a: {type: 'BOOLEAN'}, e: S_}), SHORT_S = obj({q: S_, a: S_, k: arr(S_)});
 const QSET_S = obj({mcq: arr(MCQ_S), ox: arr(OX_S), short: arr(SHORT_S)});

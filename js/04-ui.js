@@ -69,15 +69,10 @@ const unbusy = btn => { btn.disabled = false; if (btn.dataset.t) btn.innerHTML =
 
 function needConnect() {
   frame(APP);
-  render(`<div class="narrow"><section class="hero"><div class="eyebrow">시작하기</div><h2 class="display">자료를 연결해 주세요</h2>
-    <p class="lede">PC 생성기가 만든 '${FOLDER}' 폴더를 연결하면 강의별 기본서, 문제, 시험 대비가 열려요.</p></section>
-    <div class="card" style="margin-top:22px"><div class="row">
-      ${'showDirectoryPicker' in window ? '<button class="btn pri" id="c-local">내 컴퓨터 폴더 열기</button>' : ''}
-      <button class="btn${'showDirectoryPicker' in window ? '' : ' pri'}" id="c-drive">구글 드라이브로 연결</button></div>
-      <p class="faint" style="margin:14px 0 0">아이패드·폰은 구글 드라이브로, PC 크롬·엣지는 둘 다 돼요. 구글 연결은 설정에 클라이언트 ID가 있어야 해요.</p></div></div>`);
-  $('#c-local') && ($('#c-local').onclick = async () => { try { await Local.pick(); cfg.mode = 'local'; saveCfg(); boot(); } catch (e) { if (e.name !== 'AbortError') toast(e.message); } });
-  $('#c-drive').onclick = async () => {
-    if (!cfg.client) { location.hash = '#/set'; toast('클라이언트 ID를 먼저 넣어 주세요'); return; }
-    try { await GD.login(); cfg.mode = 'drive'; saveCfg(); await syncProg().catch(() => {}); boot(); } catch (e) { toast(e.message); }
-  };
+  render(`<div class="narrow"><section class="hero"><div class="eyebrow">시작하기</div><h2 class="display">구글로 시작하기</h2>
+    <p class="lede">로그인 한 번이면 끝이에요. 강의별 기본서·문제·시험 대비가 들어오고, 어느 기기에서 열어도 읽던 곳과 필기가 그대로예요.</p></section>
+    <div class="card" style="margin-top:22px"><button class="btn pri" id="c-drive">${ic('link', 18)}구글로 시작하기</button>
+      <p class="faint" style="margin:14px 0 0">자료와 진도는 내 구글 드라이브에만 있어요. 내 컴퓨터 폴더로 여는 방법은 설정 › 고급에 있어요.</p></div></div>`);
+  $('#c-drive').onclick = () => cfg.client ? startGoogle() : (location.hash = '#/set');
 }
+
