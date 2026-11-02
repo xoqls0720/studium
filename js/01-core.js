@@ -75,7 +75,7 @@ const kvPut = (k, v) => idb('kv', 'readwrite', s => s.put(v, k)).catch(() => {})
 
 // ── 자료 읽기: 내 컴퓨터 폴더 · 구글 드라이브 · 주소(serve.py) ─────────
 // 구글 로그인용 앱 ID(노벨리스트와 같은 주소라 같은 것을 쓴다). 비워 두면 설정 › 고급에서 넣는다.
-const CLIENT_ID = '';
+const CLIENT_ID = '652688327379-6ldakpv06ne7oclhbsopqvbolj5us7qk.apps.googleusercontent.com';   // 노벨리스트와 같은 웹 클라이언트 ID(비밀 아님)
 const cfg = Object.assign({mode: '', client: ''}, store.get('cfg', {}));
 cfg.client ||= CLIENT_ID;
 const saveCfg = () => store.set('cfg', cfg);

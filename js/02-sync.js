@@ -44,7 +44,30 @@ const mergeInk = (a, b) => { const o = {...a}; for (const [k, v] of Object.entri
 function saveInk(uid, strokes) { ink[uid] = {t: Date.now(), strokes}; kvPut('ink', ink); dirty.ink = true; queueSync(); }
 
 // 동기화: 바뀌면 1.5초 뒤 올리고, 앱으로 돌아올 때·1분마다 받아 온다. 드라이브 파일 시각이 그대로면 받지 않는다.
-const dirty = {prog: false, ink: false}, seen = {};
+const dirty = {prog: false, ink: false, rlog: false}, seen = {};
+// 복습 기록(05-srs.js 의 rlog, 이 기기 것)은 달마다 한 파일로 10분에 한 번 올린다. 파일이 계속 커지지 않게, 바뀐 달만.
+// 간격을 맞출 때(allRlog) 모든 기기·모든 달 것을 모은다.
+const RLOG_BASE = PROG_FILE.replace('-progress.json', '-rlog');
+const mergeRlog = (a, b) => { const m = new Map(); for (const r of [...(Array.isArray(b) ? b : []), ...a]) m.set(r[0] + '@' + r[1], r); return [...m.values()].sort((x, y) => x[1] - y[1]).slice(-40000); };
+const rlogMonth = r => new Date(r[1] * 1000).toISOString().slice(0, 7);
+let rlogAt = 0;
+async function syncRlog(force) {
+  if (!GD.valid() || !(force || (dirty.rlog && Date.now() - rlogAt > 6e5))) return;
+  dirty.rlog = false; rlogAt = Date.now();
+  const since = store.get('rlogSent', 0) - 5000, now = Date.now();
+  try {
+    for (const m of new Set(rlog.filter(r => r[1] * 1000 > since).map(rlogMonth))) await syncFile(`${RLOG_BASE}-${DEVICE}-${m}.json`, rlog.filter(r => rlogMonth(r) === m), mergeRlog, true);
+    store.set('rlogSent', now);
+  } catch (e) { dirty.rlog = true; throw e; }
+}
+async function allRlog() {
+  if (!GD.valid()) return rlog;
+  await syncRlog(true).catch(() => {});
+  const r = await (await GD.fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=1000&fields=files(id,name)&q=' + encodeURIComponent(`name contains '${RLOG_BASE}-'`))).json();
+  let all = rlog;
+  for (const f of r.files || []) if (!f.name.includes(`-${DEVICE}-`)) { try { all = mergeRlog(all, await (await GD.fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`)).json()); } catch {} }
+  return all;
+}
 let syncTimer, syncing = null, lastSync = 0;
 function queueSync(ms = 1500) { clearTimeout(syncTimer); if (GD.valid()) syncTimer = setTimeout(() => syncNow().catch(() => {}), ms); else paintSync(); }
 function saveProg() { store.set('prog', prog); dirty.prog = true; queueSync(); }
@@ -77,11 +100,12 @@ async function syncNow() {
     const p = await syncFile(PROG_FILE, prog, mergeProg, dp);
     // 올리는 동안 바뀐 것(채점 등)은 받은 것과 합쳐 잃지 않는다. dirty 가 다시 서 있어 다음에 또 올린다.
     prog = dirty.prog ? mergeProg(prog, p.data) : p.data; store.set('prog', prog);
-    if (p.changed) state.subs = null;
+    if (p.changed) { state.subs = null; loadMap = null; }
     const k = await syncFile(INK_FILE, ink, mergeInk, di);
     ink = dirty.ink ? mergeInk(ink, k.data) : k.data; kvPut('ink', ink);
+    await syncRlog().catch(() => {});
     lastSync = Date.now(); paintSync();
-    if (p.changed && !state.inking && !/^#\/quiz/.test(location.hash) && !document.activeElement?.matches('textarea,input')) { const y = scrollY; state.onInk = null; await route(); scrollTo(0, y); }
+    if (p.changed && !state.inking && !/^#\/(quiz|listen)/.test(location.hash) && !document.activeElement?.matches('textarea,input')) { const y = scrollY; state.onInk = null; await route(); scrollTo(0, y); }
     else if (k.changed) state.onInk?.();
     return true;
   })().catch(e => { dirty.prog ||= dp; dirty.ink ||= di; if (e instanceof NeedAuth) paintSync(); else $('#sync').textContent = '동기화 실패'; throw e; }).finally(() => syncing = null);

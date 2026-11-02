@@ -10,15 +10,22 @@ async function viewReview() {
   let h = head + `<div class="stats" style="margin:0 0 18px"><div class="stat"><b>${q.due.length}</b><span>다시 볼 카드</span></div><div class="stat"><b>${q.fresh.length}</b><span>새 카드 (남은 ${q.freshTotal})</span></div><div class="stat"><b>${dq.length}</b><span>다시 풀 문제</span></div></div>`;
   h += cards.length || dq.length ? `<div class="card callout"><div class="mark">${ic('cards')}</div><div class="grow"><b>한 번에 끝내기</b><div class="faint">카드 ${cards.length}장 → 문제 ${dq.length}개 · 약 ${mins}분</div></div><button class="btn pri" id="rv-all">시작</button></div>`
     : `<div class="card callout"><div class="mark">${ic('check')}</div><div class="grow"><b>오늘 복습을 다 했어요</b><div class="faint">새 강의를 읽으면 그 강의의 카드가 내일부터 들어와요</div></div></div>`;
-  h += `<div class="row" style="margin-bottom:8px">${cards.length ? `<button class="btn" id="rv-cards">${ic('cards', 18)}카드만 ${cards.length}</button>` : ''}${dq.length ? `<button class="btn" id="rv-q">문제만 ${dq.length}</button>` : ''}<button class="btn ghost" id="rv-more">새 카드 10장 더</button></div>`;
-  if (wrong.length) h += `<div class="sect">틀린 문제 ${wrong.length}</div><div class="row" style="margin-bottom:14px"><button class="btn" id="rw">다시 풀기</button><button class="btn gem" id="weak">${ic('spark', 18)}Gemini 약점 분석</button></div><div id="weakout"></div>
-    <div class="card" style="padding-top:6px;padding-bottom:6px"><ul class="list">${wrong.slice(0, 40).map(x => `<li class="off" style="cursor:default;align-items:flex-start"><span class="tag bad" style="margin-top:3px">${prog.q[x.id].wrong}회</span><span class="grow"><span class="tt" style="color:var(--ink)">${esc(x.q.length > 110 ? x.q.slice(0, 110) + '…' : x.q)}</span><div class="faint">${esc(subjById(x.sid)?.name)} · ${esc(x.from)}</div></span></li>`).join('')}</ul></div>`;
+  h += `<div class="row" style="margin-bottom:8px">${cards.length ? `<button class="btn" id="rv-cards">${ic('cards', 18)}카드만 ${cards.length}</button>` : ''}${dq.length ? `<button class="btn" id="rv-q">문제만 ${dq.length}</button>` : ''}${cards.length || dq.some(x => x.type === 'ox') ? `<button class="btn" id="rv-listen">${ic('sound', 18)}듣기로 복습</button>` : ''}<button class="btn ghost" id="rv-more">새 카드 10장 더</button></div>`;
+  const leech = wrong.filter(x => isLeech(x.id));
+  if (wrong.length) h += `<div class="sect">틀린 문제 ${wrong.length}</div><div class="row" style="margin-bottom:14px"><button class="btn" id="rw">다시 풀기</button>${leech.length ? `<button class="btn" id="rleech">★ 상습 오답만 ${leech.length}</button>` : ''}<button class="btn gem" id="weak">${ic('spark', 18)}Gemini 약점 분석</button></div><div id="weakout"></div>
+    <div class="card" style="padding-top:6px;padding-bottom:6px"><ul class="list">${wrong.slice(0, 40).map(x => `<li class="off" style="cursor:default;align-items:flex-start"><span class="tag bad" style="margin-top:3px">${isLeech(x.id) ? '★ ' : ''}${prog.q[x.id].wrong}회</span><span class="grow"><span class="tt" style="color:var(--ink)">${esc(x.q.length > 110 ? x.q.slice(0, 110) + '…' : x.q)}</span><div class="faint">${esc(subjById(x.sid)?.name)} · ${esc(x.from)}</div></span></li>`).join('')}</ul></div>`;
   render(h);
   $('#rv-all') && ($('#rv-all').onclick = () => startCards(cards, '오늘 복습', '#/review', dq));
   $('#rv-cards') && ($('#rv-cards').onclick = () => startCards(cards, '카드 복습', '#/review'));
   $('#rv-q') && ($('#rv-q').onclick = () => startQuiz(interleave(dq), '다시 풀 문제', '#/review'));
+  // 듣기로 복습: 카드는 앞면 → 뒷면, OX 문제는 지문 → 정답. 걷거나 이동하면서
+  $('#rv-listen') && ($('#rv-listen').onclick = () => startListen([
+    ...cards.map(c => ({kind: 'card', ask: c.f, answer: c.kind === '빈칸' && c.full ? c.full : c.b, from: c.from, sid: c.sid, c})),
+    ...interleave(dq.filter(x => x.type === 'ox')).map(q => ({kind: 'ox', ask: q.q, v: !!q.a, e: q.e, from: q.from, sid: q.sid, q}))],
+    '듣기 복습', '#/review', (it, ok) => { if (it.c) { srsReview(it.c.id, ok ? 3 : 1); saveProg(); logActivity(); } else record(it.q.id, ok); }));
   $('#rv-more').onclick = () => { setPref('newPerDay', pref('newPerDay', 20) + 10); viewReview(); };
   $('#rw') && ($('#rw').onclick = () => startQuiz(shuffle(wrong).slice(0, 30), '오답 복습', '#/review'));
+  $('#rleech') && ($('#rleech').onclick = () => startQuiz(shuffle(leech), '상습 오답', '#/review'));
   $('#weak') && ($('#weak').onclick = () => weakAnalysis($('#weak'), wrong));
 }
 
@@ -39,7 +46,7 @@ function viewCards() {
     return;
   }
   const c = z.list[z.i], pv = srsPreview(c.id), isNew = !prog.srs[c.id];
-  render(`<div class="qwrap"><div class="qtop"><span class="cnt">${pad2(z.i + 1)} <span class="faint">/ ${z.list.length}</span></span><span class="grow faint">${esc(subjById(c.sid)?.name || '')} · ${esc(c.from)}</span><span class="tag ${isNew ? 'warn' : ''}">${isNew ? '새 카드' : c.kind}</span></div>
+  render(`<div class="qwrap"><div class="qtop"><span class="cnt">${pad2(z.i + 1)} <span class="faint">/ ${z.list.length}</span></span><span class="grow faint">${esc(subjById(c.sid)?.name || '')} · ${esc(c.from)}</span>${isLeech(c.id) ? '<span class="tag bad">★ 상습</span>' : ''}<span class="tag ${isNew ? 'warn' : ''}">${isNew ? '새 카드' : c.kind}</span></div>
     <div class="prog"><i style="width:${z.i / z.list.length * 100}%"></i></div>
     <div class="card flash" id="flash"><div class="q" style="margin:0">${esc(c.f)}</div><div id="cback" hidden><hr style="border:0;height:1px;background:var(--line);margin:18px 0"><div class="md" style="font-size:16.5px">${inline(c.kind === '빈칸' ? c.full.replace(c.b, '**' + c.b + '**') : c.b)}</div></div>
       <p class="faint" id="tap" style="margin:18px 0 0">눌러서 뒷면 보기 · Space</p></div>
@@ -100,8 +107,48 @@ function cardForm(s, uid, done) {
 }
 function addCards(s, list, by) {
   const t = Date.now();
-  (prog.cards[s.id] ||= []).push(...list.map((c, i) => ({cid: t.toString(36) + '_' + i, t, f: c.f, b: c.b, uid: c.uid || null, by})));
+  (prog.cards[s.id] ||= []).push(...list.map((c, i) => ({cid: t.toString(36) + '_' + i, t, f: c.f, b: c.b, uid: c.uid || null, by, ...(c.full ? {full: c.full} : {})})));
   saveProg();
+}
+// 읽다가 글을 고르면 '빈칸 카드' 단추가 뜬다. 고른 말을 가린 그 문장이 카드가 된다(RemNote·MarginNote 처럼 한 번에).
+function selCard(box, s, uid) {
+  document.querySelectorAll('.selcard').forEach(b => b.remove());
+  const btn = document.createElement('button');
+  btn.className = 'btn sm pri selcard noprint'; btn.hidden = true; btn.innerHTML = `${ic('cards', 16)}빈칸 카드`;
+  document.body.append(btn);
+  let pick = null;
+  const hide = () => { btn.hidden = true; pick = null; };
+  const check = () => {
+    if (!box.isConnected) { btn.remove(); document.removeEventListener('selectionchange', onSel); removeEventListener('scroll', onSel); return; }
+    const sel = getSelection(), word = sel.toString().replace(/\s+/g, ' ').replace(/^[\s:;,.·•\-–—"'“”‘’()（）[\]]+|[\s:;,.·•\-–—"'“”‘’()（）[\]]+$/g, '');   // 앞뒤 문장부호는 빼고
+    if (sel.isCollapsed || !sel.rangeCount || word.length < 2 || word.length > 60 || !box.contains(sel.anchorNode) || !box.contains(sel.focusNode)) return hide();
+    const r = sel.getRangeAt(0), block = (r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentElement).closest('li,p,td,th,h2,h3,h4,blockquote,.box') || box;
+    const text = block.innerText.replace(/\s+/g, ' ').trim(), at = text.indexOf(word);
+    if (at < 0) return hide();
+    // 고른 말이 든 한 문장(길면 앞뒤 120자)
+    let a = 0;
+    for (const m of text.slice(0, at).matchAll(/[.?!。]\s/g)) a = m.index + 2;
+    let e = text.slice(at + word.length).search(/[.?!。](\s|$)/);
+    e = e < 0 ? text.length : at + word.length + e + 1;
+    const from = Math.max(a, at - 120), to = Math.min(e, at + word.length + 120), full = text.slice(from, to).trim();
+    pick = {word, full};
+    const rc = r.getBoundingClientRect();
+    btn.style.top = Math.min(innerHeight - 56, rc.bottom + 10) + 'px';   // 아이패드는 글 위에 복사 메뉴가 떠서 아래에 둔다
+    btn.style.left = Math.max(12, Math.min(innerWidth - 140, rc.left + rc.width / 2 - 60)) + 'px';
+    btn.hidden = false;
+  };
+  let tm;
+  const onSel = () => { clearTimeout(tm); tm = setTimeout(check, 250); };
+  document.addEventListener('selectionchange', onSel); addEventListener('scroll', onSel, {passive: true});
+  btn.addEventListener('pointerdown', e => e.preventDefault());   // 단추를 눌러도 고른 글이 풀리지 않게
+  btn.onclick = () => {
+    if (!pick) return;
+    const f = pick.full.replace(pick.word, '［　？　］');
+    if ((prog.cards[s.id] || []).some(c => c.f === f)) { toast('이미 만든 카드예요'); return hide(); }
+    addCards(s, [{f, b: pick.word, full: pick.full, uid}]);
+    getSelection().removeAllRanges(); hide();
+    toast('빈칸 카드를 만들었어요 · 오늘 복습에 먼저 나와요');
+  };
 }
 const CARD_S = obj({cards: arr(obj({f: S_, b: S_, uid: S_}))});
 async function gemCards(s, units) {

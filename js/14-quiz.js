@@ -7,18 +7,28 @@ function startQuiz(qs, title, back) {
 }
 const norm = s => String(s).replace(/\s+/g, '').replace(/[()（）·,.]/g, '').toLowerCase();
 const answerText = q => q.type === 'mcq' ? q.c[q.a] : q.type === 'ox' ? (q.a ? 'O' : 'X') : q.a;
+const HAND_S = obj({transcript: S_, score: {type: 'INTEGER'}, good: arr(S_), missing: arr(S_), improved: S_, comment: S_});
+// 폰 사진은 커서 긴 변 1800px JPEG 로 줄여 보낸다(빠르고 무료 한도도 덜 쓴다). 못 여는 형식이면 그대로.
+async function shrinkPhoto(f, max = 1800) {
+  try {
+    const bmp = await createImageBitmap(f), k = Math.min(1, max / Math.max(bmp.width, bmp.height)), c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise(ok => c.toBlob(b => ok(b || f), 'image/jpeg', .85));
+  } catch { return f; }
+}
 function viewQuiz() {
   const z = state.quiz;
   if (!z) return location.replace('#/');
   frame(z.title, z.back);
   if (z.i >= z.qs.length) return quizEnd();
   const q = z.qs[z.i];
-  let h = `<div class="qwrap"><div class="qtop"><span class="cnt">${String(z.i + 1).padStart(2, '0')} <span class="faint">/ ${z.qs.length}</span></span><span class="grow faint">${esc(q.from)}</span><span class="tag">${{mcq: '객관식', ox: 'OX', short: '서술형'}[q.type]}</span></div>
+  let h = `<div class="qwrap"><div class="qtop"><span class="cnt">${String(z.i + 1).padStart(2, '0')} <span class="faint">/ ${z.qs.length}</span></span><span class="grow faint">${esc(q.from)}</span>${isLeech(q.id) ? '<span class="tag bad">★ 상습</span>' : ''}<span class="tag">${{mcq: '객관식', ox: 'OX', short: '서술형'}[q.type]}</span></div>
     <div class="prog"><i style="width:${z.i / z.qs.length * 100}%"></i></div><div class="card" style="padding:26px"><div class="q">${esc(q.q)}</div>`;
   if (q.type === 'mcq') h += q.order.map((ci, n) => `<button class="choice" data-c="${ci}"><span class="badge">${n + 1}</span><span>${esc(q.c[ci])}</span></button>`).join('');
   if (q.type === 'ox') h += `<div class="oxrow"><button class="choice" data-c="1">O</button><button class="choice" data-c="0">X</button></div>`;
   if (q.type === 'short') h += `<textarea id="ans" placeholder="답을 써 보세요. 비워 두고 '모범 답안 보기'를 눌러도 돼요."></textarea>
-    <div class="row" style="margin-top:12px">${gemKey() ? `<button class="btn gem" id="grade">${ic('spark', 18)}Gemini 채점</button>` : ''}<button class="btn ${gemKey() ? '' : 'pri'}" id="show">모범 답안 보기</button></div>`;
+    <div class="row" style="margin-top:12px">${gemKey() ? `<button class="btn gem" id="grade">${ic('spark', 18)}Gemini 채점</button><button class="btn gem" id="photob">${ic('camera', 18)}손글씨 사진 채점</button><input type="file" accept="image/*" id="photo" hidden>` : ''}<button class="btn ${gemKey() ? '' : 'pri'}" id="show">모범 답안 보기</button></div>`;
   h += '<div id="fb"></div></div></div>';
   render(h);
   const next = () => { z.i++; viewQuiz(); scrollTo(0, 0); };
@@ -47,7 +57,7 @@ function viewQuiz() {
   const reveal = (extra = '', rec = null) => {
     const mine = norm($('#ans').value), hits = q.k.filter(k => mine.includes(norm(k)));
     $('#ans').readOnly = true;
-    main_.querySelectorAll('#grade,#show').forEach(b => b.remove());
+    main_.querySelectorAll('#grade,#show,#photob').forEach(b => b.remove());
     $('#fb').innerHTML = `${extra}<div class="box"><h3>모범 답안</h3><div>${inline(q.a)}</div><div style="margin-top:10px">${q.k.map(k => `<span class="kw ${hits.includes(k) ? 'hit' : ''}">${esc(k)}</span>`).join('')}</div>
       ${mine ? `<div class="faint" style="margin-top:8px">핵심어 ${hits.length}/${q.k.length}개를 썼어요</div>` : ''}</div>
       <div class="row"><span class="grow muted">스스로 채점</span><button class="btn ${rec === false ? 'pri' : ''}" id="sb">몰랐어요</button><button class="btn ${rec === false ? '' : 'pri'}" id="sg">맞혔어요</button></div>`;
@@ -55,18 +65,37 @@ function viewQuiz() {
     $('#sb').onclick = () => { z.res.push({q, ok: false}); record(q.id, false); next(); };
   };
   $('#show').onclick = () => reveal();
+  const rubric = `너는 대학 시험 서술형 채점자다. 10점 만점으로 엄정하지만 친절하게 채점한다.\n문제: ${q.q}\n모범 답안: ${q.a}\n채점 핵심어: ${q.k.join(', ')}`;
+  const ask = '\n\nscore(0~10 정수), good(잘 쓴 점), missing(빠졌거나 틀린 점), improved(학생 답의 표현을 살려 고쳐 쓴 답안), comment(한 줄 총평)';
+  const shown = g => {
+    const sc = Math.max(0, Math.min(10, g.score | 0));
+    reveal(`<div class="card ai" style="box-shadow:none;margin-top:16px"><div class="ai-head"><div class="mark">${ic('spark', 18)}</div><div class="grade grow"><b>${sc}</b><span class="faint">/ 10</span></div><span class="tag ${sc >= 7 ? 'ok' : sc >= 4 ? 'warn' : 'bad'}">${esc(g.comment)}</span></div>
+      ${g.good?.length ? `<div class="md"><b>잘 쓴 점</b><ul>${g.good.map(x => `<li>${inline(x)}</li>`).join('')}</ul></div>` : ''}
+      ${g.missing?.length ? `<div class="md"><b>빠진 점</b><ul>${g.missing.map(x => `<li>${inline(x)}</li>`).join('')}</ul></div>` : ''}
+      <div class="box" style="margin-bottom:0"><h3>고쳐 쓴 답안</h3>${inline(g.improved)}</div></div>`, sc >= 7);
+  };
+  const busyAll = (btn, t) => { busy(btn, t); main_.querySelectorAll('#grade,#photob,#show').forEach(b => b.disabled = true); };
+  const freeAll = btn => { unbusy(btn); main_.querySelectorAll('#grade,#photob,#show').forEach(b => b.disabled = false); };
   $('#grade') && ($('#grade').onclick = async () => {
     const mine = $('#ans').value.trim();
     if (!mine) return toast('답을 먼저 써 주세요');
-    busy($('#grade'), '채점하는 중…'); $('#show').disabled = true;
+    busyAll($('#grade'), '채점하는 중…');
+    try { shown(await gem(`${rubric}\n학생 답안: ${mine}${ask}`, {schema: GRADE_S, temp: .2})); }
+    catch (e) { toast(e.message); freeAll($('#grade')); }
+  });
+  // 손으로 쓴 답안 사진: Gemini 가 글을 옮겨 적고 같은 기준으로 채점한다(시험은 손으로 쓰니까)
+  $('#photob') && ($('#photob').onclick = () => $('#photo').click());
+  $('#photo') && ($('#photo').onchange = async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    busyAll($('#photob'), '사진 읽고 채점하는 중…');
     try {
-      const g = await gem(`너는 대학 시험 서술형 채점자다. 10점 만점으로 엄정하지만 친절하게 채점한다.\n문제: ${q.q}\n모범 답안: ${q.a}\n채점 핵심어: ${q.k.join(', ')}\n학생 답안: ${mine}\n\nscore(0~10 정수), good(잘 쓴 점), missing(빠졌거나 틀린 점), improved(학생 답의 표현을 살려 고쳐 쓴 답안), comment(한 줄 총평)`, {schema: GRADE_S, temp: .2});
-      const sc = Math.max(0, Math.min(10, g.score | 0));
-      reveal(`<div class="card ai" style="box-shadow:none;margin-top:16px"><div class="ai-head"><div class="mark">${ic('spark', 18)}</div><div class="grade grow"><b>${sc}</b><span class="faint">/ 10</span></div><span class="tag ${sc >= 7 ? 'ok' : sc >= 4 ? 'warn' : 'bad'}">${esc(g.comment)}</span></div>
-        ${g.good?.length ? `<div class="md"><b>잘 쓴 점</b><ul>${g.good.map(x => `<li>${inline(x)}</li>`).join('')}</ul></div>` : ''}
-        ${g.missing?.length ? `<div class="md"><b>빠진 점</b><ul>${g.missing.map(x => `<li>${inline(x)}</li>`).join('')}</ul></div>` : ''}
-        <div class="box" style="margin-bottom:0"><h3>고쳐 쓴 답안</h3>${inline(g.improved)}</div></div>`, sc >= 7);
-    } catch (e) { toast(e.message); unbusy($('#grade')); $('#show').disabled = false; }
+      const img = await shrinkPhoto(f);
+      const g = await gem({parts: [{inline_data: {mime_type: img.type || mimeOf(f), data: await b64(img)}}, {text: `${rubric}\n학생 답안: 사진 속 손글씨. 먼저 transcript 에 보이는 그대로 옮겨 적고(못 읽는 글자는 [?]), 그 글로 채점한다. 글씨를 못 알아봐서 깎지는 않는다.${ask}`}]}, {schema: HAND_S, temp: .2});
+      $('#ans').value = g.transcript || '';
+      shown(g);
+    } catch (err) { toast(err.message); freeAll($('#photob')); }
+    e.target.value = '';
   });
 }
 function quizEnd() {

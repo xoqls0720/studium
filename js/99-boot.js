@@ -8,7 +8,7 @@ async function route() {
   if (h === '#/set') return viewSettings();
   if (h === '#/connect') return needConnect();
   if (!state.index) { state.index = {subjects: [], events: []}; state.subs = null; }   // 연결 전에도 앱에서 넣은 자료로 쓸 수 있다
-  const simple = {'#/quiz': viewQuiz, '#/review': viewReview, '#/cards': viewCards, '#/focus': viewFocus, '#/stats': viewStats, '#/add': viewAdd, '#/search': viewSearch};
+  const simple = {'#/quiz': viewQuiz, '#/review': viewReview, '#/cards': viewCards, '#/focus': viewFocus, '#/stats': viewStats, '#/add': viewAdd, '#/search': viewSearch, '#/listen': viewListen};
   if (simple[h]) return simple[h]();
   const m = h.match(/^#\/s\/([^/]+)\/?([^/]*)\/?(.*)$/);
   if (m) {
@@ -35,7 +35,7 @@ async function onWake() {
     await loadIndex(true); state.loadedAt = Date.now();
     if (state.index.updated !== before) {
       state.units = {}; state.summ = {};
-      if (!/^#\/(quiz|s\/[^/]+\/u\/)/.test(location.hash)) { const y = scrollY; await route(); scrollTo(0, y); }
+      if (!/^#\/(quiz|listen|s\/[^/]+\/u\/)/.test(location.hash)) { const y = scrollY; await route(); scrollTo(0, y); }
       toast('새 강의 자료가 들어왔어요');
     }
   } catch {}
@@ -53,6 +53,7 @@ async function boot() {
   setSync('');
   if (cfg.client) GD.gis().catch(() => {});   // 첫 탭에서 바로 로그인 창이 뜨게 미리 받아 둔다
   ink = (await kvGet('ink')) || {};
+  rlog = mergeRlog(rlog, (await kvGet('rlog')) || []);
   const cached = await cacheGet('index.json');
   if (cached) { state.index = cached.data; route(); }
   if (!cfg.mode) { if (!cached) route(); paintSync(); syncNow().catch(() => {}); return; }

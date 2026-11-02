@@ -88,6 +88,7 @@ async function viewUnit(s, uid) {
   $('#u-gn') && ($('#u-gn').onclick = () => toGoodnotes($('#u-gn'), `${s.folder}/${u.pdf}`, `${s.name} - ${u.title}.pdf`));
   $('#u-print').onclick = () => { state.inkPrint?.(); setTimeout(print, 80); };
   setupInk(u.id);
+  selCard($('#paper'), s, u.id);
   bindAi(`unit:${u.id}`, `너는 '${s.name}' 과목의 친절하고 정확한 조교다. 학생이 지금 '${u.title}' 정리 노트를 보고 있다.
 아래 노트를 근거로 한국어로 답한다. 노트에 없는 내용을 보탤 때는 '자료 밖 일반 지식'이라고 밝힌다. 답은 간결한 마크다운으로, 필요하면 표·목록을 쓴다.
 학생이 '튜터 모드'를 부탁하면 답을 바로 말하지 말고 질문을 하나씩 던져 스스로 설명하게 이끈다. 틀리면 힌트를 한 단계씩 준다. 끝나면 학생이 약했던 부분을 정리한다.
@@ -161,15 +162,17 @@ async function viewSummary(s) {
   const d = await loadSummary(s);
   const tools = `<div class="sect">마인드맵</div><div class="card" id="mmbox"></div>
     <div class="sect">과목 팟캐스트</div><div class="card" id="podbox"><div class="row"><span class="grow muted">과목 전체를 두 사람이 대화로 풀어 주는 오디오를 만들어요.</span><button class="btn gem" id="podgo">${ic('spark', 18)}만들기</button></div></div>`;
-  render(tabsHtml(s, 'summary') + (d ? `<div class="narrow" style="margin-left:0"><div class="card" style="padding:28px"><div class="md"><h2>과목 흐름</h2><p>${inline(d.overview)}</p></div>
+  render(tabsHtml(s, 'summary') + (d ? `<div class="narrow" style="margin-left:0"><div class="card" style="padding:28px" id="sumbox"><div class="md"><h2>과목 흐름</h2><p>${inline(d.overview)}</p></div>
     <div class="box emph"><h3>시험에 나올 핵심</h3><ol>${(d.top || []).map(x => `<li>${inline(x)}</li>`).join('')}</ol></div>
     <div class="md">${(d.chapters || []).map(c => `<h3>${inline(c.title)}</h3><p>${inline(c.gist)}</p><ul>${(c.must || []).map(x => `<li>${inline(x)}</li>`).join('')}</ul>`).join('')}</div></div>
     <div class="row noprint"><button class="btn pri" id="sq">종합 문제 풀기 · ${summaryQuestions(s, d).length}</button><button class="btn" onclick="print()">${ic('print', 18)}인쇄·PDF</button></div></div>`
     : '<div class="card muted">요약집은 이 과목 자료가 모두 정리된 뒤 PC 생성기가 만들어요.</div>') + tools);
+  $('#sumbox') && selCard($('#sumbox'), s, null);
   $('#sq') && ($('#sq').onclick = () => startQuiz(shuffle(summaryQuestions(s, d)), s.name + ' 종합', `#/s/${s.id}/summary`));
-  kvGet('mm:' + s.id).then(c => c ? mindmapPanel($('#mmbox'), s) : ($('#mmbox').innerHTML = `<div class="row"><span class="grow muted">과목 전체 개념 관계를 한 장으로 그려요.</span><button class="btn gem" id="mmgo">${ic('map', 18)}그리기</button></div>`, $('#mmgo').onclick = () => mindmapPanel($('#mmbox'), s)));
+  const mmbox = $('#mmbox');   // 그새 다른 화면으로 넘어갔으면 손대지 않는다
+  kvGet('mm:' + s.id).then(c => !mmbox.isConnected ? 0 : c ? mindmapPanel(mmbox, s) : (mmbox.innerHTML = `<div class="row"><span class="grow muted">과목 전체 개념 관계를 한 장으로 그려요.</span><button class="btn gem" id="mmgo">${ic('map', 18)}그리기</button></div>`, $('#mmgo').onclick = () => mindmapPanel($('#mmbox'), s)));
   const podSrc = async () => d ? `${d.overview}\n${(d.top || []).join('\n')}\n${(d.chapters || []).map(c => c.title + ': ' + c.gist).join('\n')}` : (await Promise.all(s.units.filter(u => u.ready).slice(0, 20).map(u => loadUnit(s, u).then(x => u.title + ': ' + (x.points || []).join(' / ')).catch(() => '')))).join('\n');
-  kvGet('pod:s:' + s.id).then(c => { if (c) podcastPanel($('#podbox'), 's:' + s.id, s.name, podSrc); });   // 다시 만들 때 쓸 글은 그때 모은다
+  kvGet('pod:s:' + s.id).then(c => { if (c && $('#podbox')) podcastPanel($('#podbox'), 's:' + s.id, s.name, podSrc); });   // 다시 만들 때 쓸 글은 그때 모은다
   $('#podgo').onclick = () => podcastPanel($('#podbox'), 's:' + s.id, s.name, podSrc);
 }
 

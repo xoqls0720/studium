@@ -281,4 +281,7 @@ nav button.on{color:var(--ink);background:var(--card);box-shadow:0 1px 3px rgba(
 mark{background:var(--gold-soft);color:var(--ink);border-radius:3px;padding:0 2px}
 details summary{cursor:pointer}
 .dot[style*="--h"]{display:inline-block}
+.selcard{position:fixed;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.lsay{font-family:var(--serif);font-size:21px;line-height:1.6;min-height:3.2em}
+.lsay.ans{color:var(--pri);font-size:18px;min-height:0}
 @media (max-width:600px){ .grades .btn b{font-size:14px} .ring.timer{width:210px;height:210px} .ring.timer>div{width:184px;height:184px} .ring.timer b{font-size:38px} nav button{padding:7px 12px 6px} }

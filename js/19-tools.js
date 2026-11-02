@@ -10,6 +10,74 @@ function speak(text, {rate = pref('ttsRate', 1.05), onend} = {}) {
   parts.forEach((p, i) => { const u = new SpeechSynthesisUtterance(p); u.lang = 'ko-KR'; u.rate = rate; if (voice) u.voice = voice; if (i === parts.length - 1 && onend) u.onend = onend; speechSynthesis.speak(u); });
 }
 const speakStop = () => window.speechSynthesis?.cancel();
+// 다 읽으면 끝나는 약속. 사파리가 onend 를 빠뜨려도 글 길이만큼 지나면 넘어간다.
+const sayP = text => new Promise(ok => {
+  const t = plain(text);
+  if (!t) return ok();
+  const tm = setTimeout(ok, 3000 + t.length * 260 / pref('ttsRate', 1.05));
+  speak(t, {onend: () => { clearTimeout(tm); ok(); }});
+});
+
+// ── 듣기 복습: 화면을 안 봐도 되게 앞면(지문)을 읽고, 생각할 시간 뒤 답을 읽는다 ──
+// items: [{kind: 'card'|'ox', ask, answer, v(OX 정답), e(해설), from, sid}]. 누르면 rec(item, ok) 로 기록하고, 안 누르면 듣기만 한다.
+let listenLock = null;
+function startListen(items, title, back, rec) {
+  if (!('speechSynthesis' in window)) return toast('이 기기는 읽어 주기를 지원하지 않아요');
+  if (!items.length) return toast('들을 것이 없어요');
+  state.listen = {items, i: 0, title, back, rec, n: 0, tok: 0, paused: false};
+  navigator.wakeLock?.request('screen').then(l => listenLock = l).catch(() => {});   // 듣는 동안 화면이 꺼지면 읽기가 멈춘다
+  if (location.hash === '#/listen') viewListen(); else location.hash = '#/listen';
+}
+function viewListen() {
+  const z = state.listen;
+  if (!z) return location.replace('#/review');
+  frame(z.title, z.back);
+  const tok = ++z.tok, alive = () => {
+    const on = z.tok === tok && state.listen === z && location.hash === '#/listen';
+    if (!on && location.hash !== '#/listen') { listenLock?.release().catch(() => {}); listenLock = null; }
+    return on;
+  };
+  if (z.i >= z.items.length) {
+    render(`<div class="qwrap"><div class="card" style="text-align:center;padding:34px 24px"><div class="eyebrow">끝</div><h2 class="display">${z.items.length}개 들었어요</h2>
+      <p class="muted">${z.n ? `${z.n}개를 기록했어요.` : '누른 것이 없어서 기록은 남기지 않았어요.'}</p><div class="row" style="justify-content:center;margin-top:12px"><button class="btn pri" data-go="${z.back}">돌아가기</button></div></div></div>`);
+    speak('끝났어요.'); listenLock?.release().catch(() => {}); listenLock = null;
+    return;
+  }
+  const it = z.items[z.i], ox = it.kind === 'ox';
+  render(`<div class="qwrap"><div class="qtop"><span class="cnt">${pad2(z.i + 1)} <span class="faint">/ ${z.items.length}</span></span><span class="grow faint">${esc(subjById(it.sid)?.name || '')} · ${esc(it.from || '')}</span><span class="tag">${ox ? 'OX' : '카드'}</span></div>
+    <div class="prog"><i style="width:${z.i / z.items.length * 100}%"></i></div>
+    <div class="card" style="padding:26px"><div class="lsay">${esc(it.ask)}</div><div class="lsay ans" id="la" hidden></div>
+      <div class="oxrow" style="margin-top:16px">${ox ? '<button class="choice" data-v="1">O</button><button class="choice" data-v="0">X</button>' : '<button class="choice" data-v="1">알았어요</button><button class="choice" data-v="0">몰랐어요</button>'}</div>
+      <p class="faint" style="margin:12px 0 0">${ox ? '답을 들려주기 전에 누르면 기록돼요.' : '답을 듣고 누르면 기록돼요.'} 안 누르면 듣기만 하고 넘어가요.</p></div>
+    <div class="row"><button class="btn" id="lpause">${z.paused ? ic('sound', 18) + '이어 듣기' : ic('pause', 18) + '멈춤'}</button><button class="btn ghost" id="lprev">${ic('back', 18)}앞</button><span class="grow"></span><button class="btn ghost" id="lnext">다음${ic('chev', 18)}</button></div>
+    <label class="field"><span>생각할 시간</span><div class="opt">${[3, 5, 8, 12].map(n => `<label><input type="radio" name="lw" value="${n}" ${pref('listenWait', 5) === n ? 'checked' : ''}>${n}초</label>`).join('')}</div></label></div>`);
+  const go = d => { speakStop(); z.i = Math.max(0, z.i + d); viewListen(); };
+  let answered = null, revealed = false, wake = null;
+  const sleep = ms => new Promise(ok => { const t = setTimeout(ok, ms); wake = () => { clearTimeout(t); ok(); }; });
+  main_.querySelectorAll('.choice').forEach(b => b.onclick = () => {
+    if (answered != null || (ox && revealed) || (!ox && !revealed)) return;
+    answered = b.dataset.v === '1';
+    const ok = ox ? answered === it.v : answered;
+    main_.querySelectorAll('.choice').forEach(x => { x.disabled = true; if (ox && (x.dataset.v === '1') === it.v) x.classList.add('ok'); });
+    if (!ok) b.classList.add('bad'); else if (!ox) b.classList.add('ok');
+    z.rec(it, ok); z.n++; wake?.();
+  });
+  $('#lpause').onclick = () => { z.paused = !z.paused; speakStop(); viewListen(); };
+  $('#lprev').onclick = () => go(-1);
+  $('#lnext').onclick = () => go(1);
+  main_.querySelectorAll('[name=lw]').forEach(r => r.onchange = () => setPref('listenWait', +r.value));
+  if (z.paused) return;
+  (async () => {
+    await sayP(it.ask); if (!alive()) return;
+    if (answered == null) await sleep(pref('listenWait', 5) * 1000); if (!alive()) return;
+    revealed = true;
+    const said = ox ? `정답 ${it.v ? '오' : '엑스'}. ${it.e || ''}` : it.answer;
+    $('#la').hidden = false; $('#la').textContent = ox ? `정답 ${it.v ? 'O' : 'X'}${it.e ? ' · ' + plain(it.e) : ''}` : plain(it.answer);
+    await sayP(said); if (!alive()) return;
+    if (answered == null) await sleep(ox ? 1200 : 3000);   // 카드는 답을 듣고 누를 틈을 준다
+    if (alive() && !z.paused) go(1);
+  })();
+}
 
 // ── 팟캐스트: Gemini 가 두 사람 대화 대본을 쓰고, Gemini 음성(TTS)으로 만든다. 안 되면 기기 음성으로 읽는다. ──
 const TTS_MODELS = ['gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-tts', 'gemini-flash-tts-latest'];

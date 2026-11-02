@@ -28,9 +28,10 @@ async function officeText(file) {
   for (const n of names) out.push((await zip.file(n).async('string')).replace(/<\/(w:p|a:p|hp:p)>/g, '\n').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
   return out.join('\n\n').trim();
 }
-// Gemini 에 넘길 조각: 작은 파일은 그대로, 큰 파일(18MB 넘음)은 Gemini 파일 저장소에 올린 뒤 주소로
+// Gemini 에 넘길 조각: 작은 파일은 그대로, 큰 파일(14MB 넘음)은 Gemini 파일 저장소에 올린 뒤 주소로.
+// 그대로 보내면 base64 로 4/3 배가 되니 14MB 여야 요청 한도(20MB) 안에 든다.
 async function gemFilePart(blob, mime, name) {
-  if (blob.size <= 18 * 2 ** 20) return {inline_data: {mime_type: mime, data: await b64(blob)}};
+  if (blob.size <= 14 * 2 ** 20) return {inline_data: {mime_type: mime, data: await b64(blob)}};
   const key = gemKey();
   const st = await fetch('https://generativelanguage.googleapis.com/upload/v1beta/files', {method: 'POST', headers: {'x-goog-api-key': key, 'X-Goog-Upload-Protocol': 'resumable', 'X-Goog-Upload-Command': 'start',
     'X-Goog-Upload-Header-Content-Length': String(blob.size), 'X-Goog-Upload-Header-Content-Type': mime, 'Content-Type': 'application/json'}, body: JSON.stringify({file: {display_name: name.slice(0, 100)}})});
