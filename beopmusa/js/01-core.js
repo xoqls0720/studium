@@ -363,3 +363,10 @@ async function ollamaCall(msgs, {schema, sys, temp = .5} = {}) {
   return schema ? pickJSON(t, 'Ollama') : t;
 }
 const thinking = t => `<div class="thinking"><span class="spin"></span>${esc(t || aiName() + '가 생각하는 중…')}</div>`;
+
+// 메모지 글칸: 쓰는 만큼 아래로 늘어난다. 칸 안 스크롤이 없어야 아이패드 사파리에서도 줄이 글과 어긋나지 않는다
+function autoGrow(t) {
+  if (!t) return;
+  const g = () => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; };
+  t.addEventListener('input', g); g();
+}

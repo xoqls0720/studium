@@ -178,7 +178,7 @@ main{max-width:1040px;margin:0 auto;padding:28px 20px calc(env(safe-area-inset-b
 textarea{width:100%;min-height:150px;border:1px solid var(--line-2);border-radius:14px;padding:13px 15px;background:var(--card);line-height:1.7;outline:none;transition:border-color .15s}
 textarea:focus,input:focus,select:focus{border-color:var(--pri);outline:none}
 /* 메모지 — 줄노트·모눈종이. 줄 간격과 글줄 높이를 맞춰서 글이 줄 위에 앉고, 배경이 글과 같이 스크롤된다 */
-textarea.m-line,textarea.m-grid{--mh:30px;line-height:var(--mh);padding-top:0;padding-bottom:0;background-attachment:local}
+textarea.m-line,textarea.m-grid{--mh:30px;line-height:var(--mh);font-size:16px;padding-top:0;padding-bottom:0;background-attachment:local;overflow-y:hidden}
 textarea.m-line{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--mh) - 1px),var(--line-2) calc(var(--mh) - 1px),var(--line-2) var(--mh))}
 textarea.m-grid{background-image:linear-gradient(var(--line-2) 1px,transparent 1px),linear-gradient(90deg,var(--line-2) 1px,transparent 1px),repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--mh) - 1px),var(--line-2) calc(var(--mh) - 1px),var(--line-2) var(--mh));background-size:calc(var(--mh)/2) calc(var(--mh)/2),calc(var(--mh)/2) calc(var(--mh)/2),auto}
 input[type=date],input[type=text],input[type=password],select{border:1px solid var(--line-2);border-radius:12px;padding:8px 12px;background:var(--card);min-height:42px}

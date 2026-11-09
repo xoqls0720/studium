@@ -71,6 +71,7 @@ function viewQuiz() {
     after(rights.includes(c), q.type === 'mcq' ? q.c[c] : c ? 'O' : 'X');
   });
   if (q.type !== 'short') return;
+  autoGrow($('#ans'));
   const reveal = (extra = '', rec = null) => {
     const mine = norm($('#ans').value), hits = q.k.filter(k => mine.includes(norm(k)));
     $('#ans').readOnly = true;

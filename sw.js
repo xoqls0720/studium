@@ -1,5 +1,5 @@
 ﻿// ??猿띾뜲湲곕쭔 ?댁븘 ?붾떎(?먮즺???붾㈃??IndexedDB ???곕줈 ?붾떎). ???먯쓣 ?щ┫ ??CACHE ?대쫫??諛붽씔??
-const CACHE = 'studium-17';
+const CACHE = 'studium-18';
 const JS = ['01-core', '02-sync', '03-data', '04-ui', '05-srs', '10-home', '11-subject', '12-ink', '13-exam', '14-quiz', '15-settings', '16-cards', '17-focus', '18-add', '19-tools', '99-boot'];
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'css/app.css', ...JS.map(n => `js/${n}.js`)];
 

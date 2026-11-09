@@ -97,12 +97,12 @@ async function viewUnit(s, uid) {
   };
   $('#u-pod').onclick = () => { const b = $('#u-podbox'); b.hidden = false; podcastPanel(b, 'u:' + u.id, u.title, `${d.note}\n핵심: ${(d.points || []).join('\n')}`); };
   $('#u-mark').onclick = () => { const on = toggleMark(u.id); $('#u-mark').style.cssText = on ? 'color:var(--gold);border-color:var(--gold-line)' : ''; toast(on ? '책갈피에 넣었어요' : '책갈피를 뺐어요'); };
-  $('#u-memo').onclick = () => { $('#u-memobox').hidden = false; $('#u-memotext').focus(); };
+  $('#u-memo').onclick = () => { const t = $('#u-memotext'); $('#u-memobox').hidden = false; t.dispatchEvent(new Event('input')); t.focus(); };
   $('#u-memotext').oninput = e => setMemo(u.id, e.target.value);
   // 메모지 무늬: 줄노트 ⇄ 모눈종이 (기기끼리 같이 기억)
   const paintMp = () => { const g = pref('memoPaper', 'line') === 'grid'; const t = $('#u-memotext'); t.classList.toggle('m-grid', g); t.classList.toggle('m-line', !g); $('#u-mp').textContent = g ? '줄노트로' : '모눈으로'; };
   $('#u-mp').onclick = () => { setPref('memoPaper', pref('memoPaper', 'line') === 'grid' ? 'line' : 'grid'); paintMp(); };
-  paintMp();
+  paintMp(); autoGrow($('#u-memotext'));
   $('#u-gn') && ($('#u-gn').onclick = () => toGoodnotes($('#u-gn'), `${s.folder}/${u.pdf}`, `${s.name} - ${u.title}.pdf`));
   // 굿노트 바로 열기: 강의를 여는 순간 PDF를 미리 받아 둬서, '굿노트로'를 누르면 기다림 없이 공유 창이 바로 뜬다
   if (u.pdf && !pdfCache.has(`${s.folder}/${u.pdf}`)) (async () => {
@@ -163,11 +163,14 @@ async function viewBlank(s, uid) {
     <section class="hero" style="margin-bottom:14px"><div class="eyebrow">백지 복습 · ${esc(s.name)}</div><h2 class="display">${esc(u.title)}</h2>
       <p class="lede">아무것도 보지 않고, 이 자료에서 기억나는 것을 전부 써 보세요. 핵심 개념·정의·예시처럼 시험에 나올 말로요. 다 쓰면 기본서와 대조해 빠진 것을 짚어 줘요.</p></section>
     <div class="card"><textarea id="bl-text" class="${pref('memoPaper', 'line') === 'grid' ? 'm-grid' : 'm-line'}" style="min-height:260px" placeholder="기억나는 대로… (쓰다 막히면 그게 복습할 곳이에요)">${esc(saved)}</textarea>
-      <div class="row" style="margin-top:12px"><button class="btn pri gem" id="bl-check">${ic('spark', 18)}기본서와 대조</button><span class="grow faint" id="bl-n"></span><button class="btn ghost" data-go="#/s/${s.id}/u/${u.id}">자료으로</button></div></div>
+      <div class="row" style="margin-top:12px"><button class="btn pri gem" id="bl-check">${ic('spark', 18)}기본서와 대조</button><span class="grow faint" id="bl-n"></span><button class="btn ghost sm" id="bl-mp"></button><button class="btn ghost" data-go="#/s/${s.id}/u/${u.id}">자료로</button></div></div>
     <div id="bl-out"></div></div>`);
   const ta = $('#bl-text');
   ta.oninput = () => { $('#bl-n').textContent = ta.value.trim() ? ta.value.trim().length + '자' : ''; store.set('blank.' + u.id, ta.value.slice(0, 20000)); };
-  ta.oninput();
+  ta.oninput(); autoGrow(ta);
+  const paintBp = () => { const g = pref('memoPaper', 'line') === 'grid'; ta.classList.toggle('m-grid', g); ta.classList.toggle('m-line', !g); $('#bl-mp').textContent = g ? '줄노트로' : '모눈으로'; };
+  $('#bl-mp').onclick = () => { setPref('memoPaper', pref('memoPaper', 'line') === 'grid' ? 'line' : 'grid'); paintBp(); };
+  paintBp();
   $('#bl-check').onclick = async () => {
     const mine = ta.value.trim();
     if (mine.length < 20) return toast('조금 더 써 보세요 (20자부터)');
