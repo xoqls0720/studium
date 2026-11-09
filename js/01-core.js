@@ -225,17 +225,50 @@ async function readJSON(path, {fresh = true} = {}) {
 const GEM_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest'];
 // Gemini 키는 진도와 함께 드라이브 앱 전용 칸으로 기기끼리 맞춘다(한 기기에서 한 번만 넣으면 된다)
 const gemKey = () => prog.pref?.gemKey ? prog.pref.gemKey.v : store.get('gemKey', '');
+const AI_PROV = {gemini: 'Gemini', claude: 'Claude', groq: 'Groq', ollama: 'Ollama'};
+const aiProv = () => { const p = store.get('aiProv', 'gemini'); return AI_PROV[p] ? p : 'gemini'; };
+const aiKey = p => store.get({gemini: 'gemKey', claude: 'ckKey', groq: 'grKey'}[p] || '', '');
+// AI를 쓸 수 있는 상태인지(Ollama는 키가 없어도 켜 두면 시도한다)
+const aiOn = () => { const p = aiProv(); return p === 'ollama' || (p === 'gemini' ? !!gemKey() : !!aiKey(p)); };
+const aiName = () => AI_PROV[aiProv()];
 const S_ = {type: 'STRING'}, arr = items => ({type: 'ARRAY', items}), obj = p => ({type: 'OBJECT', properties: p, required: Object.keys(p)});
 const MCQ_S = obj({q: S_, c: arr(S_), a: {type: 'INTEGER'}, e: S_}), OX_S = obj({q: S_, a: {type: 'BOOLEAN'}, e: S_}), SHORT_S = obj({q: S_, a: S_, k: arr(S_)});
 const QSET_S = obj({mcq: arr(MCQ_S), ox: arr(OX_S), short: arr(SHORT_S)});
 const GRADE_S = obj({score: {type: 'INTEGER'}, good: arr(S_), missing: arr(S_), improved: S_, comment: S_});
 
-// input: 글 한 덩이, 또는 [{role:'user'|'model', text}] 대화
-async function gem(input, {schema, sys, temp = .5} = {}) {
-  const key = gemKey();
-  if (!key) throw new Error('설정에서 Gemini 키를 넣어 주세요');
-  const contents = typeof input === 'string' ? [{role: 'user', parts: [{text: input}]}]
+// Gemini 가 아닌 공급자에게 JSON 모양을 알려 줄 때 쓰는 글(responseSchema 대신)
+function schemaText(s) {
+  if (!s) return '';
+  if (s.type === 'OBJECT') return '{' + Object.entries(s.properties).map(([k, v]) => `"${k}": ${schemaText(v)}`).join(', ') + '}';
+  if (s.type === 'ARRAY') return '[' + schemaText(s.items) + ', …]';
+  return {STRING: '"문자열"', INTEGER: '정수', NUMBER: '숫자', BOOLEAN: 'true|false'}[s.type] || '"값"';
+}
+const jsonSys = (sys, schema) => (sys || '') + (schema ? `${sys ? '\n\n' : ''}반드시 다른 말 없이 이 모양의 JSON만 출력한다: ${schemaText(schema)}` : '');
+// 답에서 JSON 만 꺼낸다(코드 울타리·앞뒤 말 무시)
+function pickJSON(t, who) {
+  try {
+    const s = String(t).replace(/```json|```/g, '');
+    const i = [...'{['].map(c => s.indexOf(c)).filter(x => x >= 0).sort((a, b) => a - b)[0];
+    const j = Math.max(s.lastIndexOf('}'), s.lastIndexOf(']'));
+    return JSON.parse(s.slice(i, j + 1));
+  } catch { throw new Error(`${who} 답 형식이 어긋났어요. 한 번 더 해 보세요`); }
+}
+
+// input: 글 한 덩이, 또는 [{role:'user'|'model', text}] 대화, 또는 {parts:[...]}(사진·파일 포함)
+// 고른 공급자로 보낸다. file_data(Gemini 파일 저장소)가 들어 있으면 Gemini 로만 보낼 수 있다.
+async function gem(input, opts = {}) {
+  const msgs = typeof input === 'string' ? [{role: 'user', parts: [{text: input}]}]
     : Array.isArray(input) ? input.map(m => ({role: m.role, parts: [{text: m.text}]})) : [{role: 'user', parts: input.parts}];
+  const prov = aiProv();
+  const needGem = msgs.some(m => m.parts.some(p => p.file_data));
+  if (prov === 'gemini' || needGem) {
+    if (!gemKey()) throw new Error(needGem && prov !== 'gemini' ? '파일 정리는 Gemini에만 있어요. 설정에 Gemini 키도 넣어 주세요' : '설정에서 Gemini 키를 넣어 주세요');
+    return gemCall(msgs, opts);
+  }
+  return prov === 'claude' ? claudeCall(msgs, opts) : prov === 'groq' ? groqCall(msgs, opts) : ollamaCall(msgs, opts);
+}
+async function gemCall(contents, {schema, sys, temp = .5} = {}) {
+  const key = gemKey();
   const body = {contents, generationConfig: {temperature: temp, ...(schema ? {responseMimeType: 'application/json', responseSchema: schema} : {})}};
   if (sys) body.systemInstruction = {parts: [{text: sys}]};
   let last;
@@ -255,4 +288,69 @@ async function gem(input, {schema, sys, temp = .5} = {}) {
   }
   throw last;
 }
-const thinking = t => `<div class="thinking"><span class="spin"></span>${esc(t || 'Gemini가 생각하는 중…')}</div>`;
+// Claude (유료 · api.anthropic.com). 기본은 가장 싼 Haiku. 사진(손글씨 채점)도 된다.
+async function claudeCall(msgs, {schema, sys, temp = .5} = {}) {
+  const key = aiKey('claude');
+  if (!key) throw new Error('설정에서 Claude API 키를 넣어 주세요');
+  const system = jsonSys(sys, schema);
+  const messages = msgs.map(m => ({role: m.role === 'model' ? 'assistant' : 'user', content: m.parts.map(p =>
+    p.inline_data ? {type: 'image', source: {type: 'base64', media_type: p.inline_data.mime_type, data: p.inline_data.data}} : {type: 'text', text: p.text || ' '})}));
+  let r;
+  try {
+    r = await fetch('https://api.anthropic.com/v1/messages', {method: 'POST', headers: {'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true'},
+      body: JSON.stringify({model: store.get('ckModel', '') || 'claude-haiku-5-5', max_tokens: 8192, temperature: Math.min(1, temp), ...(system ? {system} : {}), messages})});
+  } catch { throw new Error('Claude에 연결하지 못했어요(인터넷 확인)'); }
+  if (!r.ok) {
+    const msg = (await r.json().catch(() => ({})))?.error?.message || '';
+    if (r.status === 401 || r.status === 403) throw new Error('Claude API 키를 확인해 주세요');
+    if (r.status === 429) throw new Error('Claude 사용 한도에 걸렸어요. 잠시 뒤 다시 해 주세요');
+    throw new Error(`Claude 오류 ${r.status}${msg ? ': ' + msg.slice(0, 80) : ''}`);
+  }
+  const t = ((await r.json()).content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  if (!t) throw new Error('Claude가 답을 내지 않았어요');
+  return schema ? pickJSON(t, 'Claude') : t;
+}
+// Groq (무료 한도 · OpenAI 방식). 사진이 있으면 보는 모델로 바꾼다.
+async function groqCall(msgs, {schema, sys, temp = .5} = {}) {
+  const key = aiKey('groq');
+  if (!key) throw new Error('설정에서 Groq API 키를 넣어 주세요 (console.groq.com · 무료)');
+  const hasImg = msgs.some(m => m.parts.some(p => p.inline_data));
+  const model = store.get('grModel', '') || (hasImg ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'llama-3.3-70b-versatile');
+  const system = jsonSys(sys, schema);
+  const messages = [...(system ? [{role: 'system', content: system}] : []), ...msgs.map(m => ({role: m.role === 'model' ? 'assistant' : 'user',
+    content: m.parts.some(p => p.inline_data)
+      ? m.parts.map(p => p.inline_data ? {type: 'image_url', image_url: {url: `data:${p.inline_data.mime_type};base64,${p.inline_data.data}`}} : {type: 'text', text: p.text || ' '})
+      : m.parts.map(p => p.text || '').join('\n')}))];
+  let r;
+  try {
+    r = await fetch('https://api.groq.com/openai/v1/chat/completions', {method: 'POST', headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + key},
+      body: JSON.stringify({model, temperature: temp, messages, ...(schema && !hasImg ? {response_format: {type: 'json_object'}} : {})})});
+  } catch { throw new Error('Groq에 연결하지 못했어요(인터넷 확인)'); }
+  if (!r.ok) {
+    if (r.status === 401) throw new Error('Groq API 키를 확인해 주세요');
+    if (r.status === 429) throw new Error('Groq 무료 한도에 걸렸어요. 잠시 뒤 다시 해 주세요');
+    throw new Error('Groq 오류 ' + r.status);
+  }
+  const t = (await r.json()).choices?.[0]?.message?.content || '';
+  if (!t) throw new Error('Groq가 답을 내지 않았어요');
+  return schema ? pickJSON(t, 'Groq') : t;
+}
+// Ollama (내 컴퓨터 · 공짜). PC 바로 보기에서 쓰는 걸 권해요(폰·아이패드에서는 PC 주소를 넣어야 해요).
+async function ollamaCall(msgs, {schema, sys, temp = .5} = {}) {
+  const base = (store.get('olUrl', '') || 'http://localhost:11434').replace(/\/+$/, '');
+  const model = store.get('olModel', '') || 'exaone3.5:7.8b';
+  const system = jsonSys(sys, schema);
+  const messages = [...(system ? [{role: 'system', content: system}] : []), ...msgs.map(m => {
+    const imgs = m.parts.filter(p => p.inline_data).map(p => p.inline_data.data);
+    return {role: m.role === 'model' ? 'assistant' : 'user', content: m.parts.map(p => p.text || '').join('\n'), ...(imgs.length ? {images: imgs} : {})};
+  })];
+  let r;
+  try { r = await fetch(base + '/api/chat', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({model, messages, stream: false, ...(schema ? {format: 'json'} : {}), options: {temperature: temp}})}); }
+  catch { throw new Error(`Ollama(${base})에 연결하지 못했어요. PC에서 Ollama가 켜져 있는지 확인해 주세요`); }
+  if (r.status === 404) throw new Error(`Ollama에 '${model}' 모델이 없어요. 명령 창에서: ollama pull ${model}`);
+  if (!r.ok) throw new Error('Ollama 오류 ' + r.status);
+  const t = (await r.json()).message?.content || '';
+  if (!t) throw new Error('Ollama가 답을 내지 않았어요');
+  return schema ? pickJSON(t, 'Ollama') : t;
+}
+const thinking = t => `<div class="thinking"><span class="spin"></span>${esc(t || aiName() + '가 생각하는 중…')}</div>`;

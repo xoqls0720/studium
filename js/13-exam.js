@@ -24,7 +24,7 @@ function viewExam(s) {
     h += `<div class="card"><div class="row" style="align-items:baseline;gap:14px"><span class="dday" style="font-size:40px">${ddayText(p.left)}</span><span class="grow muted">${fmtLong(new Date(ex.date))} · 범위 ${p.range.length}강 · 안 읽은 강의 ${p.unread.length}</span></div>
       <div class="sect" style="margin-top:18px">오늘 할 것</div><ul class="list">${todayT.map(t => t.u ? `<li data-go="#/s/${s.id}/u/${t.u.id}"><span class="${isRead(t.u.id) ? 'ok' : 'faint'}">${ic('check', 18, 2.2)}</span><span class="grow"><span class="tt">${esc(t.u.title)}</span><div class="faint">읽고 강의 문제 풀기</div></span><span class="chev">${ic('chev', 16)}</span></li>` : `<li class="off"><span class="faint">${ic('review', 18)}</span><span class="grow" style="color:var(--ink)">${esc(t.t)}</span></li>`).join('')}</ul>
       <div class="row noprint" style="margin-top:16px"><button class="btn pri" id="mock">모의고사 25문제</button><button class="btn gem" id="pred">${ic('spark', 18)}Gemini 예상 문제 15개</button><button class="btn" id="brief">시험 직전 요약</button><button class="btn" id="pbook">${ic('print', 18)}범위 기본서</button></div></div>
-      ${aiCard('Gemini 시험 코치', '범위 전체를 바탕으로 공부법과 질문에 답해요')}
+      ${aiCard(aiName() + ' 시험 코치', '범위 전체를 바탕으로 공부법과 질문에 답해요')}
       <div class="card"><h2>남은 날 계획</h2><table class="plan">${p.days.map((d, i) => `<tr class="${i ? '' : 'today'}"><td>${fmtDate(d.date)}</td><td>${d.tasks.map(t => t.u ? esc(t.u.title) : `<span class="muted">${esc(t.t)}</span>`).join('<br>')}</td></tr>`).join('')}</table></div>`;
   }
   h += `<div class="card"><h2>${ex.date ? '시험 정보 바꾸기' : '시험 정보'}</h2>
@@ -48,7 +48,7 @@ function viewExam(s) {
     startQuiz([...shuffle(pick(pool.filter(q => q.type !== 'short'), 22, true)), ...pick(pool.filter(q => q.type === 'short'), 3, true)], s.name + ' 모의고사', `#/s/${s.id}/exam`);
   };
   $('#pred').onclick = async () => {
-    if (!gemKey()) { location.hash = '#/set'; return toast('설정에 Gemini 키를 넣어 주세요'); }
+    if (!aiOn()) { location.hash = '#/set'; return toast('설정에서 AI를 켜 주세요'); }
     busy($('#pred'), 'Gemini가 출제하는 중…');
     try { const qs = await makeQuestions(s, p.range, {n: 15, exam: true}); startQuiz(qs, s.name + ' · 예상 문제', `#/s/${s.id}/exam`); }
     catch (e) { toast(e.message); unbusy($('#pred')); }

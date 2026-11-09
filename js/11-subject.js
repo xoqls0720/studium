@@ -116,13 +116,13 @@ ${memoOf(u.id) || '(없음)'}`, [
 
 
 // Gemini 대화 판: 노트를 근거로 묻고 답한다. 대화는 이 화면을 떠나도 기기에 남는다.
-function aiCard(title = 'Gemini에게 묻기', sub = '이 강의 노트를 근거로 답해요') {
+function aiCard(title = aiName() + '에게 묻기', sub = '이 강의 노트를 근거로 답해요') {
   return `<div class="card ai noprint" id="aicard"><div class="ai-head"><div class="mark">${ic('spark', 18)}</div><div class="grow"><b>${title}</b><div class="faint">${sub}</div></div><button class="btn ghost sm" id="aiclear" hidden>지우기</button></div>
-    ${gemKey() ? '<div class="chips" id="chips"></div><div class="chat" id="chat"></div><div class="ask"><textarea id="askq" placeholder="궁금한 것을 물어보세요"></textarea><button class="btn pri" id="askb">묻기</button></div>'
-      : `<div class="row"><span class="grow muted">설정에 Gemini 키를 넣으면 쓸 수 있어요.</span><button class="btn gem sm" data-go="#/set">키 넣기</button></div>`}</div>`;
+    ${aiOn() ? '<div class="chips" id="chips"></div><div class="chat" id="chat"></div><div class="ask"><textarea id="askq" placeholder="궁금한 것을 물어보세요"></textarea><button class="btn pri" id="askb">묻기</button></div>'
+      : `<div class="row"><span class="grow muted">설정에서 AI를 켜면 쓸 수 있어요 (Gemini·Groq 무료 한도 · Ollama 공짜 · Claude 유료).</span><button class="btn gem sm" data-go="#/set">키 넣기</button></div>`}</div>`;
 }
 function bindAi(key, sys, chips) {
-  if (!gemKey() || !$('#chat')) return;
+  if (!aiOn() || !$('#chat')) return;
   const hist = state.chat[key] ||= store.get('chat.' + key, []);
   const chat = $('#chat'), q = $('#askq'), btn = $('#askb'), clr = $('#aiclear');
   const paint = () => {
@@ -211,7 +211,7 @@ function viewQuizSetup(s) {
     startQuiz(pick(pool, o.n, o.focus), s.name + ' 문제', `#/s/${s.id}/quiz`);
   };
   $('#gen').onclick = async () => {
-    if (!gemKey()) { location.hash = '#/set'; return toast('설정에 Gemini 키를 넣어 주세요'); }
+    if (!aiOn()) { location.hash = '#/set'; return toast('설정에서 AI를 켜 주세요'); }
     const o = opts();
     if (!o.units.length) return toast('범위를 골라 주세요');
     busy($('#gen'), 'Gemini가 문제를 만드는 중…');
@@ -253,7 +253,7 @@ async function viewWrong(s) {
     <div class="card" style="padding-top:6px;padding-bottom:6px"><ul class="list">${qs.map(q => `<li class="off" style="cursor:default;align-items:flex-start"><span class="tag bad" style="margin-top:3px">${prog.q[q.id].wrong}회</span><span class="grow"><span class="tt" style="color:var(--ink)">${esc(q.q.length > 110 ? q.q.slice(0, 110) + '…' : q.q)}</span><div class="faint">${s ? '' : esc(subjById(q.sid)?.name) + ' · '}${esc(q.from)}</div></span></li>`).join('')}</ul></div>`);
   $('#rw').onclick = () => startQuiz(shuffle(qs).slice(0, 30), '오답 복습', s ? `#/s/${s.id}/wrong` : '#/review');
   $('#weak').onclick = async () => {
-    if (!gemKey()) { location.hash = '#/set'; return toast('설정에 Gemini 키를 넣어 주세요'); }
+    if (!aiOn()) { location.hash = '#/set'; return toast('설정에서 AI를 켜 주세요'); }
     busy($('#weak'), '분석하는 중…');
     const list = qs.slice(0, 40).map(q => `- [${subjById(q.sid)?.name} · ${q.from}] ${q.q} → 정답: ${q.type === 'mcq' ? q.c[q.a] : q.type === 'ox' ? (q.a ? 'O' : 'X') : q.a} (틀린 횟수 ${prog.q[q.id].wrong})`).join('\n');
     try {
@@ -263,7 +263,7 @@ async function viewWrong(s) {
     unbusy($('#weak'));
   };
   $('#like') && ($('#like').onclick = async () => {
-    if (!gemKey()) { location.hash = '#/set'; return toast('설정에 Gemini 키를 넣어 주세요'); }
+    if (!aiOn()) { location.hash = '#/set'; return toast('설정에서 AI를 켜 주세요'); }
     busy($('#like'), '만드는 중…');
     try {
       const us = s.units.filter(u => qs.some(q => q.uid === u.id || q.uids?.includes(u.id)));

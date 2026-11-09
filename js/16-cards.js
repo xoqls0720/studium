@@ -12,7 +12,7 @@ async function viewReview() {
     : `<div class="card callout"><div class="mark">${ic('check')}</div><div class="grow"><b>오늘 복습을 다 했어요</b><div class="faint">새 강의를 읽으면 그 강의의 카드가 내일부터 들어와요</div></div></div>`;
   h += `<div class="row" style="margin-bottom:8px">${cards.length ? `<button class="btn" id="rv-cards">${ic('cards', 18)}카드만 ${cards.length}</button>` : ''}${dq.length ? `<button class="btn" id="rv-q">문제만 ${dq.length}</button>` : ''}${cards.length || dq.some(x => x.type === 'ox') ? `<button class="btn" id="rv-listen">${ic('sound', 18)}듣기로 복습</button>` : ''}<button class="btn ghost" id="rv-more">새 카드 10장 더</button></div>`;
   const leech = wrong.filter(x => isLeech(x.id));
-  if (wrong.length) h += `<div class="sect">틀린 문제 ${wrong.length}</div><div class="row" style="margin-bottom:14px"><button class="btn" id="rw">다시 풀기</button>${leech.length ? `<button class="btn" id="rleech">★ 상습 오답만 ${leech.length}</button>` : ''}<button class="btn gem" id="weak">${ic('spark', 18)}Gemini 약점 분석</button></div><div id="weakout"></div>
+  if (wrong.length) h += `<div class="sect">틀린 문제 ${wrong.length}</div><div class="row" style="margin-bottom:14px"><button class="btn" id="rw">다시 풀기</button>${leech.length ? `<button class="btn" id="rleech">★ 상습 오답만 ${leech.length}</button>` : ''}<button class="btn gem" id="weak">${ic('spark', 18)}${aiName()} 약점 분석</button></div><div id="weakout"></div>
     <div class="card" style="padding-top:6px;padding-bottom:6px"><ul class="list">${wrong.slice(0, 40).map(x => `<li class="off" style="cursor:default;align-items:flex-start"><span class="tag bad" style="margin-top:3px">${isLeech(x.id) ? '★ ' : ''}${prog.q[x.id].wrong}회</span><span class="grow"><span class="tt" style="color:var(--ink)">${esc(x.q.length > 110 ? x.q.slice(0, 110) + '…' : x.q)}</span><div class="faint">${esc(subjById(x.sid)?.name)} · ${esc(x.from)}</div></span></li>`).join('')}</ul></div>`;
   render(h);
   $('#rv-all') && ($('#rv-all').onclick = () => startCards(cards, '오늘 복습', '#/review', dq));
@@ -89,7 +89,7 @@ async function viewDeck(s) {
   main_.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => startCards(shuffle(byUnit.get(b.dataset.unit)), s.name + ' 카드', `#/s/${s.id}/cards`));
   $('#d-add').onclick = () => cardForm(s, null, () => viewDeck(s));
   $('#d-gem').onclick = async () => {
-    if (!gemKey()) { location.hash = '#/set'; return toast('설정에 Gemini 키를 넣어 주세요'); }
+    if (!aiOn()) { location.hash = '#/set'; return toast('설정에서 AI를 켜 주세요'); }
     busy($('#d-gem'), 'Gemini가 카드를 만드는 중…');
     try { const n = await gemCards(s, s.units.filter(u => u.ready && (isRead(u.id) || !s.units.some(x => isRead(x.id))))); toast(`카드 ${n}장을 만들었어요`); viewDeck(s); }
     catch (e) { toast(e.message); unbusy($('#d-gem')); }
@@ -164,7 +164,7 @@ ${ctx.join('\n\n').slice(0, 50000)}`, {schema: CARD_S, temp: .6});
   return list.length;
 }
 async function weakAnalysis(btn, qs) {
-  if (!gemKey()) { location.hash = '#/set'; return toast('설정에 Gemini 키를 넣어 주세요'); }
+  if (!aiOn()) { location.hash = '#/set'; return toast('설정에서 AI를 켜 주세요'); }
   busy(btn, '분석하는 중…');
   const list = qs.slice(0, 40).map(q => `- [${subjById(q.sid)?.name} · ${q.from}] ${q.q} → 정답: ${answerText(q)} (틀린 횟수 ${prog.q[q.id].wrong})`).join('\n');
   try {

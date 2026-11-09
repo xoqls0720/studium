@@ -59,7 +59,7 @@ function viewAdd() {
       <div data-p="text" hidden><input type="text" id="a-ttl" placeholder="제목" style="width:100%;margin-bottom:8px"><textarea id="a-text" placeholder="필기, 기사, 정리하고 싶은 글을 붙여 넣으세요"></textarea></div>
       <div id="a-list" class="alist"></div>
       <label class="row faint" style="margin-top:10px"><input type="checkbox" id="a-group" checked>사진 여러 장은 한 자료로 묶기</label></div>
-    <div class="row"><button class="btn pri" id="a-go">${ic('spark', 18)}정리하기</button><span class="grow faint" id="a-note">${gemKey() ? '' : 'Gemini 키가 없으면 원본만 드라이브에 올리고, PC 생성기가 정리해요.'}</span></div>
+    <div class="row"><button class="btn pri" id="a-go">${ic('spark', 18)}정리하기</button><span class="grow faint" id="a-note">${aiOn() ? '' : 'Gemini 키가 없으면 원본만 드라이브에 올리고, PC 생성기가 정리해요.'}</span></div>
     <div id="a-out" style="margin-top:16px"></div></div>`);
   let tab = 'file', picked = [];
   const libSel = () => main_.querySelector('[name=al]:checked');
@@ -158,7 +158,7 @@ async function ingest({lib, libName, subject}, it, st) {
     }
     else await GD.put(`${base}/${fileName}`, blob).catch(e => console.warn(e));
   }
-  if (!gemKey()) {
+  if (!aiOn()) {
     if (!GD.valid()) throw new Error('Gemini 키나 구글 연결 중 하나는 있어야 해요');
     return {title, ready: false};
   }

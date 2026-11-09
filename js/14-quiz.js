@@ -28,14 +28,14 @@ function viewQuiz() {
   if (q.type === 'mcq') h += q.order.map((ci, n) => `<button class="choice" data-c="${ci}"><span class="badge">${n + 1}</span><span>${esc(q.c[ci])}</span></button>`).join('');
   if (q.type === 'ox') h += `<div class="oxrow"><button class="choice" data-c="1">O</button><button class="choice" data-c="0">X</button></div>`;
   if (q.type === 'short') h += `<textarea id="ans" placeholder="답을 써 보세요. 비워 두고 '모범 답안 보기'를 눌러도 돼요."></textarea>
-    <div class="row" style="margin-top:12px">${gemKey() ? `<button class="btn gem" id="grade">${ic('spark', 18)}Gemini 채점</button><button class="btn gem" id="photob">${ic('camera', 18)}손글씨 사진 채점</button><input type="file" accept="image/*" id="photo" hidden>` : ''}<button class="btn ${gemKey() ? '' : 'pri'}" id="show">모범 답안 보기</button></div>`;
+    <div class="row" style="margin-top:12px">${aiOn() ? `<button class="btn gem" id="grade">${ic('spark', 18)}${aiName()} 채점</button><button class="btn gem" id="photob">${ic('camera', 18)}손글씨 사진 채점</button><input type="file" accept="image/*" id="photo" hidden>` : ''}<button class="btn ${aiOn() ? '' : 'pri'}" id="show">모범 답안 보기</button></div>`;
   h += '<div id="fb"></div></div></div>';
   render(h);
   const next = () => { z.i++; viewQuiz(); scrollTo(0, 0); };
   const after = (ok, mine) => {
     record(q.id, ok); z.res.push({q, ok});
     $('#fb').innerHTML = `<div class="fb ${ok ? 'ok' : 'bad'}"><div class="ttl">${ic(ok ? 'check' : 'x', 18, 2.2)}${ok ? '맞았어요' : '틀렸어요'}${q.type === 'ox' ? ` · 정답 ${q.a ? 'O' : 'X'}` : ''}</div>${q.e ? `<div>${inline(q.e)}</div>` : ''}</div>
-      <div id="why"></div><div class="row">${!ok && gemKey() ? `<button class="btn gem" id="whyb">${ic('spark', 18)}왜 틀렸는지 묻기</button>` : ''}<span class="grow"></span><button class="btn pri" id="next">${z.i + 1 < z.qs.length ? '다음 문제' : '결과 보기'}</button></div>`;
+      <div id="why"></div><div class="row">${!ok && aiOn() ? `<button class="btn gem" id="whyb">${ic('spark', 18)}왜 틀렸는지 묻기</button>` : ''}<span class="grow"></span><button class="btn pri" id="next">${z.i + 1 < z.qs.length ? '다음 문제' : '결과 보기'}</button></div>`;
     $('#next').onclick = next; $('#next').focus({preventScroll: true});
     $('#whyb') && ($('#whyb').onclick = async () => {
       busy($('#whyb'), '설명 받는 중…');

@@ -96,7 +96,7 @@ async function makePodcast(title, source) {
 [${title}]
 ${source.slice(0, 30000)}`, {temp: .8});
   const key = gemKey();
-  for (const m of TTS_MODELS) {
+  for (const m of key ? TTS_MODELS : []) {
     try {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': key}, body: JSON.stringify({
         contents: [{parts: [{text: `다음 대화를 자연스러운 한국어 팟캐스트처럼 읽어 줘:\n${script}`}]}],
@@ -119,7 +119,7 @@ async function podcastPanel(box, key, title, source) {
     box.querySelector('#pod-re').onclick = () => make();
   };
   async function make() {
-    if (!gemKey()) { location.hash = '#/set'; return toast('설정에 Gemini 키를 넣어 주세요'); }
+    if (!aiOn()) { location.hash = '#/set'; return toast('설정에서 AI를 켜 주세요'); }
     box.innerHTML = thinking('Gemini가 대본을 쓰고 녹음하는 중… (1~2분)');
     try { const c = await makePodcast(title, typeof source === 'function' ? await source() : source); await kvPut('pod:' + key, c); paint(c); }
     catch (e) { box.innerHTML = ''; toast(e.message); }
@@ -199,7 +199,7 @@ function treeSvg(tree) {
   </svg>`;
 }
 async function mindmapPanel(box, s, force) {
-  if (!gemKey() && !(await kvGet('mm:' + s.id))) { box.innerHTML = `<div class="row"><span class="grow muted">설정에 Gemini 키를 넣으면 과목 마인드맵을 만들어요.</span><button class="btn gem sm" data-go="#/set">키 넣기</button></div>`; bindGo(box); return; }
+  if (!aiOn() && !(await kvGet('mm:' + s.id))) { box.innerHTML = `<div class="row"><span class="grow muted">설정에서 AI를 켜면 과목 마인드맵을 만들어요.</span><button class="btn gem sm" data-go="#/set">키 넣기</button></div>`; bindGo(box); return; }
   box.innerHTML = thinking('Gemini가 마인드맵을 그리는 중…');
   try { const t = await mindmapOf(s, force); box.innerHTML = `<div class="mmwrap">${treeSvg(t)}</div><div class="row" style="margin-top:8px"><button class="btn ghost sm" id="mm-re">다시 그리기</button><button class="btn ghost sm" onclick="print()">${ic('print', 16)}인쇄</button></div>`; box.querySelector('#mm-re').onclick = () => mindmapPanel(box, s, true); }
   catch (e) { box.innerHTML = `<p class="muted">${esc(e.message)}</p>`; }

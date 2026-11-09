@@ -47,6 +47,8 @@ document.addEventListener('visibilitychange', () => {
 addEventListener('focus', onWake);
 addEventListener('online', onWake);
 setInterval(() => { if (document.visibilityState === 'visible') syncNow().catch(() => {}); }, 60e3);
+// 앱을 켜 둔 채로도 새 자료(생성 결과)를 5분마다 확인해 바로 반영한다
+setInterval(() => { if (document.visibilityState === 'visible') { lastWake = 0; onWake(); } }, 300e3);
 addEventListener('resize', () => state.onResize?.());
 
 async function boot() {
