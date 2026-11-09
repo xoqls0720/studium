@@ -54,7 +54,7 @@ function viewCards() {
     <div class="card flash" id="flash"><div class="q" style="margin:0;white-space:pre-line">${esc(c.f)}</div><div id="cback" hidden><hr style="border:0;height:1px;background:var(--line);margin:18px 0"><div class="md" style="font-size:16.5px">${c.blanks ? c.blanks.reduce((h, b) => h.split(esc(b)).join(`<b class="star">${esc(b)}</b>`), esc(c.full)).replace(/\n/g, '<br>') : inline(c.kind === '빈칸' ? c.full.replace(c.b, '**' + c.b + '**') : c.b)}</div></div>
       <p class="faint" id="tap" style="margin:18px 0 0">눌러서 뒷면 보기 · Space</p></div>
     <div class="grades" id="grades" hidden>${['다시', '어려움', '알맞음', '쉬움'].map((t, i) => `<button class="btn ${i === 2 ? 'pri' : ''}" data-g="${i + 1}"><b>${t}</b><span>${pv[i]}</span></button>`).join('')}</div>
-    <div class="row noprint" style="margin-top:12px"><button class="btn ghost sm" id="c-tts">${ic('sound', 16)}읽어 주기</button><span class="grow"></span><button class="btn ghost sm" id="c-skip">건너뛰기</button></div></div>`);
+    <div class="row noprint" style="margin-top:12px"><button class="btn ghost sm" id="c-tts">${ic('sound', 16)}읽어 주기</button>${c.uid ? `<button class="btn ghost sm" data-go="#/s/${c.sid}/u/${c.uid}">${ic('book', 16)}원문 보기</button>` : ''}<span class="grow"></span><button class="btn ghost sm" id="c-skip">건너뛰기</button></div></div>`);
   const flip = () => { if (!$('#cback').hidden) return; $('#cback').hidden = false; $('#tap').hidden = true; $('#grades').hidden = false; };
   $('#flash').onclick = flip;
   const grade = g => {

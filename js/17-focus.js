@@ -18,9 +18,15 @@ function dayTotals(day) {
 const studyMinutes = day => Math.round(dayTotals(day).m);
 const dayActive = day => { const t = dayTotals(day); return t.m >= 1 || t.act; };
 function streakDays() {
-  const d = new Date(); let n = 0;
+  // 7일 공부할 때마다 '쉬는 날 보호권' 하나: 하루 빈 날은 보호권으로 메워 스트릭이 끊기지 않는다(듀오링고의 스트릭 프리즈)
+  const d = new Date(); let n = 0, credit = 0;
   if (!dayActive(todayKey(d))) d.setDate(d.getDate() - 1);   // 오늘은 아직 안 했어도 어제까지 이어지면 센다
-  while (dayActive(todayKey(d)) && n < 3650) { n++; d.setDate(d.getDate() - 1); }
+  for (let g = 0; g < 3650; g++) {
+    if (dayActive(todayKey(d))) { n++; if (n % 7 === 0) credit++; }
+    else if (credit > 0 && dayActive(todayKey(new Date(d.getTime() - DAY)))) credit--;
+    else break;
+    d.setDate(d.getDate() - 1);
+  }
   return n;
 }
 const fmtMin = m => { m = Math.round(m); return m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ' ' + (m % 60) + '분' : ''}` : `${m}분`; };

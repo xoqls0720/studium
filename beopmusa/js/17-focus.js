@@ -18,9 +18,15 @@ function dayTotals(day) {
 const studyMinutes = day => Math.round(dayTotals(day).m);
 const dayActive = day => { const t = dayTotals(day); return t.m >= 1 || t.act; };
 function streakDays() {
-  const d = new Date(); let n = 0;
+  // 7일 공부할 때마다 '쉬는 날 보호권' 하나: 하루 빈 날은 보호권으로 메워 스트릭이 끊기지 않는다(듀오링고의 스트릭 프리즈)
+  const d = new Date(); let n = 0, credit = 0;
   if (!dayActive(todayKey(d))) d.setDate(d.getDate() - 1);   // 오늘은 아직 안 했어도 어제까지 이어지면 센다
-  while (dayActive(todayKey(d)) && n < 3650) { n++; d.setDate(d.getDate() - 1); }
+  for (let g = 0; g < 3650; g++) {
+    if (dayActive(todayKey(d))) { n++; if (n % 7 === 0) credit++; }
+    else if (credit > 0 && dayActive(todayKey(new Date(d.getTime() - DAY)))) credit--;
+    else break;
+    d.setDate(d.getDate() - 1);
+  }
   return n;
 }
 const fmtMin = m => { m = Math.round(m); return m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ' ' + (m % 60) + '분' : ''}` : `${m}분`; };
@@ -133,7 +139,7 @@ function viewStats() {
   const cells = [...Array(140)].map((_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return {d, m: d > new Date() ? -1 : studyMinutes(todayKey(d)), a: dayActive(todayKey(d))}; });
   const lvl = c => c.m < 0 ? 'f' : c.m >= 240 ? 4 : c.m >= 120 ? 3 : c.m >= 45 ? 2 : c.m > 0 || c.a ? 1 : 0;
   render(`<section class="hero" style="margin-bottom:22px"><div class="eyebrow">기록</div><h2 class="display">공부 기록</h2></section>
-    <div class="stats" style="margin:0 0 16px"><div class="stat"><b>${fmtMin(wsum)}</b><span>최근 7일</span></div><div class="stat"><b style="display:flex;gap:6px;align-items:center">${streakDays()}<span style="color:var(--gold)">${ic('flame', 22)}</span></b><span>연속 공부한 날</span></div><div class="stat"><b>${n ? Math.round(ok / n * 100) + '%' : '—'}</b><span>전체 정답률 · ${n}문제</span></div></div>
+    <div class="stats" style="margin:0 0 16px"><div class="stat"><b>${fmtMin(wsum)}</b><span>최근 7일</span></div><div class="stat"><b style="display:flex;gap:6px;align-items:center">${streakDays()}<span style="color:var(--gold)">${ic('flame', 22)}</span></b><span>연속 공부한 날 · 7일마다 하루 쉬어도 이어져요</span></div><div class="stat"><b>${n ? Math.round(ok / n * 100) + '%' : '—'}</b><span>전체 정답률 · ${n}문제</span></div></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">
       <div class="card"><h2>최근 7일</h2><div class="bars">${week.map(x => `<div class="b"><i style="height:${x.m / wmax * 100}%"></i><span>${WD[x.d.getDay()]}</span><em>${x.m ? fmtMin(x.m) : ''}</em></div>`).join('')}</div></div>
       <div class="card"><h2>복습 예보 · 14일</h2><div class="bars">${due.map((c, i) => `<div class="b"><i style="height:${c / dmax * 100}%;background:var(--gold)"></i><span>${i ? fc[i].getDate() : '오늘'}</span><em>${c || ''}</em></div>`).join('')}</div>

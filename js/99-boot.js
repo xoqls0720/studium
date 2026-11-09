@@ -16,6 +16,7 @@ async function route() {
     if (!s) return viewHome();
     const tab = m[2] || 'book';
     if (tab === 'u') return viewUnit(s, m[3]);
+    if (tab === 'blank') return viewBlank(s, m[3]);
     if (tab === 'print') return viewPrint(s);
     return ({book: viewBook, cards: viewDeck, summary: viewSummary, quiz: viewQuizSetup, wrong: viewWrong, exam: viewExam, nlm: viewNlm}[tab] || viewBook)(s);
   }

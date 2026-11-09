@@ -120,7 +120,7 @@ const GD = {
       await new Promise((res, rej) => {
         const c = google.accounts.oauth2.initTokenClient({client_id: cfg.client, scope: SC, callback: r => {
           if (r.error) return rej(new Error(r.error));
-          this.tok = {t: r.access_token, exp: Date.now() + (r.expires_in || 3600) * 1000}; store.set('tok', this.tok); res();
+          this.tok = {t: r.access_token, exp: Date.now() + (r.expires_in || 3600) * 1000}; store.set('tok', this.tok); store.set('gdLinked', true); res();
         }, error_callback: e => rej(new Error(e?.message || '로그인을 닫았어요'))});
         c.requestAccessToken({prompt: ''});
       });

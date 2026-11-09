@@ -112,6 +112,16 @@ async function syncNow() {
   return syncing;
 }
 const syncProg = syncNow;
+// 로그인이 풀려도(토큰 1시간), 한 번 연결한 기기는 다음 화면 누름 때 조용히 다시 받아 이어 간다 — 매번 '동기화 켜기'를 누르지 않게
+let reauthAt = 0;
+addEventListener('pointerup', () => {
+  if (cfg.mode !== 'drive' || GD.valid() || !store.get('gdLinked', false) || Date.now() - reauthAt < 3e5) return;
+  reauthAt = Date.now();
+  GD.login().then(() => {
+    if (state.offline instanceof NeedAuth) { state.offline = null; boot(); }
+    else { paintSync(); syncNow().catch(() => {}); }
+  }).catch(() => {});
+});
 function paintSync() {
   const el = $('#sync');
   if (!cfg.client) { el.innerHTML = ''; return; }

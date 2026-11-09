@@ -53,6 +53,7 @@ async function viewUnit(s, uid) {
     <div class="row noprint" style="margin:22px 0">
       <button class="btn pri" id="u-quiz">문제 풀기 · ${qn}</button>
       <button class="btn" id="u-cards">${ic('cards', 18)}카드 ${cards.length}</button>
+      <button class="btn" data-go="#/s/${s.id}/blank/${u.id}">${ic('pen', 18)}백지 복습</button>
       <button class="btn" id="u-read">${isRead(u.id) ? ic('check', 18, 2.2) + '읽음' : '읽음 표시'}</button>
       ${u.pdf ? `<button class="btn" id="u-gn">${ic('share', 18)}굿노트로</button>` : ''}
       <button class="btn ghost" id="u-print">${ic('print', 18)}필기 포함 인쇄</button>
@@ -117,6 +118,49 @@ ${memoOf(u.id) || '(없음)'}`, [
   ]);
 }
 
+
+// ── 백지 복습: 단원 제목만 보고 기억나는 것을 쏟아낸 뒤 기본서와 대조한다 (free recall — 다시 읽기보다 오래 남는다) ──
+const BLANK_S = obj({score: {type: 'INTEGER'}, got: arr(S_), missing: arr(S_), wrong: arr(S_), tip: S_});
+async function viewBlank(s, uid) {
+  const u = s.units.find(x => x.id === uid);
+  if (!u) return viewBook(s);
+  frame('백지 복습', `#/s/${s.id}/u/${u.id}`);
+  render(`<div class="narrow card">${thinking('불러오는 중…')}</div>`);
+  let d;
+  try { d = await loadUnit(s, u); } catch (e) { render(`<div class="narrow card">못 불러왔어요: ${esc(e.message)}</div>`); return; }
+  const saved = store.get('blank.' + u.id, '');
+  render(`<div class="narrow">
+    <section class="hero" style="margin-bottom:14px"><div class="eyebrow">백지 복습 · ${esc(s.name)}</div><h2 class="display">${esc(u.title)}</h2>
+      <p class="lede">아무것도 보지 않고, 이 단원에서 기억나는 것을 전부 써 보세요. 요건·기간·주체·판례 결론처럼 시험에 나올 말로요. 다 쓰면 기본서와 대조해 빠진 것을 짚어 줘요.</p></section>
+    <div class="card"><textarea id="bl-text" style="min-height:260px" placeholder="기억나는 대로… (쓰다 막히면 그게 복습할 곳이에요)">${esc(saved)}</textarea>
+      <div class="row" style="margin-top:12px"><button class="btn pri gem" id="bl-check">${ic('spark', 18)}기본서와 대조</button><span class="grow faint" id="bl-n"></span><button class="btn ghost" data-go="#/s/${s.id}/u/${u.id}">단원으로</button></div></div>
+    <div id="bl-out"></div></div>`);
+  const ta = $('#bl-text');
+  ta.oninput = () => { $('#bl-n').textContent = ta.value.trim() ? ta.value.trim().length + '자' : ''; store.set('blank.' + u.id, ta.value.slice(0, 20000)); };
+  ta.oninput();
+  $('#bl-check').onclick = async () => {
+    const mine = ta.value.trim();
+    if (mine.length < 20) return toast('조금 더 써 보세요 (20자부터)');
+    if (!aiOn()) { location.hash = '#/set'; return toast('설정에서 AI를 켜 주세요'); }
+    busy($('#bl-check'), '대조하는 중…');
+    try {
+      const base = `제목: ${u.title}\n핵심: ${(d.points || []).join('\n')}\n용어: ${(d.terms || []).map(t => `${t.t}=${t.d}`).join(' / ')}\n기출 함정: ${(d.emphasis || []).join(' / ')}`.slice(0, 30000);
+      const g = await gem(`학생이 '${u.title}' 단원을 백지 복습했다. 아래 [기본서]와 대조해서 채점한다.
+score: 기본서 핵심 중 몇 %를 담았는지(0~100 정수). got: 제대로 기억한 핵심(짧게). missing: 빠뜨린 핵심 — 중요한 순서로, 시험에 나올 말로. wrong: 틀리게 기억한 것("학생 표현 → 바른 내용" 꼴, 없으면 빈 배열). tip: 다음 백지 복습 전에 외울 한 줄 요령.\n\n[기본서]\n${base}\n\n[학생이 쓴 것]\n${mine}`, {schema: BLANK_S, temp: .2});
+      const sc = Math.max(0, Math.min(100, g.score | 0));
+      logActivity(); saveProg();
+      $('#bl-out').innerHTML = `<div class="card ai"><div class="ai-head"><div class="mark">${ic('spark', 18)}</div><div class="grade grow"><b>${sc}</b><span class="faint">/ 100</span></div><span class="tag ${sc >= 70 ? 'ok' : sc >= 40 ? 'warn' : 'bad'}">${sc >= 70 ? '잘 잡혀 있어요' : sc >= 40 ? '빠진 곳을 채워요' : '다시 읽고 또 해 봐요'}</span></div>
+        ${g.got?.length ? `<div class="md"><b>기억한 것</b><ul>${g.got.map(x => `<li>${inline(x)}</li>`).join('')}</ul></div>` : ''}
+        ${g.missing?.length ? `<div class="box emph"><h3>빠뜨린 것</h3><ul>${g.missing.map(x => `<li>${inline(x)}</li>`).join('')}</ul></div>` : ''}
+        ${g.wrong?.length ? `<div class="box"><h3>틀리게 기억한 것</h3><ul>${g.wrong.map(x => `<li>${inline(x)}</li>`).join('')}</ul></div>` : ''}
+        ${g.tip ? `<p class="muted" style="margin:10px 0 0">${inline(g.tip)}</p>` : ''}
+        <div class="row noprint" style="margin-top:12px"><button class="btn" id="bl-again">지우고 한 번 더</button><button class="btn" data-go="#/s/${s.id}/u/${u.id}">단원 다시 읽기</button></div></div>`;
+      unbusy($('#bl-check'));
+      $('#bl-again').onclick = () => { ta.value = ''; store.set('blank.' + u.id, ''); ta.oninput(); $('#bl-out').innerHTML = ''; ta.focus(); };
+      $('#bl-out').scrollIntoView({behavior: 'smooth', block: 'start'});
+    } catch (e) { toast(e.message); unbusy($('#bl-check')); }
+  };
+}
 
 // Gemini 대화 판: 노트를 근거로 묻고 답한다. 대화는 이 화면을 떠나도 기기에 남는다.
 function aiCard(title = aiName() + '에게 묻기', sub = '이 단원 기본서와 조문을 근거로 답해요') {
