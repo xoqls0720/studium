@@ -1,0 +1,16 @@
+{
+  "name": "법무사 회독",
+  "short_name": "법무사 회독",
+  "description": "법무사 1·2차 기출 지문 회독과 판례·조문 카드, 법령 개정 알림",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f4f0",
+  "theme_color": "#2a2f3a",
+  "lang": "ko",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml"}
+  ]
+}
