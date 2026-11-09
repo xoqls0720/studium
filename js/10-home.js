@@ -22,6 +22,7 @@ function viewHome() {
   for (const e of exams.slice(0, 3)) today.push(`<div class="card callout gold" style="cursor:pointer" data-go="#/s/${e.s.id}/exam"><div class="mark">${ic('cal')}</div><div class="grow"><div class="faint">${fmtDate(new Date(e.date))} 시험</div><b>${esc(e.s.name)}</b></div><span class="dday" style="font-size:22px">${ddayText(ddays(e.date))}</span></div>`);
   if (!aiOn() && !store.get('gemHintOff')) today.push(`<div class="card callout gold"><div class="mark">${ic('spark')}</div><div class="grow"><b>AI를 켜 보세요</b><div class="faint">질문하기, 서술형 채점, 새 문제·카드, 사진·PDF 바로 정리</div></div><button class="btn gem sm" data-go="#/set">키 넣기</button><button class="btn ghost sm" id="gemoff" aria-label="닫기">${ic('x', 16)}</button></div>`);
   h += `<div class="sect">오늘</div>` + today.join('');
+  h += '<div id="h-quest"></div>';
   h += `<div class="sect">서재</div>`;
   if (libs.length > 1) h += `<div class="seg noprint" style="margin-bottom:16px"><button class="${lib === 'all' ? 'on' : ''}" data-lib="all">전체</button>${libs.map(l => `<button class="${lib === l.id ? 'on' : ''}" data-lib="${esc(l.id)}">${esc(l.name)}</button>`).join('')}</div>`;
   h += shown.length ? `<div class="grid">${shown.map(subjCard).join('')}</div>`
@@ -34,6 +35,21 @@ function viewHome() {
   $('#gstart') && ($('#gstart').onclick = () => cfg.client ? startGoogle() : (location.hash = '#/set'));
   $('#regrant') && ($('#regrant').onclick = async () => { if (await Local.ready(true)) boot(); });
   $('#gemoff') && ($('#gemoff').onclick = () => { store.set('gemHintOff', true); viewHome(); });
+  // 오늘의 퀘스트 (듀오링고식 작은 목표 3개)
+  if ($('#h-quest')) {
+    const t0 = dayStart(new Date()).getTime();
+    const cN = rlog.filter(r => r[1] * 1000 >= t0 && String(r[0]).startsWith('c:')).length;
+    const qN = Object.values(prog.q).filter(r => r.last >= t0).length;
+    const qs = [
+      ['카드 복습', cN, Math.max(10, Math.min(60, pref('newPerDay', 20) + 10)), '장', '#/review'],
+      ['문제 풀기', qN, 5, '개', '#/review'],
+      ['집중 공부', mins, goal, '분', '#/focus'],
+    ];
+    const doneAll = qs.every(([, v, g]) => v >= g);
+    $('#h-quest').innerHTML = `<div class="card" style="padding-top:14px;padding-bottom:10px"><div class="row" style="margin-bottom:4px"><b class="grow">오늘의 퀘스트</b>${doneAll ? '<span class="tag ok">오늘 몫 끝!</span>' : ''}</div>
+      ${qs.map(([tt, v, g, u, go]) => `<div class="row" style="padding:7px 0;cursor:pointer" data-go="${go}"><span style="color:${v >= g ? 'var(--ok, #2b7650)' : 'var(--line)'}">${ic('check', 19, 2.4)}</span><span class="grow">${tt}</span><div class="bar" style="width:90px;margin:0 10px 0 0"><i style="width:${Math.min(100, v / g * 100)}%"></i></div><span class="faint">${v >= g ? g : v} / ${g}${u}</span></div>`).join('')}</div>`;
+    bindGo($('#h-quest'));
+  }
   (async () => {
     const [q, dq] = await Promise.all([todayQueue(), dueQuestions()]);
     const n = q.due.length + q.fresh.length + dq.length;

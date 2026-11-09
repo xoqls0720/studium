@@ -183,10 +183,14 @@ const GD = {
     }
     return this.lists[dir] = await this.list(`'${id}' in parents and trashed=false`);
   },
-  async file(path) {
+  async file(path, retry = true) {
     const i = path.lastIndexOf('/'), dir = i < 0 ? '' : path.slice(0, i), name = path.slice(i + 1);
     const f = (await this.children(dir))[name];
-    if (!f) throw new Error('없는 파일: ' + path);
+    if (!f) {
+      // 자료가 새로 정리된 직후라 받아 둔 폴더 목록이 옛것일 수 있다 — 목록을 지우고 한 번 다시 찾아본다
+      if (retry) { delete this.lists[dir]; return this.file(path, false); }
+      throw new Error('없는 파일: ' + path);
+    }
     const get = () => this.fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`);
     return {stamp: f.modifiedTime, read: async () => (await get()).text(), blob: async () => (await get()).blob()};
   },

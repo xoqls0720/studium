@@ -135,7 +135,14 @@ async function viewExamRound(id) {
   frame('기출', '#/gichul');
   render(`<div class="card">${thinking()}</div>`);
   let d;
-  try { d = await loadExam(id); } catch (e) { render(`<div class="card">못 불러왔어요: ${esc(e.message)}</div>`); return; }
+  try { d = await loadExam(id); } catch (e) {
+    if (state.refetchedEx !== id) {   // 자료 정리 직후일 수 있다 — 기출 목록을 새로 받아 한 번 다시
+      state.refetchedEx = id; GD.lists = {}; state.gidx = null; state.exam = {};
+      return viewExamRound(id);
+    }
+    render(`<div class="card">이 회차를 불러오지 못했어요: ${esc(e.message)}<div class="row noprint" style="margin-top:12px"><button class="btn pri" data-go="#/gichul">기출 목록으로</button></div></div>`);
+    return;
+  }
   const bySub = new Map();
   for (const q of d.questions) (bySub.get(q.sid) || bySub.set(q.sid, []).get(q.sid)).push(q);
   const ok = q => prog.q[q.id], rate = qs => { const a = qs.filter(ok); return a.length ? Math.round(a.filter(q => prog.q[q.id].streak > 0).length / a.length * 100) : null; };

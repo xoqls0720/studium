@@ -16,7 +16,7 @@ async function viewHome() {
       <div class="stat" style="cursor:pointer" data-go="#/review"><b id="h-due">·</b><span>오늘 복습</span></div></div></section>`;
   if (!cfg.mode) h += `<div class="card callout" style="margin-top:16px"><div class="mark">${ic('link')}</div><div class="grow"><b>구글 드라이브를 연결하면</b><div class="faint">PC가 정리한 기본서·기출을 받고, 폰·아이패드·노트북과 회독·필기가 맞춰져요</div></div><button class="btn sm" data-go="#/set">연결하기</button></div>`;
   if (state.offline) h += `<div class="card callout" style="margin-top:16px"><div class="mark">${ic('bolt')}</div><div class="grow muted">지금은 기기에 받아 둔 자료로 보여 주고 있어요.</div>${state.offline instanceof NeedAuth ? '<button class="btn sm" id="relogin">구글 다시 로그인</button>' : cfg.mode === 'local' ? '<button class="btn sm" id="regrant">폴더 다시 열기</button>' : ''}</div>`;
-  h += `<div class="sect">오늘</div><div id="h-plan"></div><div id="h-law"></div>
+  h += `<div class="sect">오늘</div><div id="h-plan"></div><div id="h-quest"></div><div id="h-law"></div>
     <div class="card callout"><div class="mark">${ic('cards')}</div><div class="grow"><b id="h-q">오늘 복습을 모으는 중…</b><div class="faint">조문 빈칸·판례 카드와 때가 된 기출 지문 · 잊을 때쯤 다시</div></div><button class="btn pri" data-go="#/review">복습 시작</button></div>`;
   if (lastU) h += `<div class="card callout" style="cursor:pointer" data-go="#/s/${lastS.id}/u/${lastU.id}"><div class="mark">${ic('book')}</div><div class="grow"><div class="faint">이어 읽기 · ${esc(lastS.name)}</div><b>${esc(lastU.title)}</b></div>${ic('chev', 18)}</div>`;
   if (!aiOn() && !store.get('gemHintOff')) h += `<div class="card callout gold"><div class="mark">${ic('spark')}</div><div class="grow"><b>AI를 켜 보세요</b><div class="faint">지문 해설·2차 채점·튜터 — Gemini·Groq 무료 한도, Ollama 공짜, Claude 유료</div></div><button class="btn gem sm" data-go="#/set">키 넣기</button><button class="btn ghost sm" id="gemoff" aria-label="닫기">${ic('x', 16)}</button></div>`;
@@ -45,6 +45,21 @@ async function viewHome() {
     const P = await planOf(st);
     if (!$('#h-plan')) return;
     const top = P.rows.filter(r => r.oxToday || r.bookToday).sort((a, b) => b.oxToday - a.oxToday).slice(0, 3);
+    // 오늘의 퀘스트 (듀오링고식 작은 목표 3개): 양이 아니라 그날 할 몫을 눈에 보이게
+    if ($('#h-quest')) {
+      const t0 = dayStart(new Date()).getTime();
+      const cN = rlog.filter(r => r[1] * 1000 >= t0 && String(r[0]).startsWith('c:')).length;
+      const xN = rlog.filter(r => r[1] * 1000 >= t0 && isOxId(String(r[0]))).length;
+      const qs = [
+        ['카드 복습', cN, Math.max(10, Math.min(60, pref('newPerDay', 20) + 10)), '장', '#/review'],
+        ['기출 지문', xN, Math.max(10, Math.min(120, P.oxDay || 30)), '개', '#/gichul'],
+        ['집중 공부', mins, goal, '분', '#/focus'],
+      ];
+      const doneAll = qs.every(([, v, g]) => v >= g);
+      $('#h-quest').innerHTML = `<div class="card" style="padding-top:14px;padding-bottom:10px"><div class="row" style="margin-bottom:4px"><b class="grow">오늘의 퀘스트</b>${doneAll ? '<span class="tag ok">오늘 몫 끝!</span>' : ''}</div>
+        ${qs.map(([t, v, g, u, go]) => `<div class="row" style="padding:7px 0;cursor:pointer" data-go="${go}"><span style="color:${v >= g ? 'var(--ok, #2b7650)' : 'var(--line)'}">${ic('check', 19, 2.4)}</span><span class="grow">${t}</span><div class="bar" style="width:90px;margin:0 10px 0 0"><i style="width:${Math.min(100, v / g * 100)}%"></i></div><span class="faint">${v >= g ? g : v} / ${g}${u}</span></div>`).join('')}</div>`;
+      bindGo($('#h-quest'));
+    }
     $('#h-plan').innerHTML = `<div class="card callout" style="cursor:pointer" data-go="#/plan"><div class="mark">${ic('cal')}</div><div class="grow"><b>${P.date ? `하루 기출 지문 ${P.oxDay}개 · 기본서 ${P.bookDay}단원` : '시험 날짜를 넣으면 하루 할 양을 나눠 줘요'}</b><div class="faint">${esc(top.map(r => `${r.s.name} ${r.oxToday ? '지문 ' + r.oxToday : ''}${r.bookToday ? ' 단원 ' + r.bookToday : ''}`).join(' · ') || 'D-day 역산 계획')}</div></div>${ic('chev', 18)}</div>`;
     bindGo($('#h-plan'));
   })().catch(() => {});
