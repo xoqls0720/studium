@@ -57,7 +57,7 @@ async function viewUnit(s, uid) {
       <button class="btn sm" id="u-mark" style="${isMarked(u.id) ? 'color:var(--gold);border-color:var(--gold-line)' : ''}">${ic('mark', 16)}책갈피</button>
       <button class="btn sm" id="u-memo">${ic('memo', 16)}메모${memoOf(u.id) ? ' ·' : ''}</button></div>
     <div id="u-podbox" class="card" hidden></div>
-    <div id="u-memobox" class="card" ${memoOf(u.id) ? '' : 'hidden'}><label class="field" style="margin:0"><span>내 메모 · 기기끼리 맞춰져요</span><textarea id="u-memotext" style="min-height:90px" placeholder="이해한 것, 헷갈리는 것, 교수님 말씀…">${esc(memoOf(u.id))}</textarea></label></div>
+    <div id="u-memobox" class="card" ${memoOf(u.id) ? '' : 'hidden'}><div class="row" style="margin-bottom:8px"><span class="grow" style="font-size:13px;font-weight:650;color:var(--sub)">내 메모 · 기기끼리 맞춰져요</span><button class="btn ghost sm" id="u-mp"></button></div><textarea id="u-memotext" style="min-height:150px" placeholder="이해한 것, 헷갈리는 것, 교수님 말씀…">${esc(memoOf(u.id))}</textarea></div>
     <div id="pw"><div class="card paper" id="paper" style="padding:28px">${unitHtml(u, d)}</div></div>
     ${d.terms?.length ? `<div class="sect">용어 · 눌러서 뜻 보기</div><div class="terms">${d.terms.map(t => `<div class="term"><b>${esc(t.t)}</b><span>${esc(t.d)}</span></div>`).join('')}</div>` : ''}
     <div class="row noprint" style="margin:22px 0">
@@ -99,6 +99,10 @@ async function viewUnit(s, uid) {
   $('#u-mark').onclick = () => { const on = toggleMark(u.id); $('#u-mark').style.cssText = on ? 'color:var(--gold);border-color:var(--gold-line)' : ''; toast(on ? '책갈피에 넣었어요' : '책갈피를 뺐어요'); };
   $('#u-memo').onclick = () => { $('#u-memobox').hidden = false; $('#u-memotext').focus(); };
   $('#u-memotext').oninput = e => setMemo(u.id, e.target.value);
+  // 메모지 무늬: 줄노트 ⇄ 모눈종이 (기기끼리 같이 기억)
+  const paintMp = () => { const g = pref('memoPaper', 'line') === 'grid'; const t = $('#u-memotext'); t.classList.toggle('m-grid', g); t.classList.toggle('m-line', !g); $('#u-mp').textContent = g ? '줄노트로' : '모눈으로'; };
+  $('#u-mp').onclick = () => { setPref('memoPaper', pref('memoPaper', 'line') === 'grid' ? 'line' : 'grid'); paintMp(); };
+  paintMp();
   $('#u-gn') && ($('#u-gn').onclick = () => toGoodnotes($('#u-gn'), `${s.folder}/${u.pdf}`, `${s.name} - ${u.title}.pdf`));
   // 굿노트 바로 열기: 강의를 여는 순간 PDF를 미리 받아 둬서, '굿노트로'를 누르면 기다림 없이 공유 창이 바로 뜬다
   if (u.pdf && !pdfCache.has(`${s.folder}/${u.pdf}`)) (async () => {
@@ -158,7 +162,7 @@ async function viewBlank(s, uid) {
   render(`<div class="narrow">
     <section class="hero" style="margin-bottom:14px"><div class="eyebrow">백지 복습 · ${esc(s.name)}</div><h2 class="display">${esc(u.title)}</h2>
       <p class="lede">아무것도 보지 않고, 이 자료에서 기억나는 것을 전부 써 보세요. 핵심 개념·정의·예시처럼 시험에 나올 말로요. 다 쓰면 기본서와 대조해 빠진 것을 짚어 줘요.</p></section>
-    <div class="card"><textarea id="bl-text" style="min-height:260px" placeholder="기억나는 대로… (쓰다 막히면 그게 복습할 곳이에요)">${esc(saved)}</textarea>
+    <div class="card"><textarea id="bl-text" class="${pref('memoPaper', 'line') === 'grid' ? 'm-grid' : 'm-line'}" style="min-height:260px" placeholder="기억나는 대로… (쓰다 막히면 그게 복습할 곳이에요)">${esc(saved)}</textarea>
       <div class="row" style="margin-top:12px"><button class="btn pri gem" id="bl-check">${ic('spark', 18)}기본서와 대조</button><span class="grow faint" id="bl-n"></span><button class="btn ghost" data-go="#/s/${s.id}/u/${u.id}">자료으로</button></div></div>
     <div id="bl-out"></div></div>`);
   const ta = $('#bl-text');

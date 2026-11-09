@@ -30,7 +30,7 @@ function viewQuiz() {
     <div class="prog"><i style="width:${z.i / z.qs.length * 100}%"></i></div><div class="card" style="padding:26px">${q.revised ? `<div class="tag warn" style="margin-bottom:10px">${ic('alert', 14)} ${esc(q.revised)}</div>` : ''}<div class="q" style="white-space:pre-line">${esc(q.q)}</div>`;
   if (q.type === 'mcq') h += q.order.map((ci, n) => `<button class="choice" data-c="${ci}"><span class="badge">${n + 1}</span><span>${esc(q.c[ci])}</span></button>`).join('');
   if (q.type === 'ox') h += `<div class="oxrow"><button class="choice" data-c="1">O</button><button class="choice" data-c="0">X</button></div>`;
-  if (q.type === 'short') h += `<textarea id="ans" placeholder="답을 써 보세요. 비워 두고 '모범 답안 보기'를 눌러도 돼요."></textarea>
+  if (q.type === 'short') h += `<textarea id="ans" class="${pref('memoPaper', 'line') === 'grid' ? 'm-grid' : 'm-line'}" placeholder="답을 써 보세요. 비워 두고 '모범 답안 보기'를 눌러도 돼요."></textarea>
     <div class="row" style="margin-top:12px">${aiOn() ? `<button class="btn gem" id="grade">${ic('spark', 18)}${aiName()} 채점</button><button class="btn gem" id="photob">${ic('camera', 18)}손글씨 사진 채점</button><input type="file" accept="image/*" id="photo" hidden>` : ''}<button class="btn ${aiOn() ? '' : 'pri'}" id="show">모범 답안 보기</button></div>`;
   h += '<div id="fb"></div></div></div>';
   render(h);
