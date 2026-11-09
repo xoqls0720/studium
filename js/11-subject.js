@@ -33,6 +33,11 @@ async function viewUnit(s, uid) {
   let d;
   try { d = await loadUnit(s, u); } catch (e) {
     // 자료가 새로 정리되어 파일이 옮겨졌을 수 있다 — 색인을 한 번 새로 받아 다시 연다
+    if (u.mine && prog.my?.[u.id]) {   // 앱에서 넣은 자료의 파일이 치워졌으면(겹침 정리) 기록도 정리해 다시는 찾지 않는다
+      prog.my[u.id].del = 1; saveProg(); state.subs = null;
+      toast('이미 PC가 정리한 자료라 목록에서 뺐어요');
+      return viewBook(s);
+    }
     if (state.refetched !== u.id) {
       state.refetched = u.id;
       try { GD.lists = {}; await loadIndex(true); state.units = {}; state.subs = null; toast('자료 목록을 새로 받았어요'); return route(); } catch {}
@@ -137,6 +142,11 @@ async function viewBlank(s, uid) {
   let d;
   try { d = await loadUnit(s, u); } catch (e) {
     // 자료가 새로 정리되어 파일이 옮겨졌을 수 있다 — 색인을 한 번 새로 받아 다시 연다
+    if (u.mine && prog.my?.[u.id]) {   // 앱에서 넣은 자료의 파일이 치워졌으면(겹침 정리) 기록도 정리해 다시는 찾지 않는다
+      prog.my[u.id].del = 1; saveProg(); state.subs = null;
+      toast('이미 PC가 정리한 자료라 목록에서 뺐어요');
+      return viewBook(s);
+    }
     if (state.refetched !== u.id) {
       state.refetched = u.id;
       try { GD.lists = {}; await loadIndex(true); state.units = {}; state.subs = null; toast('자료 목록을 새로 받았어요'); return route(); } catch {}

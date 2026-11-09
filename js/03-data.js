@@ -20,7 +20,9 @@ function allSubjects() {
     if (m.del) continue;
     let s = subs.find(x => x.id === m.sid);
     if (!s) subs.push(s = {id: m.sid, lib: m.lib, libName: m.libName, name: m.subject, folder: m.folder, units: [], pdf: {}, summary: false, mine: true});
-    if (!s.units.some(u => u.id === id)) s.units.push({id, title: m.title, file: m.file, order: [999, m.t], ready: true, n: m.n || 0, mine: true});
+    // PC 생성기가 같은 자료(같은 파일 이름·제목)를 이미 정리했으면 앱에서 넣은 판은 겹치니 보여 주지 않는다
+    const dupPc = s.units.some(u => !u.mine && (((u.file || '').split('/').pop() === m.file && m.file) || u.title === m.title));
+    if (!dupPc && !s.units.some(u => u.id === id)) s.units.push({id, title: m.title, file: m.file, order: [999, m.t], ready: true, n: m.n || 0, mine: true});
   }
   return state.subs = subs;
 }
