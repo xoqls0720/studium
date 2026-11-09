@@ -1,5 +1,5 @@
 // 앱 껍데기만 담아 둔다(자료는 화면이 IndexedDB 에 따로 둔다). 새 판을 올릴 때 CACHE 이름을 바꾼다.
-const CACHE = 'studium-9';
+const CACHE = 'studium-10';
 const JS = ['01-core', '02-sync', '03-data', '04-ui', '05-srs', '10-home', '11-subject', '12-ink', '13-exam', '14-quiz', '15-settings', '16-cards', '17-focus', '18-add', '19-tools', '99-boot'];
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'css/app.css', ...JS.map(n => `js/${n}.js`)];
 
