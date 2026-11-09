@@ -87,6 +87,10 @@ async function viewUnit(s, uid) {
   $('#u-memo').onclick = () => { $('#u-memobox').hidden = false; $('#u-memotext').focus(); };
   $('#u-memotext').oninput = e => setMemo(u.id, e.target.value);
   $('#u-gn') && ($('#u-gn').onclick = () => toGoodnotes($('#u-gn'), `${s.folder}/${u.pdf}`, `${s.name} - ${u.title}.pdf`));
+  // 굿노트 바로 열기: 강의를 여는 순간 PDF를 미리 받아 둬서, '굿노트로'를 누르면 기다림 없이 공유 창이 바로 뜬다
+  if (u.pdf && !pdfCache.has(`${s.folder}/${u.pdf}`)) (async () => {
+    try { const path = `${s.folder}/${u.pdf}`; pdfCache.set(path, new File([await (await src().file(path)).blob()], `${s.name} - ${u.title}.pdf`, {type: 'application/pdf'})); } catch {}
+  })();
   $('#u-print').onclick = () => { state.inkPrint?.(); setTimeout(print, 80); };
   setupInk(u.id);
   selCard($('#paper'), s, u.id);
