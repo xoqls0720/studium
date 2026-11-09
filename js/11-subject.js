@@ -31,7 +31,15 @@ async function viewUnit(s, uid) {
   frame(s.name, `#/s/${s.id}/book`);
   render(`<div class="narrow card">${thinking('불러오는 중…')}</div>`);
   let d;
-  try { d = await loadUnit(s, u); } catch (e) { render(`<div class="narrow card">못 불러왔어요: ${esc(e.message)}</div>`); return; }
+  try { d = await loadUnit(s, u); } catch (e) {
+    // 자료가 새로 정리되어 파일이 옮겨졌을 수 있다 — 색인을 한 번 새로 받아 다시 연다
+    if (state.refetched !== u.id) {
+      state.refetched = u.id;
+      try { GD.lists = {}; await loadIndex(true); state.units = {}; state.subs = null; toast('자료 목록을 새로 받았어요'); return route(); } catch {}
+    }
+    render(`<div class="narrow card">이 자료를 불러오지 못했어요: ${esc(e.message)}<div class="row noprint" style="margin-top:12px"><button class="btn pri" data-go="#/s/${s.id}/book">과목 목록으로</button><button class="btn" data-go="#/">홈으로</button></div></div>`);
+    return;
+  }
   store.set('last', {sid: s.id, uid: u.id});
   const prev = s.units.slice(0, i).reverse().find(x => x.ready), next = s.units.slice(i + 1).find(x => x.ready);
   const ready = s.units.filter(x => x.ready), pos = ready.indexOf(u) + 1, cards = cardsOf(s, u, d);
@@ -127,7 +135,15 @@ async function viewBlank(s, uid) {
   frame('백지 복습', `#/s/${s.id}/u/${u.id}`);
   render(`<div class="narrow card">${thinking('불러오는 중…')}</div>`);
   let d;
-  try { d = await loadUnit(s, u); } catch (e) { render(`<div class="narrow card">못 불러왔어요: ${esc(e.message)}</div>`); return; }
+  try { d = await loadUnit(s, u); } catch (e) {
+    // 자료가 새로 정리되어 파일이 옮겨졌을 수 있다 — 색인을 한 번 새로 받아 다시 연다
+    if (state.refetched !== u.id) {
+      state.refetched = u.id;
+      try { GD.lists = {}; await loadIndex(true); state.units = {}; state.subs = null; toast('자료 목록을 새로 받았어요'); return route(); } catch {}
+    }
+    render(`<div class="narrow card">이 자료를 불러오지 못했어요: ${esc(e.message)}<div class="row noprint" style="margin-top:12px"><button class="btn pri" data-go="#/s/${s.id}/book">과목 목록으로</button><button class="btn" data-go="#/">홈으로</button></div></div>`);
+    return;
+  }
   const saved = store.get('blank.' + u.id, '');
   render(`<div class="narrow">
     <section class="hero" style="margin-bottom:14px"><div class="eyebrow">백지 복습 · ${esc(s.name)}</div><h2 class="display">${esc(u.title)}</h2>
