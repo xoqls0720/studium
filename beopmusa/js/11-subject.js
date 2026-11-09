@@ -48,7 +48,7 @@ async function viewUnit(s, uid) {
       <button class="btn sm" id="u-memo">${ic('memo', 16)}메모${memoOf(u.id) ? ' ·' : ''}</button></div>
     <div id="u-podbox" class="card" hidden></div>
     <div id="u-memobox" class="card" ${memoOf(u.id) ? '' : 'hidden'}><label class="field" style="margin:0"><span>내 메모 · 기기끼리 맞춰져요</span><textarea id="u-memotext" style="min-height:90px" placeholder="이해한 것, 헷갈리는 조문, 암기 요령…">${esc(memoOf(u.id))}</textarea></label></div>
-    <div id="pw"><div class="card paper" id="paper" style="padding:28px">${unitHtml(u, d)}<canvas id="ink" hidden></canvas></div></div>
+    <div id="pw"><div class="card paper" id="paper" style="padding:28px">${unitHtml(u, d)}</div></div>
     ${d.terms?.length ? `<div class="sect">용어 · 눌러서 뜻 보기</div><div class="terms">${d.terms.map(t => `<div class="term"><b>${esc(t.t)}</b><span>${esc(t.d)}</span></div>`).join('')}</div>` : ''}
     <div class="row noprint" style="margin:22px 0">
       <button class="btn pri" id="u-quiz">문제 풀기 · ${qn}</button>
@@ -56,7 +56,7 @@ async function viewUnit(s, uid) {
       <button class="btn" data-go="#/s/${s.id}/blank/${u.id}">${ic('pen', 18)}백지 복습</button>
       <button class="btn" id="u-read">${isRead(u.id) ? ic('check', 18, 2.2) + '읽음' : '읽음 표시'}</button>
       ${u.pdf ? `<button class="btn" id="u-gn">${ic('share', 18)}굿노트로</button>` : ''}
-      <button class="btn ghost" id="u-print">${ic('print', 18)}필기 포함 인쇄</button>
+      <button class="btn ghost" id="u-print">${ic('print', 18)}인쇄·PDF</button>
     </div>
     ${aiCard()}
     <div class="row noprint" style="margin-top:22px">
@@ -94,8 +94,7 @@ async function viewUnit(s, uid) {
   if (u.pdf && !pdfCache.has(`${s.folder}/${u.pdf}`)) (async () => {
     try { const path = `${s.folder}/${u.pdf}`; pdfCache.set(path, new File([await (await src().file(path)).blob()], `${s.name} - ${u.title}.pdf`, {type: 'application/pdf'})); } catch {}
   })();
-  $('#u-print').onclick = () => { state.inkPrint?.(); setTimeout(print, 80); };
-  setupInk(u.id);
+  $('#u-print').onclick = () => print();
   selCard($('#paper'), s, u.id);
   bindAi(`unit:${u.id}`, `너는 '${s.name}' 과목의 친절하고 정확한 조교다. 학생이 지금 '${u.title}' 정리 노트를 보고 있다.
 아래 노트를 근거로 한국어로 답한다. 노트에 없는 내용을 보탤 때는 '자료 밖 일반 지식'이라고 밝힌다. 답은 간결한 마크다운으로, 필요하면 표·목록을 쓴다.
