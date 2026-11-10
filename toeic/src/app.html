@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>태빈 토익 독학</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* 한 권의 학습 노트: 흰 종이, 검정 글씨, 진한 청록은 '눌러야 할 것'에만 */
+  --paper:#fcfcfa; --card:#ffffff; --ink:#000000; --sub:#4a4f52; --line:#d8dcdc;
+  --accent:#1d5a66; --accent-soft:#e3eff1; --good:#2d7a4b; --good-soft:#e5f3ea; --bad:#b0281c; --bad-soft:#fbe9e7; --warn:#8a5a00; --warn-soft:#fbf1dc;
+  --font:"Gowun Batang","MaruBuri","Nanum Myeongjo","AppleMyungjo",serif;
+  --en:Georgia,"Times New Roman",serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:18px;line-height:1.6}
+button{font-family:inherit;font-size:1rem;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+header{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px 6px;max-width:960px;margin:0 auto}
+.top h1{font-size:1.25rem;margin:0}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:2px 12px;font-size:.8rem;color:var(--sub);white-space:nowrap}
+nav{display:flex;gap:4px;overflow-x:auto;padding:4px 16px 8px;max-width:960px;margin:0 auto}
+nav a{flex:0 0 auto;text-decoration:none;color:var(--ink);padding:8px 14px;border-radius:10px;font-size:.95rem}
+nav a.on{background:var(--accent);color:#fff}
+main{max-width:960px;margin:0 auto;padding:20px}
+h2{font-size:1.4rem;margin:.2rem 0 1rem;text-wrap:balance}
+h3{font-size:1.1rem;margin:0 0 .5rem;text-wrap:balance}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.big{font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.muted{color:var(--sub);font-size:.9rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:12px;padding:12px 18px;min-height:48px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.bad{background:var(--bad);border-color:var(--bad)} .btn.good{background:var(--good);border-color:var(--good)}
+.btn.sm{min-height:36px;padding:4px 12px;font-size:.9rem}
+.btn:disabled{opacity:.4;cursor:default}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;text-align:left;width:100%;text-decoration:none;color:inherit}
+.pill{font-size:.8rem;border-radius:999px;padding:2px 10px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.pill.g{background:var(--good-soft);color:var(--good)} .pill.b{background:var(--bad-soft);color:var(--bad)} .pill.w{background:var(--warn-soft);color:var(--warn)}
+.flash{min-height:300px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:10px}
+.flash .w{font-size:2.6rem;font-weight:700;font-family:var(--en)}
+.q{font-size:1.15rem;font-family:var(--en);margin:12px 0 14px}
+.passage{font-family:var(--en);white-space:pre-wrap;background:#fafafa;border:1px solid var(--line);border-radius:12px;padding:14px 16px;max-height:46vh;overflow:auto;margin:12px 0;font-size:1rem;line-height:1.65}
+.opts{display:grid;gap:10px}
+.opt{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:14px 16px;text-align:left;min-height:52px;cursor:pointer;font-family:var(--en)}
+.opt.ok{border-color:var(--good);background:var(--good-soft)} .opt.no{border-color:var(--bad);background:var(--bad-soft)}
+.ex{margin-top:14px;padding:14px 16px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 12px 12px 0;white-space:pre-wrap}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden} .bar i{display:block;height:100%;background:var(--accent)}
+ul.pts{padding-left:1.2rem;margin:.4rem 0 1rem} ul.pts li{margin:.3rem 0}
+input,select{font-family:inherit;font-size:1rem;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);min-height:44px}
+svg text{font-family:var(--font);fill:var(--sub);font-size:12px}
+.en{font-family:var(--en)}
+.sep{height:1px;background:var(--line);margin:18px 0}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;min-height:40px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.timer{font-variant-numeric:tabular-nums;font-weight:700}
+.timer.low{color:var(--bad)}
+table{border-collapse:collapse;width:100%} td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+.stage{border-left:4px solid var(--line);padding-left:14px} .stage.now{border-left-color:var(--accent)} .stage.done{border-left-color:var(--good)}
+@media (prefers-reduced-motion:no-preference){.opt,.btn,.item{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+<header>
+  <div class="top"><h1>태빈 토익 독학 · 목표 990</h1><span class="chip" id="sync">저장 준비 중</span></div>
+  <nav id="nav">
+    <a href="#home">오늘</a><a href="#roadmap">로드맵</a><a href="#words">단어</a><a href="#grammar">문법</a><a href="#parts">파트별</a><a href="#mock">모의고사</a><a href="#review">오답노트</a><a href="#diag">진단</a><a href="#stats">기록</a>
+  </nav>
+</header>
+<main id="app"></main>
+<script>
+/*DATA*/
+</script>
+<script>
+(function(){
+"use strict";
+const $app=document.getElementById("app");
+const DAILY_NEW=30, INT=[0,1,2,4,8,16,30], GOAL=990, APPLY=new Date(2027,11,15);
+const L=["A","B","C","D"];
+function dayNum(d){d=d||new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*60000)/86400000)}
+function dayStr(n){const d=new Date(n*86400000);return (d.getUTCMonth()+1)+"/"+d.getUTCDate()}
+const TODAY=()=>dayNum();
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function uid(){return "x"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function dday(){return Math.max(0,Math.ceil((APPLY-new Date())/86400000))}
+
+// ================= 상태 =================
+const BLANK=()=>({v:2,words:{},xw:[],wrong:{},solved:{},lessons:{},logs:{},scores:[],diag:[],tags:{},parts:{},level:0,mocks:[]});
+let S=BLANK();
+function fix(){const b=BLANK();for(const k in b)if(S[k]==null)S[k]=b[k];
+  // v1 오답(문제 id만 있던 것)을 v2 형식으로
+  for(const id in S.wrong){const w=S.wrong[id];if(!w.item&&QB[id])w.item=QB[id];if(!w.item)delete S.wrong[id]}}
+function log(){const k=TODAY();S.logs[k]=S.logs[k]||{w:0,q:0,m:0,c:0};return S.logs[k]}
+function streak(){let n=0,d=TODAY();if(!S.logs[d])d--;while(S.logs[d]&&(S.logs[d].w+S.logs[d].q+S.logs[d].m)>0){n++;d--}return n}
+
+// ================= 기본 문제 묶음 =================
+const QB={};
+UNITS.forEach(u=>u.q.forEach((x,i)=>{QB["g:"+u.id+":"+i]={src:"문법 · "+u.title,part:"p5",tag:u.title,q:x[0],o:x[1],a:x[2],ex:x[3]}}));
+PART5.forEach((x,i)=>{QB["p:"+i]={src:"파트5 · "+x[4],part:"p5",tag:x[4],q:x[0],o:x[1],a:x[2],ex:x[3]}});
+LC.forEach((x,i)=>{QB["l:"+i]={src:"파트2",part:"p2",tag:"파트2",q:x[0],o:x[1],a:x[2],ex:x[3],say:[x[0]].concat(x[1].map((o,k)=>L[k]+". "+o))}});
+const asSet=id=>({items:[Object.assign({id},QB[id])]});
+
+// ================= 저장 =================
+let ref=null, saving=false, dirty=false, timer=null;
+const LS="tb-toeic-v1";
+function setSync(t){document.getElementById("sync").textContent=t}
+function lsGet(){try{return JSON.parse(localStorage.getItem(LS)||"null")}catch(e){return null}}
+function lsSet(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+async function readRef(r){const s=await r.get();if(!s)return null;if(typeof s.data==="function"){return s.exists===false?null:s.data()}if(s.data!==undefined)return s.data;return s}
+function save(){lsSet();dirty=true;clearTimeout(timer);timer=setTimeout(flush,1500)}
+async function flush(){
+  if(!ref||saving||!dirty)return; saving=true; dirty=false; setSync("저장 중…");
+  try{await ref.set({json:JSON.stringify(S),updated:Date.now()});setSync("계정에 저장됨")}
+  catch(e){setSync("저장 실패 · 이 기기에만 저장");dirty=true}
+  saving=false; if(dirty)timer=setTimeout(flush,3000);
+}
+function size(x){return x?Object.keys(x.logs||{}).length+Object.keys(x.words||{}).length+Object.keys(x.solved||{}).length:0}
+async function initStore(){
+  const l=lsGet(); if(l)S=Object.assign(BLANK(),l); fix(); setSync("이 기기에만 저장"); route();
+  try{
+    if(!window.claude||!window.claude.use)return;
+    const to=new Promise(r=>setTimeout(()=>r(null),10000));
+    const db=await Promise.race([window.claude.use("db"),to]);
+    const user=await Promise.race([window.claude.use("user"),to]);
+    if(!db||!user)return;
+    const id=await user.id(); if(!id)return;
+    ref=db.collection("data/users/"+id).doc("toeic");
+    const got=await readRef(ref);
+    if(got&&got.json){const remote=JSON.parse(got.json);
+      if(size(remote)>=size(lsGet())){S=Object.assign(BLANK(),remote);fix();lsSet()} else {dirty=true;flush()}}
+    else {dirty=true;flush()}
+    setSync("계정에 저장됨"); if(!busy)route();
+  }catch(e){setSync("이 기기에만 저장")}
+}
+
+// ================= 소리 =================
+let tts=null, voices=[];
+(async()=>{try{if(window.claude&&window.claude.use)tts=await window.claude.use("tts")}catch(e){}})();
+function loadVoices(){try{voices=speechSynthesis.getVoices().filter(v=>/^en(-|_)/i.test(v.lang))}catch(e){}}
+if("speechSynthesis" in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+function canSpeak(){return !!tts||("speechSynthesis" in window)}
+function pickVoice(sp){if(!voices.length)return null;
+  const us=voices.filter(v=>/en-US/i.test(v.lang)), pool=us.length>1?us:voices;
+  const fem=pool.find(v=>/female|samantha|zira|aria|jenny|allison|ava|susan/i.test(v.name)), mal=pool.find(v=>/male|daniel|alex|fred|guy|david|tom/i.test(v.name)&&!/female/i.test(v.name));
+  if(sp==="W")return fem||pool[0]; if(sp==="M")return mal||pool[Math.min(1,pool.length-1)]; return pool[0]}
+function stopSpeak(){try{tts&&tts.stop()}catch(e){} try{speechSynthesis.cancel()}catch(e){}}
+// lines: 문자열 또는 {sp:"M"|"W"|"N", t:"..."}
+async function speak(lines){
+  if(!Array.isArray(lines))lines=[lines];
+  lines=lines.map(x=>typeof x==="string"?{sp:"N",t:x}:x);
+  if(tts){try{await tts.speak(lines.map(x=>({text:x.t,language:"en",voice:x.sp==="W"?"airy":x.sp==="M"?"rounded":"buttery"})));return}catch(e){}}
+  if("speechSynthesis" in window){speechSynthesis.cancel();
+    lines.forEach(x=>{const u=new SpeechSynthesisUtterance(x.t);u.lang="en-US";u.rate=S.rate||.95;const v=pickVoice(x.sp);if(v)u.voice=v;speechSynthesis.speak(u)})}
+}
+
+// ================= 공부 시간 =================
+let lastAct=Date.now();
+["click","keydown","touchstart"].forEach(e=>document.addEventListener(e,()=>{lastAct=Date.now()},{passive:true}));
+setInterval(()=>{if(!document.hidden&&Date.now()-lastAct<120000){log().m++;save()}},60000);
+
+// ================= Claude 문제 생성 =================
+let sampleFn=null, sampleState="wait";
+(async()=>{try{if(window.claude&&window.claude.use){sampleFn=await window.claude.use("sample")}}catch(e){} sampleState=sampleFn?"ok":"none"; if(!busy)route()})();
+const LEVELS=[
+ {name:"기초",score:"~450",desc:"아주 쉬운 어휘와 짧은 문장. 핵심 문법 하나만 묻는다. 오답 보기는 품사·형태가 확실히 다르다."},
+ {name:"중급",score:"450~700",desc:"실제 토익 평균 난이도. 자주 나오는 비즈니스 어휘. 보기 두 개가 헷갈리게 만든다."},
+ {name:"고급",score:"700~900",desc:"실제 토익의 어려운 문항 수준. 긴 문장, 수일치·관계사·도치·어휘 뉘앙스, 패러프레이즈."},
+ {name:"만점",score:"900~990",desc:"실제 토익 최고 난도. 미묘한 어휘 구별, 함정 보기, 간접 응답(파트2), 추론·문장 삽입(파트7), 동의어 문제."}
+];
+const PARTS={
+ p1:{name:"파트1 사진 묘사",lc:true,opts:4,short:"사진 대신 장면 설명을 읽고, 들리는 문장 4개 중 장면과 맞는 것을 고르기",
+   spec:'세트 4개. 각 세트: "scene"=사진 대신 쓸 장면 묘사(한국어, 2~3문장, 사람·사물 위치와 동작을 구체적으로), "items"=[{"q":"","o":[영어 진술 4개],"a":정답,"ex":해설,"tag":"파트1"}]. 오답은 실제 토익처럼 동작 착오(-ing/수동 진행), 없는 사물 언급, 비슷한 소리 단어 함정.'},
+ p2:{name:"파트2 질문·응답",lc:true,opts:3,short:"질문을 듣고 알맞은 응답 고르기 (보기 3개)",
+   spec:'세트 1개, items 10개. 각 item: "q"=영어 질문이나 진술, "o"=영어 응답 3개, 정답 1개. 의문사·Yes/No·부탁·제안·평서문·간접 응답을 섞는다. 오답은 같은 단어 반복, 비슷한 소리, 엉뚱한 의문사 답 함정.'},
+ p3:{name:"파트3 대화",lc:true,opts:4,short:"두세 사람 대화를 듣고 3문제",
+   spec:'세트 2개. 각 세트: "audio"=[{"sp":"M"|"W","t":"영어 대사"}] 8~12줄의 업무 대화, "items"=3문제(목적·장소·세부·다음 행동·화자 의도 중), 각 4지선다(영어). 정답은 대화의 표현을 패러프레이즈해 둔다.'},
+ p4:{name:"파트4 담화",lc:true,opts:4,short:"한 사람의 안내·광고·회의 담화를 듣고 3문제",
+   spec:'세트 2개. 각 세트: "audio"=[{"sp":"M" 또는 "W","t":"..."}] 한 화자의 담화(공지, 광고, 전화 메시지, 회의 발췌, 투어 안내 등) 6~10문장, "items"=3문제 4지선다(영어). 화자 의도·시각 정보 대신 세부·추론 문제 포함.'},
+ p5:{name:"파트5 문장 빈칸",lc:false,opts:4,short:"문장 빈칸 채우기 (문법·어휘)",
+   spec:'세트 1개, items 10개. 각 item: "q"=빈칸을 ___ 로 표시한 영어 비즈니스 문장, "o"=4개, 문법(품사·시제·수일치·태·관계사·접속사/전치사·대명사·비교)과 어휘 문제를 섞는다.'},
+ p6:{name:"파트6 장문 빈칸",lc:false,opts:4,short:"이메일·공지 지문의 빈칸 4개 (문장 삽입 포함)",
+   spec:'세트 1개. "passage"=영어 이메일·공지·기사(120~180단어), 빈칸 4곳을 [1] [2] [3] [4]로 표시. "items"=4문제, q는 "Blank [1]" 형식, 4번 중 하나는 알맞은 문장 고르기(보기가 문장).'},
+ p7:{name:"파트7 독해",lc:false,opts:4,short:"이메일·광고·기사 독해 (단일·이중 지문)",
+   spec:'세트 2개. 각 세트: "passage"=영어 지문(첫 세트는 150~220단어 단일 지문, 둘째 세트는 이메일+공지 같은 이중 지문을 "--- Message 1 ---" 식으로 구분해 250~350단어), "items"=첫 세트 3문제, 둘째 세트 4문제(주제, 세부, 사실 확인 NOT true, 추론, 동의어 "closest in meaning", 문장 삽입 위치 [1]~[4] 중). 4지선다(영어).'}
+};
+function weakTags(){return Object.entries(S.tags).filter(([t,v])=>v.c+v.w>=3).map(([t,v])=>[t,v.w/(v.c+v.w)]).filter(x=>x[1]>=.34).sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0])}
+function promptFor(part,level,focus){
+  const P=PARTS[part], Lv=LEVELS[level];
+  return `너는 한국인 수험생을 위한 TOEIC 문제 출제자다. 실제 ETS 기출 문항을 그대로 베끼지 말고, 형식과 난이도만 실제 시험과 똑같은 새 문제를 만든다.
+파트: ${P.name}
+난이도: ${Lv.name} (목표 점수대 ${Lv.score}) — ${Lv.desc}
+${focus&&focus.length?"특히 이 약점을 집중 출제: "+focus.join(", "):""}
+만들 것: ${P.spec}
+
+모든 문제 공통 규칙:
+- 정답은 오직 하나. 정답 위치(a)는 0부터 시작하는 번호이며 세트마다 고르게 섞는다.
+- "ex"는 한국어 해설. 반드시 ① 단서(빈칸 앞뒤·질문의 핵심어·지문 근거 문장) ② 정답 근거 ③ 각 오답이 틀린 이유를 단계별로 쓴다. 듣기 문제는 해설에 핵심 문장을 영어로 인용한다.
+- "tag"는 짧은 한국어 유형명(예: 품사, 시제, 수일치, 능동/수동, 관계사, 접속사/전치사, 어휘, 대명사, 비교, 의문사 응답, 간접 응답, 세부 사항, 추론, 주제, 동의어, 문장 삽입, 화자 의도).
+- 영어는 자연스러운 미국식 비즈니스 영어. 사람 이름·회사 이름은 가상으로.
+- 출력은 JSON 하나만. 설명 문장, 코드 블록 표시 금지.
+형식: {"sets":[{"scene":"(파트1만)","passage":"(파트6·7만)","audio":[{"sp":"M","t":"..."}](파트3·4만),"items":[{"q":"...","o":["..."],"a":0,"ex":"...","tag":"..."}]}]}`;
+}
+function cleanSets(raw,part){
+  const P=PARTS[part], out=[];
+  const sets=(raw&&raw.sets)||[];
+  sets.forEach(s=>{
+    const items=(s.items||[]).filter(it=>it&&Array.isArray(it.o)&&it.o.length===P.opts&&Number.isInteger(+it.a)&&+it.a>=0&&+it.a<P.opts&&it.ex).map(it=>{
+      const o={id:uid(),src:P.name,part,tag:String(it.tag||P.name).slice(0,20),q:String(it.q||""),o:it.o.map(String),a:+it.a,ex:String(it.ex)};
+      if(part==="p1")o.say=it.o.map((x,k)=>L[k]+". "+x);
+      if(part==="p2")o.say=[o.q].concat(it.o.map((x,k)=>L[k]+". "+x));
+      return o});
+    if(!items.length)return;
+    const set={items};
+    if(s.scene)set.scene=String(s.scene);
+    if(s.passage)set.passage=String(s.passage);
+    if(Array.isArray(s.audio)&&s.audio.length)set.audio=s.audio.filter(a=>a&&a.t).map(a=>({sp:a.sp==="W"?"W":a.sp==="M"?"M":"N",t:String(a.t)}));
+    if((part==="p3"||part==="p4")&&!set.audio)return;
+    if((part==="p6"||part==="p7")&&!set.passage)return;
+    out.push(set)});
+  return out;
+}
+async function generate(part,level,focus,onStatus){
+  if(!sampleFn)throw {code:"none"};
+  onStatus&&onStatus("Claude가 문제를 만드는 중이에요…");
+  let raw;
+  try{raw=await sampleFn.json(promptFor(part,level,focus),{modelTier:part==="p7"||part==="p6"||level>=2?"complex":"default"})}
+  catch(e){ // json 실패 시 text로 한 번 더
+    if(e&&(e.code==="not_granted"||e.code==="rate_limited"))throw e;
+    const r=await sampleFn(promptFor(part,level,focus)+"\nJSON 외의 글자는 절대 쓰지 마.",{modelTier:"default"});
+    const t=(r&&r.text||"").replace(/^[^{]*/,"").replace(/[^}]*$/,""); raw=JSON.parse(t)}
+  const sets=cleanSets(raw,part);
+  if(!sets.length)throw {code:"empty"};
+  return sets;
+}
+function genError(e){
+  if(e&&e.code==="none")return "이 화면에서는 문제 생성 기능을 쓸 수 없어요. claude.ai에서 앱을 열면 돼요. 기본 문제는 그대로 풀 수 있어요.";
+  if(e&&e.code==="not_granted")return "문제 생성 허락이 꺼져 있어요. 앱을 다시 열고 허락하면 쓸 수 있어요.";
+  if(e&&e.code==="rate_limited")return "잠깐 너무 많이 만들었어요. 1~2분 뒤에 다시 눌러 주세요.";
+  if(e&&e.code==="empty")return "만들어진 문제가 형식에 맞지 않아 버렸어요. 한 번만 다시 눌러 주세요.";
+  return "문제를 만들지 못했어요. 잠시 뒤 다시 눌러 주세요.";
+}
+
+// ================= 공용 풀이 화면 =================
+let busy=false, curTick=null;
+// sets: [{scene?,passage?,audio?,items:[{id,src,part,tag,q,o,a,ex,say?}]}]
+function runSets(sets,opt){
+  opt=opt||{}; busy=true;
+  const steps=[]; sets.forEach((s,si)=>s.items.forEach((it,ii)=>steps.push({s,it,first:ii===0})));
+  let i=0,right=0,answered=0,limit=opt.seconds?Date.now()+opt.seconds*1000:0,tick=null;
+  const res={};
+  function finish(){
+    clearInterval(tick); busy=false; stopSpeak();
+    const total=steps.length;
+    if(opt.mock){S.mocks.push({d:TODAY(),k:opt.mock,r:right,n:total});save()}
+    $app.innerHTML=`<h2>${esc(opt.title||"문제")} 끝</h2><div class="card"><div class="big">${right} / ${total}</div>
+     <p class="muted">${answered<total?`시간이 끝나 ${total-answered}문제는 풀지 못했어요. `:""}틀린 문제는 오답노트에 모였어요.</p>
+     <div class="list">${Object.entries(res).map(([p,v])=>`<div class="row" style="justify-content:space-between"><span>${esc(PARTS[p]?PARTS[p].name:p)}</span><b>${v.r}/${v.n}</b></div>`).join("")}</div>
+     <div class="row" style="margin-top:12px"><button class="btn" id="done">확인</button></div></div>`;
+    document.getElementById("done").onclick=()=>{opt.onDone?opt.onDone(right,total):route()};
+  }
+  function timeStr(){if(!limit)return"";const s=Math.max(0,Math.round((limit-Date.now())/1000));return `<span class="timer${s<120?" low":""}" id="tm">${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}</span>`}
+  if(limit)curTick=tick=setInterval(()=>{const el=document.getElementById("tm");const s=Math.max(0,Math.round((limit-Date.now())/1000));if(el){el.textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0");el.classList.toggle("low",s<120)}if(s<=0)finish()},1000);
+  function draw(){
+    if(i>=steps.length)return finish();
+    const {s,it}=steps[i], P=PARTS[it.part]||{}, isLC=!!P.lc;
+    const hideText=isLC&&(it.part==="p1"||it.part==="p2");
+    const showAudio=s.audio||it.say;
+    $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>${esc(opt.title||"문제")}</h2><span class="row"><span class="muted">${i+1} / ${steps.length}</span>${timeStr()}</span></div>
+      <div class="bar" style="margin-bottom:16px"><i style="width:${i/steps.length*100}%"></i></div>
+      <div class="card"><div class="row" style="justify-content:space-between"><span class="pill">${esc(it.src)}${it.tag&&it.tag!==it.src?" · "+esc(it.tag):""}</span><button class="btn ghost sm" id="flag" title="이상한 문제 버리기">이상한 문제예요</button></div>
+      ${s.scene?`<div class="ex" style="border-left-color:var(--warn);background:var(--warn-soft)"><b>장면</b> ${esc(s.scene)}</div>`:""}
+      ${showAudio?`<div class="row" style="margin:14px 0"><button class="btn" id="play">▶ 듣기</button><button class="btn ghost" id="slow">▶ 천천히</button><button class="btn ghost" id="script">스크립트 보기</button></div><div id="scr" hidden class="passage"></div>`:""}
+      ${s.passage?`<div class="passage">${esc(s.passage)}</div>`:""}
+      ${hideText?"":`<p class="q">${esc(it.q).replace(/_{3,}/,"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>")}</p>`}
+      <div class="opts">${it.o.map((o,k)=>`<button class="opt" data-k="${k}">${L[k]}. <span class="ot"${hideText?" hidden":""}>${esc(o)}</span></button>`).join("")}</div>
+      <div id="ex"></div></div>`;
+    const lines=s.audio||it.say;
+    function scriptText(){return (s.audio?s.audio.map(a=>(a.sp==="N"?"":a.sp+": ")+a.t).join("\n"):it.say.join("\n"))}
+    if(showAudio){
+      const pb=document.getElementById("play"), sb=document.getElementById("slow");
+      if(!canSpeak()){pb.disabled=true;sb.disabled=true;pb.textContent="소리 없음"}
+      pb.onclick=()=>{S.rate=.95;speak(lines)}; sb.onclick=()=>{S.rate=.75;speak(lines)};
+      document.getElementById("script").onclick=()=>{const t=document.getElementById("scr");t.hidden=!t.hidden;t.textContent=scriptText()};
+    }
+    document.getElementById("flag").onclick=()=>{delete S.wrong[it.id];save();i++;draw()};
+    $app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+      if($app.querySelector(".opt.ok"))return;
+      const k=+b.dataset.k, ok=k===it.a;
+      answered++;
+      $app.querySelectorAll(".opt").forEach(o=>{o.disabled=true;if(+o.dataset.k===it.a)o.classList.add("ok")});
+      if(!ok)b.classList.add("no");
+      $app.querySelectorAll(".ot").forEach(x=>x.hidden=false);
+      const lg=log(); lg.q++; if(ok)lg.c++; S.solved[it.id]=1;
+      const tg=S.tags[it.tag]||{c:0,w:0}; ok?tg.c++:tg.w++; S.tags[it.tag]=tg;
+      const pp=S.parts[it.part]||{c:0,w:0}; ok?pp.c++:pp.w++; S.parts[it.part]=pp;
+      res[it.part]=res[it.part]||{r:0,n:0}; res[it.part].n++;
+      if(ok){right++;res[it.part].r++; if(opt.mode==="review")delete S.wrong[it.id]}
+      else{const w=S.wrong[it.id]||{n:0}; w.n++; w.t=TODAY();
+        w.item={id:it.id,src:it.src,part:it.part,tag:it.tag,q:it.q,o:it.o,a:it.a,ex:it.ex,say:it.say};
+        w.ctx={scene:s.scene,passage:s.passage?s.passage.slice(0,2500):undefined,audio:s.audio};
+        S.wrong[it.id]=w; trimWrong()}
+      save();
+      if(opt.mock&&!opt.explain){i++;draw();return}
+      document.getElementById("ex").innerHTML=`<div class="ex"><strong>${ok?"맞았어요.":"틀렸어요. 정답은 "+L[it.a]+"."}</strong>\n${esc(it.ex)}</div><div class="row" style="margin-top:14px"><button class="btn" id="next">${i+1<steps.length?"다음":"결과 보기"}</button></div>`;
+      if(showAudio){const t=document.getElementById("scr");t.hidden=false;t.textContent=scriptText()}
+      document.getElementById("next").onclick=()=>{i++;draw();window.scrollTo(0,0)};
+    });
+  }
+  draw();
+}
+function trimWrong(){const ks=Object.keys(S.wrong);if(ks.length>400){ks.sort((a,b)=>S.wrong[a].t-S.wrong[b].t).slice(0,ks.length-400).forEach(k=>delete S.wrong[k])}}
+
+// ================= 단어 =================
+function allWords(){return WORDS.concat(S.xw)}
+function wkey(i){return String(i)}
+function wordQueue(){
+  const t=TODAY(), due=[], fresh=[], W=allWords();
+  W.forEach((w,i)=>{const s=S.words[wkey(i)];if(s){if(s.d<=t)due.push(i)}else fresh.push(i)});
+  const intro=Object.values(S.words).filter(s=>s.f===t).length;
+  return {due,fresh:fresh.slice(0,Math.max(0,DAILY_NEW-intro))};
+}
+function viewWords(){
+  const {due,fresh}=wordQueue(), W=allWords();
+  const seen=Object.keys(S.words).length, mastered=Object.values(S.words).filter(s=>s.b>=5).length;
+  $app.innerHTML=`<h2>단어장</h2>
+   <div class="grid"><div class="card"><div class="muted">오늘 복습</div><div class="big">${due.length}</div></div>
+   <div class="card"><div class="muted">오늘 새 단어</div><div class="big">${fresh.length}</div></div>
+   <div class="card"><div class="muted">외운 단어 / 전체</div><div class="big">${mastered} / ${W.length}</div><div class="muted">본 단어 ${seen}개 · 만점권 목표 3,000개</div></div></div>
+   <div class="row" style="margin:16px 0"><button class="btn" id="go" ${due.length+fresh.length?"":"disabled"}>${due.length+fresh.length?"오늘 단어 시작":"오늘 분량 끝"}</button>
+   <span class="seg" id="wl">${LEVELS.map((l,k)=>`<button data-l="${k}" class="${k===S.level?"on":""}">${l.name}</button>`).join("")}</span><button class="btn ghost" id="more">이 수준 단어 30개 더 받기</button></div>
+   <div id="wmsg" class="muted"></div>
+   <p class="muted">뜻이 떠오르면 '알았어요', 아니면 '몰랐어요'. 아는 단어는 1·2·4·8·16·30일 간격으로, 모르는 단어는 다음 날 다시 나와요.</p>
+   <div class="sep"></div><h3>전체 단어</h3><input id="find" placeholder="영어나 뜻으로 찾기" style="width:100%;margin-bottom:10px"><div class="list" id="wlist"></div>`;
+  document.getElementById("go").onclick=()=>wordSession(due.concat(fresh));
+  document.querySelectorAll("#wl button").forEach(b=>b.onclick=()=>{S.level=+b.dataset.l;save();viewWords()});
+  document.getElementById("more").onclick=async()=>{
+    const m=document.getElementById("wmsg"), b=document.getElementById("more"); b.disabled=true;
+    if(!sampleFn){m.textContent=genError({code:"none"});b.disabled=false;return}
+    m.textContent="Claude가 단어를 고르는 중이에요…";
+    const have=new Set(allWords().map(w=>w[0].toLowerCase()));
+    const pr=`TOEIC ${LEVELS[S.level].name}(${LEVELS[S.level].score}) 수준 핵심 어휘 30개를 골라라. 이미 아는 단어는 제외: ${Array.from(have).slice(-1500).join(", ")}.
+각 단어: [영어 단어, 품사(명/동/형/부/전/접 중 하나), 토익에서 주로 쓰이는 한국어 뜻(쉼표로 2개까지), 토익식 비즈니스 영어 예문, 예문 한국어 번역]. 고급·만점 수준이면 헷갈리는 유의어와 숙어(예: be eligible for)도 포함.
+JSON만 출력: {"words":[["...","...","...","...","..."]]}`;
+    try{const r=await sampleFn.json(pr,{modelTier:"default"});
+      const add=((r&&r.words)||[]).filter(w=>Array.isArray(w)&&w.length===5&&w.every(x=>typeof x==="string"&&x)&&!have.has(w[0].toLowerCase()));
+      S.xw=S.xw.concat(add); save(); m.textContent=add.length+"개를 단어장에 넣었어요. 내일부터 새 단어로 나와요."; setTimeout(viewWords,1200);
+    }catch(e){m.textContent=genError(e);b.disabled=false}};
+  const wl=document.getElementById("wlist");
+  function drawList(q){q=(q||"").trim().toLowerCase();
+    wl.innerHTML=W.map((w,i)=>[w,i]).filter(([w])=>!q||w[0].toLowerCase().includes(q)||w[2].includes(q)).slice(0,80).map(([w,i])=>{const s=S.words[wkey(i)];
+      return `<button class="item" data-i="${i}"><span><b class="en">${esc(w[0])}</b> <span class="muted">${esc(w[1])}</span><br>${esc(w[2])}</span>${s?(s.b>=5?'<span class="pill g">외움</span>':'<span class="pill">'+s.b+'단계</span>'):'<span class="pill b">아직</span>'}</button>`}).join("");
+    wl.querySelectorAll(".item").forEach(b=>b.onclick=()=>speak(W[+b.dataset.i][0]));
+  }
+  drawList(); document.getElementById("find").oninput=e=>drawList(e.target.value);
+}
+function wordSession(queue){
+  let q=queue.slice(), again=new Set(), done=0; busy=true; const W=allWords();
+  function draw(){
+    if(!q.length){busy=false;$app.innerHTML=`<h2>오늘 단어 끝</h2><div class="card"><div class="big">${done}장</div><p class="muted">몰랐던 단어는 내일 다시 나와요.</p><a class="btn" href="#home">오늘 화면으로</a></div>`;return}
+    const i=q[0], w=W[i];
+    $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>단어</h2><span class="muted">남은 카드 ${q.length}</span></div>
+      <div class="card flash"><div class="w">${esc(w[0])}</div><div class="muted">${esc(w[1])}사</div>
+      <div class="row"><button class="btn ghost" id="say">▶ 발음</button><button class="btn" id="show">뜻 보기</button></div><div id="back"></div></div>
+      <div class="row" style="margin-top:14px;justify-content:center"><button class="btn bad" id="no" disabled>몰랐어요</button><button class="btn good" id="yes" disabled>알았어요</button></div>`;
+    document.getElementById("say").onclick=()=>speak(w[0]);
+    document.getElementById("show").onclick=()=>{document.getElementById("back").innerHTML=`<div style="font-size:1.4rem;font-weight:700">${esc(w[2])}</div><p class="en" style="margin:.6rem 0 0">${esc(w[3])}</p><p class="muted" style="margin:.2rem 0">${esc(w[4])}</p><button class="btn ghost" id="sayEx">▶ 예문 듣기</button>`;
+      document.getElementById("sayEx").onclick=()=>speak(w[3]);document.getElementById("no").disabled=false;document.getElementById("yes").disabled=false;document.getElementById("show").remove()};
+    function answer(ok){
+      const t=TODAY(), key=wkey(i); let s=S.words[key]||{b:0,d:t,f:t};
+      if(ok&&!again.has(i)){s.b=Math.min(s.b+1,6);s.d=t+INT[s.b]}
+      else if(ok){s.d=t+1}
+      else{s.b=1;s.d=t+1;if(!again.has(i)){again.add(i);q.push(i)}}
+      S.words[key]=s; log().w++; done++; save(); q.shift(); draw();
+    }
+    document.getElementById("no").onclick=()=>answer(false);
+    document.getElementById("yes").onclick=()=>answer(true);
+  }
+  draw();
+}
+
+// ================= 문법 =================
+function viewGrammar(){
+  $app.innerHTML=`<h2>문법</h2><p class="muted">위에서부터 한 단원씩. 설명을 읽고 퀴즈 4문제를 푼 뒤, 부족하면 같은 유형 문제를 Claude에게 더 받아요.</p><div class="list">${UNITS.map((u,n)=>{const sc=S.lessons[u.id];
+    return `<button class="item" data-u="${n}"><span><b>${n+1}. ${esc(u.title)}</b><br><span class="muted">${esc(u.sum.slice(0,50))}…</span></span>${sc==null?'<span class="pill b">아직</span>':`<span class="pill ${sc===4?"g":""}">${sc}/4</span>`}</button>`}).join("")}</div>`;
+  $app.querySelectorAll(".item").forEach(b=>b.onclick=()=>viewUnit(+b.dataset.u));
+}
+function viewUnit(n){
+  const u=UNITS[n];
+  $app.innerHTML=`<h2>${n+1}. ${esc(u.title)}</h2><div class="card"><p>${esc(u.sum)}</p><ul class="pts">${u.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>
+    <div class="row"><button class="btn" id="qz">퀴즈 4문제</button><button class="btn ghost" id="more">이 유형 10문제 더 받기</button><button class="btn ghost" id="back">단원 목록</button></div><p id="gm" class="muted"></p></div>`;
+  document.getElementById("back").onclick=viewGrammar;
+  document.getElementById("qz").onclick=()=>runSets([{items:u.q.map((_,i)=>Object.assign({id:"g:"+u.id+":"+i},QB["g:"+u.id+":"+i]))}],{title:u.title+" 퀴즈",onDone:(r)=>{S.lessons[u.id]=Math.max(S.lessons[u.id]||0,r);save();viewUnit(n)}});
+  document.getElementById("more").onclick=async()=>{const m=document.getElementById("gm");document.getElementById("more").disabled=true;
+    try{const sets=await generate("p5",S.level,[u.title],t=>m.textContent=t);sets.forEach(s=>s.items.forEach(it=>{it.src="문법 · "+u.title}));runSets(sets,{title:u.title+" 연습",onDone:()=>viewUnit(n)})}
+    catch(e){m.textContent=genError(e);document.getElementById("more").disabled=false}};
+}
+
+// ================= 파트별 =================
+function partAcc(p){const v=S.parts[p];return v&&v.c+v.w?Math.round(v.c/(v.c+v.w)*100):null}
+function viewParts(){
+  const wt=weakTags();
+  $app.innerHTML=`<h2>파트별 연습</h2>
+   <div class="card"><div class="muted" style="margin-bottom:6px">난이도</div><div class="seg" id="lv">${LEVELS.map((l,k)=>`<button data-l="${k}" class="${k===S.level?"on":""}">${l.name} <span class="muted">${l.score}</span></button>`).join("")}</div>
+   <label class="row" style="margin-top:10px"><input type="checkbox" id="focus" ${S.focus?"checked":""} style="min-height:auto;width:22px;height:22px"> 약점 유형 집중 ${wt.length?`<span class="muted">(${wt.map(esc).join(", ")})</span>`:'<span class="muted">(아직 데이터가 적어요)</span>'}</label>
+   ${sampleState==="none"?`<p class="pill b" style="margin-top:10px;display:inline-block">이 화면에서는 새 문제 생성이 안 돼요. 기본 문제만 풀 수 있어요.</p>`:""}</div>
+   <div class="list" style="margin-top:12px">${Object.entries(PARTS).map(([k,P])=>{const a=partAcc(k);return `<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${esc(P.name)}</h3>${a==null?'<span class="pill">기록 없음</span>':`<span class="pill ${a>=90?"g":a<60?"b":"w"}">정답률 ${a}%</span>`}</div>
+     <p class="muted" style="margin:.3rem 0 .6rem">${esc(P.short)}</p><div class="row"><button class="btn" data-g="${k}">새 문제 받기</button>${k==="p5"?'<button class="btn ghost" data-b="p5">기본 45문제</button>':""}${k==="p2"?'<button class="btn ghost" data-b="p2">기본 15문제</button>':""}</div><p class="muted" data-m="${k}"></p></div>`}).join("")}</div>
+   <p class="muted">파트1은 실제 시험에서 사진을 보고 풀어요. 이 앱은 사진을 만들 수 없어서 장면 설명으로 대신해요.</p>`;
+  document.querySelectorAll("#lv button").forEach(b=>b.onclick=()=>{S.level=+b.dataset.l;save();viewParts()});
+  document.getElementById("focus").onchange=e=>{S.focus=e.target.checked;save()};
+  $app.querySelectorAll("[data-g]").forEach(b=>b.onclick=async()=>{const p=b.dataset.g,m=$app.querySelector(`[data-m="${p}"]`);b.disabled=true;
+    try{const sets=await generate(p,S.level,S.focus?weakTags():[],t=>m.textContent=t);runSets(sets,{title:PARTS[p].name,onDone:()=>viewParts()})}
+    catch(e){m.textContent=genError(e);b.disabled=false}});
+  $app.querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>{const p=b.dataset.b;const ids=p==="p5"?PART5.map((_,i)=>"p:"+i):LC.map((_,i)=>"l:"+i);
+    const un=shuffle(ids.filter(id=>!S.solved[id])),rest=shuffle(ids.filter(id=>S.solved[id]));
+    runSets([{items:un.concat(rest).map(id=>Object.assign({id},QB[id]))}],{title:p==="p5"?"파트5 기본":"파트2 기본",onDone:()=>viewParts()})});
+}
+
+// ================= 모의고사 =================
+const MOCKS={
+ lc:{name:"LC 하프",min:23,plan:[["p1",1],["p2",1],["p3",1],["p4",1]],desc:"파트1 4 · 파트2 10 · 파트3 6 · 파트4 6, 약 26문제"},
+ rc:{name:"RC 하프",min:37,plan:[["p5",1],["p5",1],["p6",1],["p7",1]],desc:"파트5 20 · 파트6 4 · 파트7 7, 약 31문제"}
+};
+function viewMock(){
+  const hist=S.mocks.slice(-8).reverse();
+  $app.innerHTML=`<h2>모의고사</h2><div class="card"><p>실제 시험처럼 시간을 재고, 끝날 때까지 해설을 보여 주지 않아요. 끝나면 파트별 점수가 나오고 틀린 문제는 오답노트로 가요.</p>
+   <div class="muted" style="margin-bottom:6px">난이도</div><div class="seg" id="lv">${LEVELS.map((l,k)=>`<button data-l="${k}" class="${k===S.level?"on":""}">${l.name}</button>`).join("")}</div></div>
+   <div class="grid" style="margin-top:12px">${Object.entries(MOCKS).map(([k,M])=>`<div class="card"><h3>${M.name}</h3><p class="muted">${M.desc}<br>제한 시간 ${M.min}분</p><button class="btn" data-k="${k}">문제 만들고 시작</button><p class="muted" data-m="${k}"></p></div>`).join("")}</div>
+   <div class="card" style="margin-top:12px"><h3>지난 모의고사</h3>${hist.length?`<table><tr><th>날짜</th><th>종류</th><th>맞힌 수</th></tr>${hist.map(h=>`<tr><td>${dayStr(h.d)}</td><td>${MOCKS[h.k]?MOCKS[h.k].name:h.k}</td><td>${h.r} / ${h.n} (${Math.round(h.r/h.n*100)}%)</td></tr>`).join("")}</table>`:'<p class="muted">아직 없어요.</p>'}</div>
+   <p class="muted">실제 토익은 LC 100문제 45분, RC 100문제 75분이에요. 하프 모의고사를 이틀에 나눠 풀면 실전 한 회의 절반 분량이에요.</p>`;
+  document.querySelectorAll("#lv button").forEach(b=>b.onclick=()=>{S.level=+b.dataset.l;save();viewMock()});
+  $app.querySelectorAll("[data-k]").forEach(b=>b.onclick=async()=>{const k=b.dataset.k,M=MOCKS[k],m=$app.querySelector(`[data-m="${k}"]`);b.disabled=true;
+    try{let all=[];for(let j=0;j<M.plan.length;j++){const [p]=M.plan[j];m.textContent=`문제 만드는 중 ${j+1}/${M.plan.length} (${PARTS[p].name})…`;all=all.concat(await generate(p,S.level,[],null))}
+      runSets(all,{title:M.name,mock:k,seconds:M.min*60,onDone:()=>viewMock()})}
+    catch(e){m.textContent=genError(e);b.disabled=false}});
+}
+
+// ================= 오답노트 =================
+function viewReview(){
+  const ids=Object.keys(S.wrong).sort((a,b)=>S.wrong[b].n-S.wrong[a].n||S.wrong[b].t-S.wrong[a].t);
+  $app.innerHTML=`<h2>오답노트</h2>${ids.length?`<div class="row" style="margin-bottom:14px"><button class="btn" id="rv">오답 ${Math.min(ids.length,20)}문제 다시 풀기</button><span class="muted">다시 맞히면 빠져요. 이상한 문제는 '이상한 문제예요'로 버릴 수 있어요.</span></div>`:"<div class='card'>아직 틀린 문제가 없어요. 문제를 풀면 틀린 것만 여기 모여요.</div>"}
+   <div class="list">${ids.slice(0,100).map(id=>{const w=S.wrong[id],x=w.item;return `<div class="card"><div class="row" style="justify-content:space-between"><span class="pill">${esc(x.src)} · ${esc(x.tag)}</span><span class="pill b">${w.n}번 틀림</span></div>
+   <p class="en" style="margin:.6rem 0">${esc(x.q||"(듣기 문제)")}</p><p class="muted" style="margin:0">정답: <span class="en">${esc(x.o[x.a])}</span></p></div>`}).join("")}</div>`;
+  const b=document.getElementById("rv"); if(b)b.onclick=()=>{
+    const sets=ids.slice(0,20).map(id=>{const w=S.wrong[id];return Object.assign({items:[w.item]},w.ctx||{})});
+    runSets(sets,{title:"오답 다시 풀기",mode:"review",onDone:()=>viewReview()})};
+}
+
+// ================= 진단 =================
+function band(p){if(p<30)return["기초부터","단어와 문법 1~4단원부터 매일 하세요."];if(p<50)return["300~450점대 추정","문법 단원을 끝까지 돌리고 단어를 매일 하세요."];if(p<70)return["450~600점대 추정","파트5와 파트2를 매일 섞어 푸세요."];if(p<85)return["600~750점대 추정","파트3·4·7을 고급 난이도로 올리고, 하프 모의고사를 시작하세요."];return["750점 이상 추정","만점 난이도와 모의고사, 오답 정리에 집중하세요."]}
+function viewDiag(){
+  const last=S.diag[S.diag.length-1];
+  $app.innerHTML=`<h2>진단 테스트</h2><div class="card"><p>단어 6, 문법 7, 파트5 7, 모두 20문제예요. 맞힌 비율로 지금 위치를 대략 알려 줘요. 실제 점수가 아니라 공부 순서를 정하는 추정이에요.</p>
+   ${last?`<p>지난 결과: <b>${last.p}%</b> · ${esc(last.b)} <span class="muted">(${dayStr(last.d)})</span></p>`:""}<button class="btn" id="dg">진단 시작</button></div>`;
+  document.getElementById("dg").onclick=()=>{
+    const W=allWords(), vw=shuffle(W.map((_,i)=>i)).slice(0,6);
+    const vitems=vw.map(i=>{const o=shuffle([W[i][2]].concat(shuffle(W.map((w,j)=>j).filter(j=>j!==i)).slice(0,3).map(j=>W[j][2])));return {id:"v:"+i,src:"단어 뜻",part:"vocab",tag:"어휘",q:W[i][0]+" 의 뜻은?",o,a:o.indexOf(W[i][2]),ex:W[i][0]+" = "+W[i][2]+"\n예문: "+W[i][3]+" ("+W[i][4]+")"}});
+    const g=shuffle(Object.keys(QB).filter(k=>k.startsWith("g:"))).slice(0,7), p=shuffle(Object.keys(QB).filter(k=>k.startsWith("p:"))).slice(0,7);
+    const items=shuffle(vitems.concat(g.concat(p).map(id=>Object.assign({id},QB[id]))));
+    runSets([{items}],{title:"진단 테스트",onDone:(r,n)=>{const pct=Math.round(r/n*100),b=band(pct);S.diag.push({d:TODAY(),p:pct,b:b[0]});S.level=pct<50?0:pct<70?1:pct<85?2:3;save();
+      $app.innerHTML=`<h2>진단 결과</h2><div class="card"><div class="big">${pct}%</div><h3>${esc(b[0])}</h3><p>${esc(b[1])}</p><p>난이도를 <b>${LEVELS[S.level].name}</b>으로 맞춰 두었어요.</p><a class="btn" href="#roadmap">로드맵 보기</a></div>`}});
+  };
+}
+
+// ================= 로드맵 =================
+const STAGES=[
+ {name:"1단계 · 뼈대 (~450)",goal:450,todo:["단어 하루 30개 (기초)","문법 10단원 퀴즈 모두 3/4 이상","파트5 기본 45문제, 파트2 기본 15문제 끝내기"]},
+ {name:"2단계 · 유형 익히기 (450~700)",goal:700,todo:["단어 중급으로 올려 누적 1,000개","파트별 새 문제를 중급으로 매일 2파트","파트5 정답률 75%, 파트2 70% 넘기기"]},
+ {name:"3단계 · 실전 (700~900)",goal:900,todo:["단어 고급, 누적 2,000개","하프 모의고사 주 2회 (고급)","약점 유형 집중을 켜고 파트3·4·7 매일"]},
+ {name:"4단계 · 만점 (900~990)",goal:990,todo:["단어 만점 수준, 누적 3,000개 이상","만점 난이도 모의고사 주 3회, 시간 안에 다 풀기","모든 파트 정답률 95% 이상, 오답노트 0개 유지"]}
+];
+function curScore(){const s=S.scores.slice().sort((a,b)=>a.d-b.d);return s.length?s[s.length-1].s:null}
+function viewRoadmap(){
+  const sc=curScore(), now=sc==null?(S.diag.length?Math.min(3,S.level):0):STAGES.findIndex(x=>sc<x.goal);
+  const idx=now<0?3:now;
+  $app.innerHTML=`<h2>990점 로드맵</h2>
+   <div class="grid"><div class="card"><div class="muted">원서 접수까지</div><div class="big">D-${dday()}</div></div><div class="card"><div class="muted">최근 토익</div><div class="big">${sc??"–"}</div><div class="muted">목표 990</div></div><div class="card"><div class="muted">지금 단계</div><div class="big">${idx+1}단계</div></div></div>
+   <div class="list" style="margin-top:14px">${STAGES.map((st,k)=>`<div class="card stage ${k<idx?"done":k===idx?"now":""}"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${esc(st.name)}</h3>${k<idx?'<span class="pill g">통과</span>':k===idx?'<span class="pill">지금</span>':""}</div><ul class="pts">${st.todo.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`).join("")}</div>
+   <div class="card" style="margin-top:12px"><h3>솔직한 안내</h3><p>이 앱의 문제는 실제 토익 형식과 난이도를 본떠 Claude가 새로 만든 문제예요. 만점은 실제 시험장의 녹음 속도, 여러 나라 억양, 사진 문제까지 흔들림 없이 맞혀야 나와요. 4단계에 들어서면 실제 토익 시험을 한두 달 간격으로 직접 보면서 점수를 확인하세요. 시험 점수는 '기록'에 넣으면 단계가 자동으로 바뀌어요.</p></div>`;
+}
+
+// ================= 기록 =================
+function viewStats(){
+  const t=TODAY(), days=[];for(let d=t-13;d<=t;d++){const l=S.logs[d]||{w:0,q:0,m:0};days.push({d,act:l.w+l.q,m:l.m})}
+  const maxA=Math.max(10,...days.map(x=>x.act)), W=640,H=180,P=28,bw=(W-P*2)/14;
+  const bars=days.map((x,k)=>{const h=(H-P*2)*x.act/maxA;return `<rect x="${P+k*bw+4}" y="${H-P-h}" width="${bw-8}" height="${h}" rx="3" fill="var(--accent)"></rect><text x="${P+k*bw+bw/2}" y="${H-8}" text-anchor="middle">${dayStr(x.d)}</text>${x.act?`<text x="${P+k*bw+bw/2}" y="${H-P-h-4}" text-anchor="middle">${x.act}</text>`:""}`}).join("");
+  const sc=S.scores.slice().sort((a,b)=>a.d-b.d);
+  let chart="<p class='muted'>토익 점수를 입력하면 그래프가 그려져요.</p>";
+  if(sc.length){const lo=Math.min(200,...sc.map(s=>s.s)),hi=990,x0=P+20,x1=W-P,y=v=>H-P-(H-P*2)*(v-lo)/(hi-lo),xs=k=>sc.length===1?(x0+x1)/2:x0+(x1-x0)*k/(sc.length-1);
+    chart=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="토익 점수 변화">${[lo,800,hi].map(v=>`<line x1="${x0}" x2="${x1}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"></line><text x="${x0-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`).join("")}
+      <polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="${sc.map((s,k)=>xs(k)+","+y(s.s)).join(" ")}"></polyline>${sc.map((s,k)=>`<circle cx="${xs(k)}" cy="${y(s.s)}" r="${k===sc.length-1?6:4}" fill="var(--accent)"></circle><text x="${xs(k)}" y="${y(s.s)-10}" text-anchor="middle" style="fill:var(--ink)">${s.s}</text>`).join("")}</svg>`}
+  const totalM=Object.values(S.logs).reduce((a,l)=>a+(l.m||0),0);
+  const tags=Object.entries(S.tags).filter(([k,v])=>v.c+v.w>=2).map(([k,v])=>[k,v.c,v.w,Math.round(v.c/(v.c+v.w)*100)]).sort((a,b)=>a[3]-b[3]);
+  $app.innerHTML=`<h2>기록</h2><div class="grid">
+   <div class="card"><div class="muted">연속 공부</div><div class="big">${streak()}일</div></div>
+   <div class="card"><div class="muted">오늘 공부</div><div class="big">${(S.logs[t]||{m:0}).m}분</div><div class="muted">누적 ${Math.floor(totalM/60)}시간 ${totalM%60}분</div></div>
+   <div class="card"><div class="muted">원서 접수까지</div><div class="big">D-${dday()}</div></div></div>
+   <div class="card" style="margin-top:12px"><h3>최근 14일 학습량 <span class="muted">(단어 + 문제)</span></h3><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="최근 14일 학습량">${bars}</svg></div>
+   <div class="card" style="margin-top:12px"><h3>파트별 정답률</h3><table><tr><th>파트</th><th>정답률</th><th>푼 문제</th></tr>${Object.entries(PARTS).map(([k,P])=>{const v=S.parts[k];return `<tr><td>${esc(P.name)}</td><td>${v&&v.c+v.w?Math.round(v.c/(v.c+v.w)*100)+"%":"–"}</td><td>${v?v.c+v.w:0}</td></tr>`}).join("")}</table></div>
+   <div class="card" style="margin-top:12px"><h3>유형별 약점 <span class="muted">(정답률 낮은 순)</span></h3>${tags.length?`<table><tr><th>유형</th><th>정답률</th><th>맞음/틀림</th></tr>${tags.slice(0,15).map(x=>`<tr><td>${esc(x[0])}</td><td><span class="pill ${x[3]>=90?"g":x[3]<60?"b":"w"}">${x[3]}%</span></td><td>${x[1]} / ${x[2]}</td></tr>`).join("")}</table>`:'<p class="muted">문제를 풀면 유형별 정답률이 쌓여요.</p>'}</div>
+   <div class="card" style="margin-top:12px"><h3>토익 점수</h3>${chart}
+   <div class="row" style="margin-top:10px"><input id="sd" type="date" aria-label="시험 날짜"><input id="ss" type="number" min="10" max="990" step="5" placeholder="점수" aria-label="점수" style="width:120px"><button class="btn" id="add">점수 추가</button></div>
+   <div class="list" style="margin-top:10px">${sc.map((s,k)=>`<div class="row" style="justify-content:space-between"><span>${dayStr(s.d)} · <b>${s.s}점</b></span><button class="btn ghost sm" data-del="${k}">지우기</button></div>`).join("")}</div></div>`;
+  document.getElementById("sd").valueAsDate=new Date();
+  document.getElementById("add").onclick=()=>{const v=+document.getElementById("ss").value,dv=document.getElementById("sd").value;
+    if(!(v>=10&&v<=990)){document.getElementById("ss").focus();return}
+    const d=dv?Math.floor(new Date(dv+"T00:00:00Z").getTime()/86400000):t;S.scores.push({d,s:v});save();viewStats()};
+  $app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const s=sc[+b.dataset.del];S.scores=S.scores.filter(x=>x!==s);save();viewStats()});
+}
+
+// ================= 오늘 =================
+function viewHome(){
+  const {due,fresh}=wordQueue(), t=TODAY(), l=S.logs[t]||{w:0,q:0,m:0,c:0};
+  const nextU=UNITS.findIndex(u=>S.lessons[u.id]==null), wr=Object.keys(S.wrong).length, sc=curScore();
+  const wt=weakTags(), lvl=LEVELS[S.level];
+  const tasks=[
+    [due.length+fresh.length>0,`단어 ${due.length+fresh.length}장`,"복습 "+due.length+" · 새 단어 "+fresh.length,"#words"],
+    [nextU>=0,nextU>=0?`문법 ${nextU+1}단원 · ${UNITS[nextU].title}`:"문법 단원 모두 끝","설명 읽고 퀴즈, 부족하면 더 받기","#grammar"],
+    [true,`파트5 새 문제 10개 (${lvl.name})`,wt.length?"약점: "+wt.join(", "):"문장 빈칸 채우기","#parts"],
+    [true,`듣기 한 파트 (${lvl.name})`,"파트2 → 파트3 → 파트4 순서로 매일 하나","#parts"],
+    [S.level>=1,"독해 파트7 한 세트","지문 근거 문장을 찾는 연습","#parts"],
+    [wr>0,`오답 ${wr}문제`,"다시 맞히면 빠져요","#review"]
+  ];
+  $app.innerHTML=`<h2>오늘 할 일</h2>
+   <div class="grid"><div class="card"><div class="muted">원서 접수까지</div><div class="big">D-${dday()}</div><div class="muted">2027년 12월 중순 예상</div></div>
+   <div class="card"><div class="muted">목표</div><div class="big">${sc?sc+" → ":""}990</div><div class="muted">난이도 ${lvl.name} (${lvl.score})</div></div>
+   <div class="card"><div class="muted">오늘 공부</div><div class="big">${l.m}분</div><div class="muted">단어 ${l.w} · 문제 ${l.q}${l.q?` (정답 ${Math.round((l.c||0)/l.q*100)}%)`:""} · 연속 ${streak()}일</div></div></div>
+   <div class="list" style="margin-top:16px">${tasks.map(x=>`<a class="item" href="${x[3]}"><span><b>${esc(x[1])}</b><br><span class="muted">${esc(x[2])}</span></span><span class="pill ${x[0]?"":"g"}">${x[0]?"하기":"끝"}</span></a>`).join("")}</div>
+   ${S.diag.length?"":`<div class="card" style="margin-top:16px"><h3>처음이라면 진단부터</h3><p class="muted">20문제로 지금 위치를 보고 난이도를 자동으로 맞춰요.</p><a class="btn" href="#diag">진단 테스트 하기</a></div>`}`;
+}
+
+// ================= 화면 전환 =================
+const VIEWS={home:viewHome,roadmap:viewRoadmap,words:viewWords,grammar:viewGrammar,parts:viewParts,mock:viewMock,review:viewReview,diag:viewDiag,stats:viewStats};
+function route(){busy=false;clearInterval(curTick);const h=(location.hash||"#home").slice(1),v=VIEWS[h]?h:"home";
+  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+v));
+  stopSpeak(); VIEWS[v](); window.scrollTo(0,0)}
+window.addEventListener("hashchange",route);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)flush()});
+initStore();
+})();
+</script>
+</body>
+</html>
