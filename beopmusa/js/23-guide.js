@@ -116,7 +116,7 @@ async function viewGuide() {
 
   <div class="sect">기출 보유 현황</div>
   <div class="card"><table class="plan"><tr><td><b>회차</b></td><td><b>1차</b></td><td><b>2차</b></td></tr>${gichulRows || '<tr><td colspan="3" class="muted">아직 기출이 없어요</td></tr>'}</table>
-    ${missing1.length ? `<p class="faint" style="margin:10px 0 0">빠진 1차: ${missing1.map(r => `제${r}회`).join(' · ')} — 법원시험정보에서 받을 수 있는 건 다 받았어요. 제17~31회는 보호(배포용) 한글 파일, 제8~12회는 한글97 파일이라 프로그램이 못 읽어요. 한컴오피스 뷰어(무료)로 열어 PDF로 저장해 <b>받은 자료/기출/제N회 1차</b> 폴더에 넣으면 다음 자동 돌기에서 문제·해설로 정리돼요. 최신 3개 회차(30~32회)는 이미 들어 있으니, 회독은 이걸로 충분히 시작할 수 있어요.</p>` : ''}</div>
+    ${missing1.length ? `<p class="faint" style="margin:10px 0 0">빠진 1차: ${missing1.map(r => `제${r}회`).join(' · ')} — 법원시험정보의 보호(배포용) 파일까지 PC가 직접 풀어 읽게 되어, 제13회부터는 자동 돌기가 Gemini 한도만큼 차례로 정리해요. 제8~12회만 한글97 형식이라 남아요(한컴 뷰어로 PDF 저장해 <b>받은 자료/기출</b>에 넣으면 정리돼요).</p>` : ''}</div>
 
   <div class="sect">법무사라는 직업</div>
   <div class="card"><p style="margin:0">법무사는 법무사법에 따라 <b>법원·검찰청에 내는 서류 작성</b>과 <b>등기·공탁·민사집행(경매) 신청 대리</b>, 개인회생·파산 서류 작성 등을 맡는 법률 전문직이에요. 등기가 전통적인 밥줄이고, 경매·회생·성년후견 쪽으로 일이 넓어지고 있어요. 자격 취득 뒤 대한법무사협회 연수를 거쳐 개업하거나 법무사 사무소·법인에서 일해요.</p>
