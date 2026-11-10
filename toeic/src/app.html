@@ -74,6 +74,9 @@ svg text{font-family:var(--font);fill:var(--sub);font-size:12px}
 table{border-collapse:collapse;width:100%} td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
 .stage{border-left:4px solid var(--line);padding-left:14px} .stage.now{border-left-color:var(--accent)} .stage.done{border-left-color:var(--good)}
 @media (prefers-reduced-motion:no-preference){.opt,.btn,.item{transition:background .15s,border-color .15s}}
+.pr{color:var(--sub);font-size:.88em;letter-spacing:.01em}
+.prlist{margin:10px 0 0;padding:10px 14px;border:1px dashed var(--line);border-radius:10px;background:#fff}
+.prlist div{margin:4px 0}
 .prdoc{background:#fff}
 .prdoc h1{font-size:1.5em;margin:0 0 4px}
 .prdoc h2{font-size:1.15em;margin:22px 0 6px;border-bottom:2px solid #000;padding-bottom:4px}
@@ -111,7 +114,7 @@ function uid(){return "x"+Date.now().toString(36)+Math.random().toString(36).sli
 function dday(){return Math.max(0,Math.ceil((APPLY-new Date())/86400000))}
 
 // ================= 상태 =================
-const BLANK=()=>({v:2,words:{},xw:[],wrong:{},solved:{},lessons:{},logs:{},scores:[],diag:[],tags:{},parts:{},level:0,mocks:[]});
+const BLANK=()=>({v:2,words:{},xw:[],wrong:{},solved:{},lessons:{},logs:{},scores:[],diag:[],tags:{},parts:{},level:0,mocks:[],pr:{}});
 let S=BLANK();
 function fix(){const b=BLANK();for(const k in b)if(S[k]==null)S[k]=b[k];
   // v1 오답(문제 id만 있던 것)을 v2 형식으로
@@ -267,6 +270,39 @@ function genError(e){
   return "문제를 만들지 못했어요. 잠시 뒤 다시 눌러 주세요.";
 }
 
+// ================= 발음 =================
+function wpron(w){return (w&&(w[5]||PRON[w[0]]||S.pr[String(w[0]).toLowerCase()]))||""}
+function prTag(p){return p?` <span class="pr">[${esc(p)}]</span>`:""}
+function trimPr(){const ks=Object.keys(S.pr);if(ks.length>3000)ks.slice(0,ks.length-3000).forEach(k=>delete S.pr[k])}
+async function pronFetch(texts){
+  const all=texts.map(t=>String(t||"").trim()).filter(Boolean);
+  const need=Array.from(new Set(all.filter(t=>!S.pr[t]&&!PRON[t])));
+  if(need.length){
+    if(!sampleFn)throw {code:"none"};
+    for(let k=0;k<need.length;k+=30){
+      const chunk=need.slice(k,k+30);
+      const r=await sampleFn.json(`다음 영어 단어·문장마다 영어를 처음 배우는 한국인이 읽을 수 있는 미국식 한글 발음을 붙여라.
+규칙: 실제 들리는 대로 쓴다(연음·약화 반영, 예: "an apple"→"어내플", "want to"→"원투"). 긴 소리는 '-'(예: "see"→"시-"). 문장 부호는 빼고 단어 사이는 띄운다. 키는 원문 그대로.
+JSON만 출력: {"p":{"원문":"한글 발음"}}
+${JSON.stringify(chunk)}`,{modelTier:"default"});
+      const p=(r&&r.p)||{};
+      chunk.forEach(t=>{if(typeof p[t]==="string"&&p[t].trim())S.pr[t]=p[t].trim().slice(0,400)});
+    }
+    trimPr(); save();
+  }
+  return all.map(t=>S.pr[t]||PRON[t]||"");
+}
+function engRuns(s){return (String(s).match(/[A-Za-z][A-Za-z0-9'’,\-\s]*[A-Za-z0-9.?!]/g)||[]).map(x=>x.trim()).filter(x=>/[a-z]/i.test(x)&&x.length>1&&!/^(S|V|O|C|p\.p|to|ing|ed|er|est|ly|tion|ment|ness|ful|ive|able|ous)$/i.test(x))}
+async function showPron(btn,box,texts){
+  texts=Array.from(new Set(texts.filter(Boolean)));
+  if(!texts.length){box.innerHTML='<div class="muted">발음을 붙일 영어가 없어요.</div>';return}
+  btn.disabled=true; const old=btn.textContent; btn.textContent="발음 만드는 중…";
+  try{const ps=await pronFetch(texts);
+    box.innerHTML=`<div class="prlist">${texts.map((t,k)=>`<div><span class="en">${esc(t)}</span>${prTag(ps[k])}</div>`).join("")}</div>`;
+    btn.remove()}
+  catch(e){btn.disabled=false;btn.textContent=old;box.innerHTML=`<div class="muted">${esc(genError(e))}</div>`}
+}
+
 // ================= 공용 풀이 화면 =================
 function svgSan(code){try{
   const d=new DOMParser().parseFromString(String(code),"image/svg+xml");
@@ -342,8 +378,12 @@ function runSets(sets,opt){
         S.wrong[it.id]=w; trimWrong()}
       save();
       if(opt.mock&&!opt.explain){i++;draw();return}
-      document.getElementById("ex").innerHTML=`<div class="ex"><strong>${ok?"맞았어요.":"틀렸어요. 정답은 "+L[it.a]+"."}</strong>\n${esc(it.ex)}${pic&&s.scene?`\n\n장면 설명: ${esc(s.scene)}`:""}</div><div class="row" style="margin-top:14px"><button class="btn" id="next">${i+1<steps.length?"다음":"결과 보기"}</button></div>`;
+      document.getElementById("ex").innerHTML=`<div class="ex"><strong>${ok?"맞았어요.":"틀렸어요. 정답은 "+L[it.a]+"."}</strong>\n${esc(it.ex)}${pic&&s.scene?`\n\n장면 설명: ${esc(s.scene)}`:""}</div><div class="row" style="margin-top:10px"><button class="btn ghost sm" id="prb">문장 한글 발음 보기</button></div><div id="prbox"></div><div class="row" style="margin-top:14px"><button class="btn" id="next">${i+1<steps.length?"다음":"결과 보기"}</button></div>`;
       if(showAudio){const t=document.getElementById("scr");t.hidden=false;t.textContent=scriptText()}
+      document.getElementById("prb").onclick=e=>{
+        const tx=[]; if(it.q&&!/^Blank \[\d\]$/.test(it.q))tx.push(it.q.replace(/_{3,}/g,it.o[it.a]));
+        if(s.audio)s.audio.forEach(a=>tx.push(a.t)); it.o.forEach(o=>tx.push(o));
+        showPron(e.target,document.getElementById("prbox"),tx)};
       document.getElementById("next").onclick=()=>{i++;draw();window.scrollTo(0,0)};
     });
   }
@@ -380,16 +420,16 @@ function viewWords(){
     m.textContent="Claude가 단어를 고르는 중이에요…";
     const have=new Set(allWords().map(w=>w[0].toLowerCase()));
     const pr=`TOEIC ${LEVELS[S.level].name}(${LEVELS[S.level].score}) 수준 핵심 어휘 30개를 골라라. 이미 아는 단어는 제외: ${Array.from(have).slice(-1500).join(", ")}.
-각 단어: [영어 단어, 품사(명/동/형/부/전/접 중 하나), 토익에서 주로 쓰이는 한국어 뜻(쉼표로 2개까지), 토익식 비즈니스 영어 예문, 예문 한국어 번역]. 고급·만점 수준이면 헷갈리는 유의어와 숙어(예: be eligible for)도 포함.
-JSON만 출력: {"words":[["...","...","...","...","..."]]}`;
+각 단어: [영어 단어, 품사(명/동/형/부/전/접 중 하나), 토익에서 주로 쓰이는 한국어 뜻(쉼표로 2개까지), 토익식 비즈니스 영어 예문, 예문 한국어 번역, 단어의 미국식 한글 발음(긴 소리는 "-", 예: achieve→어치-브)]. 고급·만점 수준이면 헷갈리는 유의어와 숙어(예: be eligible for)도 포함.
+JSON만 출력: {"words":[["...","...","...","...","...","..."]]}`;
     try{const r=await sampleFn.json(pr,{modelTier:"default"});
-      const add=((r&&r.words)||[]).filter(w=>Array.isArray(w)&&w.length===5&&w.every(x=>typeof x==="string"&&x)&&!have.has(w[0].toLowerCase()));
+      const add=((r&&r.words)||[]).filter(w=>Array.isArray(w)&&(w.length===5||w.length===6)&&w.every(x=>typeof x==="string"&&x)&&!have.has(w[0].toLowerCase()));
       S.xw=S.xw.concat(add); save(); m.textContent=add.length+"개를 단어장에 넣었어요. 내일부터 새 단어로 나와요."; setTimeout(viewWords,1200);
     }catch(e){m.textContent=genError(e);b.disabled=false}};
   const wl=document.getElementById("wlist");
   function drawList(q){q=(q||"").trim().toLowerCase();
     wl.innerHTML=W.map((w,i)=>[w,i]).filter(([w])=>!q||w[0].toLowerCase().includes(q)||w[2].includes(q)).slice(0,80).map(([w,i])=>{const s=S.words[wkey(i)];
-      return `<button class="item" data-i="${i}"><span><b class="en">${esc(w[0])}</b> <span class="muted">${esc(w[1])}</span><br>${esc(w[2])}</span>${s?(s.b>=5?'<span class="pill g">외움</span>':'<span class="pill">'+s.b+'단계</span>'):'<span class="pill b">아직</span>'}</button>`}).join("");
+      return `<button class="item" data-i="${i}"><span><b class="en">${esc(w[0])}</b>${prTag(wpron(w))} <span class="muted">${esc(w[1])}</span><br>${esc(w[2])}</span>${s?(s.b>=5?'<span class="pill g">외움</span>':'<span class="pill">'+s.b+'단계</span>'):'<span class="pill b">아직</span>'}</button>`}).join("");
     wl.querySelectorAll(".item").forEach(b=>b.onclick=()=>speak(W[+b.dataset.i][0]));
   }
   drawList(); document.getElementById("find").oninput=e=>drawList(e.target.value);
@@ -400,11 +440,12 @@ function wordSession(queue){
     if(!q.length){busy=false;$app.innerHTML=`<h2>오늘 단어 끝</h2><div class="card"><div class="big">${done}장</div><p class="muted">몰랐던 단어는 내일 다시 나와요.</p><a class="btn" href="#home">오늘 화면으로</a></div>`;return}
     const i=q[0], w=W[i];
     $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>단어</h2><span class="muted">남은 카드 ${q.length}</span></div>
-      <div class="card flash"><div class="w">${esc(w[0])}</div><div class="muted">${esc(w[1])}사</div>
+      <div class="card flash"><div class="w">${esc(w[0])}</div>${wpron(w)?`<div class="pr" style="font-size:1.1rem">[${esc(wpron(w))}]</div>`:""}<div class="muted">${esc(w[1])}사</div>
       <div class="row"><button class="btn ghost" id="say">▶ 발음</button><button class="btn" id="show">뜻 보기</button></div><div id="back"></div></div>
       <div class="row" style="margin-top:14px;justify-content:center"><button class="btn bad" id="no" disabled>몰랐어요</button><button class="btn good" id="yes" disabled>알았어요</button></div>`;
     document.getElementById("say").onclick=()=>speak(w[0]);
-    document.getElementById("show").onclick=()=>{document.getElementById("back").innerHTML=`<div style="font-size:1.4rem;font-weight:700">${esc(w[2])}</div><p class="en" style="margin:.6rem 0 0">${esc(w[3])}</p><p class="muted" style="margin:.2rem 0">${esc(w[4])}</p><button class="btn ghost" id="sayEx">▶ 예문 듣기</button>`;
+    document.getElementById("show").onclick=()=>{document.getElementById("back").innerHTML=`<div style="font-size:1.4rem;font-weight:700">${esc(w[2])}</div><p class="en" style="margin:.6rem 0 0">${esc(w[3])}</p><p class="pr" id="exPr" style="margin:.2rem 0">${S.pr[w[3]]?"["+esc(S.pr[w[3]])+"]":""}</p><p class="muted" style="margin:.2rem 0">${esc(w[4])}</p><button class="btn ghost" id="sayEx">▶ 예문 듣기</button>`;
+      if(!S.pr[w[3]]&&sampleFn)pronFetch([w[3]]).then(ps=>{const el=document.getElementById("exPr");if(el&&ps[0])el.textContent="["+ps[0]+"]"}).catch(()=>{});
       document.getElementById("sayEx").onclick=()=>speak(w[3]);document.getElementById("no").disabled=false;document.getElementById("yes").disabled=false;document.getElementById("show").remove()};
     function answer(ok){
       const t=TODAY(), key=wkey(i); let s=S.words[key]||{b:0,d:t,f:t};
@@ -428,8 +469,9 @@ function viewGrammar(){
 function viewUnit(n){
   const u=UNITS[n];
   $app.innerHTML=`<h2>${n+1}. ${esc(u.title)}</h2><div class="card"><p>${esc(u.sum)}</p><ul class="pts">${u.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>
-    <div class="row"><button class="btn" id="qz">퀴즈 4문제</button><button class="btn ghost" id="more">이 유형 10문제 더 받기</button><button class="btn ghost" id="back">단원 목록</button></div><p id="gm" class="muted"></p></div>`;
+    <div class="row"><button class="btn" id="qz">퀴즈 4문제</button><button class="btn ghost" id="more">이 유형 10문제 더 받기</button><button class="btn ghost" id="back">단원 목록</button><button class="btn ghost" id="upr">예문 한글 발음 보기</button></div><div id="uprbox"></div><p id="gm" class="muted"></p></div>`;
   document.getElementById("back").onclick=viewGrammar;
+  document.getElementById("upr").onclick=e=>{const tx=[];u.pts.forEach(p=>engRuns(p).forEach(x=>tx.push(x)));showPron(e.target,document.getElementById("uprbox"),tx)};
   document.getElementById("qz").onclick=()=>runSets([{items:u.q.map((_,i)=>Object.assign({id:"g:"+u.id+":"+i},QB["g:"+u.id+":"+i]))}],{title:u.title+" 퀴즈",onDone:(r)=>{S.lessons[u.id]=Math.max(S.lessons[u.id]||0,r);save();viewUnit(n)}});
   document.getElementById("more").onclick=async()=>{const m=document.getElementById("gm");document.getElementById("more").disabled=true;
     try{const sets=await generate("p5",S.level,[u.title],t=>m.textContent=t);sets.forEach(s=>s.items.forEach(it=>{it.src="문법 · "+u.title}));runSets(sets,{title:u.title+" 연습",onDone:()=>viewUnit(n)})}
@@ -626,25 +668,25 @@ function viewStrategy(){
 const SKELETON_DOC=`<h1>영어 문장 뼈대 노트</h1>
 <h2>1. 문장은 "누가 + 어쩐다"</h2>
 <ul><li><b>주어(S)</b> = 누가·무엇이, <b>동사(V)</b> = 어쩐다·어떠하다. 이 둘이 뼈대고 나머지는 살이에요.</li>
-<li>She arrived. → 그녀가(누가) 도착했다(어쩐다). 이것만으로 완전한 문장.</li></ul>
+<li>She arrived. [쉬 어라이브드] → 그녀가(누가) 도착했다(어쩐다). 이것만으로 완전한 문장.</li></ul>
 <h2>2. 동사의 성격이 뒤에 올 것을 정해요</h2>
-<ul><li><b>혼자 끝나는 동사</b>: She arrived. / Prices increased.</li>
-<li><b>대상이 필요한 동사</b> → 목적어(O): I read <b>the report</b>. 목적어는 주어와 <b>다른 것</b>.</li>
-<li><b>설명이 필요한 동사</b> → 보어(C): He is <b>busy</b>. 보어는 주어와 <b>같은 상태</b>. (be, look, become, remain, keep)</li></ul>
+<ul><li><b>혼자 끝나는 동사</b>: She arrived. [쉬 어라이브드] / Prices increased. [프라이시즈 인크리-스트]</li>
+<li><b>대상이 필요한 동사</b> → 목적어(O): I read <b>the report</b>. [아이 레드 더 리포-트] 목적어는 주어와 <b>다른 것</b>.</li>
+<li><b>설명이 필요한 동사</b> → 보어(C): He is <b>busy</b>. [히 이즈 비지] 보어는 주어와 <b>같은 상태</b>. (be, look, become, remain, keep)</li></ul>
 <h2>3. 목적어 vs 보어 — 등호(=) 테스트</h2>
 <ul><li>He is busy → He = busy (말이 됨) → <b>보어</b></li>
 <li>I read the report → I = report? (말이 안 됨) → <b>목적어</b></li></ul>
 <h2>4. 다섯 가지 모양 (5형식)</h2>
 <table><tr><th>형식</th><th>모양</th><th>예문</th><th>뜻</th></tr>
-<tr><td>1</td><td>S+V</td><td>She arrived.</td><td>그녀가 도착했다</td></tr>
-<tr><td>2</td><td>S+V+C</td><td>He is busy.</td><td>그는 바쁘다</td></tr>
-<tr><td>3</td><td>S+V+O</td><td>I read the report.</td><td>보고서를 읽었다</td></tr>
-<tr><td>4</td><td>S+V+O+O</td><td>She gave me a pen.</td><td>나에게 + 펜을</td></tr>
-<tr><td>5</td><td>S+V+O+C</td><td>The news made us happy.</td><td>우리를 = 행복하게</td></tr></table>
+<tr><td>1</td><td>S+V</td><td>She arrived. [쉬 어라이브드]</td><td>그녀가 도착했다</td></tr>
+<tr><td>2</td><td>S+V+C</td><td>He is busy. [히 이즈 비지]</td><td>그는 바쁘다</td></tr>
+<tr><td>3</td><td>S+V+O</td><td>I read the report. [아이 레드 더 리포-트]</td><td>보고서를 읽었다</td></tr>
+<tr><td>4</td><td>S+V+O+O</td><td>She gave me a pen. [쉬 게이브 미 어 펜]</td><td>나에게 + 펜을</td></tr>
+<tr><td>5</td><td>S+V+O+C</td><td>The news made us happy. [더 뉴-즈 메이드 어스 해피]</td><td>우리를 = 행복하게</td></tr></table>
 <h2>5. 품사와 성분은 달라요 (토익의 핵심)</h2>
 <ul><li><b>품사</b> = 단어의 종류(명·동·형·부), <b>성분</b> = 문장에서의 자리(주어·동사·목적어·보어)</li>
 <li>주어·목적어 자리엔 <b>명사</b>, 보어 자리엔 <b>형용사</b>(또는 명사). <b>부사는 보어가 못 돼요.</b></li>
-<li>The office looks modernly ✗ → The office looks <b>modern</b> ✓</li></ul>
+<li>The office looks modernly ✗ → The office looks <b>modern</b> ✓ [디 오-피스 룩스 마던]</li></ul>
 <h2>6. 파트5는 이 게임</h2>
 <ul><li>빈칸의 <b>성분</b>을 보고 → 그 자리에 오는 <b>품사</b>를 고르면 끝. 뜻을 몰라도 풀리는 문제가 30% 이상.</li></ul>`;
 const STRATEGY_DOC=`<h1>토익 990 만점 전략 요약</h1>
@@ -671,11 +713,14 @@ const STRATEGY_DOC=`<h1>토익 990 만점 전략 요약</h1>
 <li>3단계부터 실제 시험 1~2달 간격 응시 (toeic.co.kr)</li>
 <li>3~4단계: ETS 토익 정기시험 기출문제집(YBM) 병행, 시험 보름 전 기출 10회분</li></ul>`;
 function grammarDoc(){
-  return "<h1>토익 문법 10단원 핵심 노트</h1>"+UNITS.map((u,k)=>"<h2>"+(k+1)+"단원 · "+esc(u.title)+"</h2><p>"+esc(u.sum)+"</p><ul>"+u.pts.map(p=>"<li>"+esc(p)+"</li>").join("")+"</ul>").join("");
+  return "<h1>토익 문법 10단원 핵심 노트</h1>"+UNITS.map((u,k)=>"<h2>"+(k+1)+"단원 · "+esc(u.title)+"</h2><p>"+esc(u.sum)+"</p><ul>"+u.pts.map(p=>{
+    const prs=engRuns(p).map(x=>S.pr[x]?x+" ["+S.pr[x]+"]":"").filter(Boolean);
+    return "<li>"+esc(p)+(prs.length?"<br>"+esc("발음: "+prs.join(" / ")):"")+"</li>"}).join("")+"</ul>").join("");
 }
+function grammarRuns(){const t=[];UNITS.forEach(u=>u.pts.forEach(p=>engRuns(p).forEach(x=>t.push(x))));return t}
 function wordsDoc(){
   const W=allWords();
-  return "<h1>토익 단어 체크표 ("+W.length+"개)</h1><p>외운 단어는 ✓ 칸에 표시하세요.</p><table><tr><th style=\"width:26%\">단어</th><th style=\"width:10%\">품사</th><th>뜻</th><th style=\"width:8%\">✓</th></tr>"+W.map(w=>"<tr><td><b>"+esc(w[0])+"</b></td><td>"+esc(w[1])+"</td><td>"+esc(w[2])+"</td><td></td></tr>").join("")+"</table>";
+  return "<h1>토익 단어 체크표 ("+W.length+"개)</h1><p>외운 단어는 ✓ 칸에 표시하세요.</p><table><tr><th>단어</th><th>발음</th><th>품사</th><th>뜻</th><th>✓</th></tr>"+W.map(w=>"<tr><td><b>"+esc(w[0])+"</b></td><td>"+esc(wpron(w))+"</td><td>"+esc(w[1])+"</td><td>"+esc(w[2])+"</td><td></td></tr>").join("")+"</table>";
 }
 function wrongDoc(){
   const ws=Object.values(S.wrong).sort((a,b)=>String(a.item&&a.item.part||"").localeCompare(String(b.item&&b.item.part||"")));
@@ -686,7 +731,7 @@ function wrongDoc(){
      +(ctx.scene?"<p>장면: "+esc(ctx.scene)+"</p>":"")
      +(ctx.audio?"<p style=\"font-size:.9em\">"+ctx.audio.map(a=>(a.sp==="N"?"":a.sp+": ")+esc(a.t)).join("<br>")+"</p>":"")
      +(ctx.passage?"<p style=\"font-size:.9em;white-space:pre-wrap\">"+esc(ctx.passage)+"</p>":"")
-     +(it.q?"<p>"+esc(it.q)+"</p>":"")
+     +(it.q?"<p>"+esc(it.q)+(S.pr[it.q]?"<br>["+esc(S.pr[it.q])+"]":"")+"</p>":"")
      +"<p>"+(it.o||[]).map((o,k)=>L[k]+". "+esc(o)).join("&nbsp;&nbsp;&nbsp;")+"</p>"
      +"<p><b>정답 "+L[it.a||0]+"</b> — "+esc(it.ex||"")+"</p>"
      +"<p>묻는 것: <span class=\"blank\">&nbsp;</span><br>틀린 이유: <span class=\"blank\">&nbsp;</span></p></div>"}).join("");
@@ -694,7 +739,7 @@ function wrongDoc(){
 function viewExport(){
   const wr=Object.keys(S.wrong).length;
   $app.innerHTML=`<h2>굿노트로 보내기</h2>
-  <p class="muted">문서를 고르면 이 자리에서 바로 만들어져요. 오답노트와 단어는 지금까지 쌓인 내용 그대로예요. '굿노트로 보내기'를 누르면 인쇄 화면이 열리고, 거기서 <b>공유 → GoodNotes</b>를 고르면 굿노트에 필기용 문서로 들어가요.</p>
+  <p class="muted">문서를 고르면 이 자리에서 바로 만들어져요. 오답노트와 단어는 지금까지 쌓인 내용 그대로예요. '굿노트로 보내기'를 누르면 <b>PDF 파일</b>이 만들어지고, 저장 확인 뒤 공유 화면에서 <b>GoodNotes</b>를 고르면 필기용 문서로 들어가요.</p>
   <div class="list">
    <button class="item" data-x="skeleton"><span><b>영어 문장 뼈대 노트</b><br><span class="muted">주어·동사·목적어·보어를 바닥부터</span></span><span class="pill">문서</span></button>
    <button class="item" data-x="grammar"><span><b>문법 10단원 핵심 노트</b><br><span class="muted">앱 문법 단원 전체 요약</span></span><span class="pill">문서</span></button>
@@ -702,14 +747,94 @@ function viewExport(){
    <button class="item" data-x="wrong"><span><b>오답노트 정리</b><br><span class="muted">지금까지 틀린 ${wr}문제 · 묻는 것·틀린 이유 쓰는 칸 포함</span></span><span class="pill">문서</span></button>
    <button class="item" data-x="strategy"><span><b>만점 전략 요약</b><br><span class="muted">전략 탭 내용 한 장</span></span><span class="pill">문서</span></button>
   </div>
-  <p class="muted" style="margin-top:12px">홈 화면 앱에서 인쇄 화면이 안 열리면 Safari로 열어서 보내면 돼요. 단어를 더 받거나 오답이 늘면 다시 만들 때마다 최신 내용으로 나와요.</p>`;
+  <p class="muted" style="margin-top:12px">Claude 앱에서는 바로 공유 화면이 떠요. Safari에서는 PDF가 '다운로드'에 저장되니, 파일을 열고 공유 → GoodNotes를 고르면 돼요. 단어를 더 받거나 오답이 늘면 다시 만들 때마다 최신 내용으로 나와요.</p>`;
   $app.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{
     const k=b.dataset.x, html=k==="skeleton"?SKELETON_DOC:k==="grammar"?grammarDoc():k==="words"?wordsDoc():k==="wrong"?wrongDoc():STRATEGY_DOC;
-    $app.innerHTML=`<div class="row noprint" style="justify-content:space-between;margin-bottom:14px"><button class="btn ghost" id="bk">← 돌아가기</button><button class="btn" id="pr">굿노트로 보내기 (인쇄)</button></div><div class="prdoc card">${html}</div>`;
-    document.getElementById("bk").onclick=viewExport;
-    document.getElementById("pr").onclick=()=>window.print();
-    window.scrollTo(0,0);
+    const names={skeleton:"영어문장뼈대노트",grammar:"토익문법10단원",words:"토익단어체크표",wrong:"토익오답노트",strategy:"토익만점전략"};
+    function show(h){
+      $app.innerHTML=`<div class="row noprint" style="justify-content:space-between;margin-bottom:8px"><button class="btn ghost" id="bk">← 돌아가기</button><span class="row">${k==="grammar"||k==="wrong"?'<button class="btn ghost" id="addpr">발음 채우기</button>':""}<button class="btn" id="pr">굿노트로 보내기 (PDF)</button></span></div><p class="muted noprint" id="pmsg"></p><div class="prdoc card">${h}</div>`;
+      document.getElementById("bk").onclick=viewExport;
+      const ap=document.getElementById("addpr");
+      if(ap)ap.onclick=async()=>{const m=document.getElementById("pmsg");ap.disabled=true;m.textContent="문장마다 한글 발음을 붙이는 중이에요…";
+        try{const tx=k==="grammar"?grammarRuns():Object.values(S.wrong).map(w=>w.item&&w.item.q).filter(q=>q&&!/^Blank \[\d\]$/.test(q));
+          await pronFetch(tx);show(k==="grammar"?grammarDoc():wrongDoc())}
+        catch(e){m.textContent=genError(e);ap.disabled=false}};
+      document.getElementById("pr").onclick=async()=>{
+        const b=document.getElementById("pr"), m=document.getElementById("pmsg"); b.disabled=true; m.textContent="PDF를 만드는 중이에요…";
+        try{const blob=await makePdf($app.querySelector(".prdoc"));
+          const fn=names[k]+"_"+dayStr(TODAY()).replace(/\//g,"-")+".pdf";
+          const dl=await claudeUse("downloads");
+          if(dl){try{await dl.save({filename:fn,data:blob});m.textContent="보냈어요. 공유 화면에서 GoodNotes를 고르면 돼요."}
+            catch(e){m.textContent=e&&e.code==="declined"?"저장을 취소했어요.":"이 화면에서는 파일 저장이 막혀 있어요. 아래 링크를 눌러 보세요.";if(!(e&&e.code==="declined"))offerLink(blob,fn,m)}}
+          else{m.textContent="";offerLink(blob,fn,m)}
+        }catch(e){m.textContent="PDF를 만들지 못했어요. 다시 눌러 주세요."}
+        b.disabled=false};
+      window.scrollTo(0,0);
+    }
+    show(html);
   });
+}
+function offerLink(blob,fn,m){try{const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=fn;a.textContent="PDF 열기: "+fn;a.className="btn ghost";a.style.marginLeft="8px";m.appendChild(a)}catch(e){}}
+async function claudeUse(n){try{if(!window.claude||!window.claude.use)return null;return await Promise.race([window.claude.use(n),new Promise(r=>setTimeout(()=>r(null),10000))])}catch(e){return null}}
+
+// ---------- 화면 문서 → PDF (A4, 페이지마다 이미지) ----------
+async function makePdf(root){
+  try{if(document.fonts&&document.fonts.ready)await document.fonts.ready}catch(e){}
+  const PW=1240,PH=1754,M=100,CW=PW-M*2;
+  const FONT='"Gowun Batang","MaruBuri","Nanum Myeongjo","AppleMyungjo",serif';
+  const pages=[]; let cx,y;
+  function newPage(){const cv=document.createElement("canvas");cv.width=PW;cv.height=PH;cx=cv.getContext("2d");
+    if(!cx)throw new Error("no canvas");cx.fillStyle="#fff";cx.fillRect(0,0,PW,PH);cx.fillStyle="#000";cx.strokeStyle="#000";cx.textBaseline="top";pages.push(cv);y=M;
+    cx.font="20px "+FONT;cx.fillStyle="#666";cx.fillText(String(pages.length),PW-M,PH-M/2);cx.fillStyle="#000"}
+  function font(sz,b){cx.font=(b?"700 ":"")+sz+"px "+FONT}
+  function wrap(t,w){const out=[];String(t).split("\n").forEach(par=>{let line="";
+    (par.match(/\S+\s*/g)||[""]).forEach(tok=>{
+      if(cx.measureText(line+tok).width<=w){line+=tok;return}
+      if(line.trim()){out.push(line.trimEnd());line=""}
+      if(cx.measureText(tok).width<=w){line=tok;return}
+      let cur="";for(const ch of tok){if(cx.measureText(cur+ch).width>w&&cur){out.push(cur);cur=ch}else cur+=ch}line=cur});
+    out.push(line.trimEnd())});return out}
+  function ensure(h){if(y+h>PH-M)newPage()}
+  function text(t,sz,b,ind){ind=ind||0;font(sz,b);const lh=Math.round(sz*1.5);const ls=wrap(t,CW-ind);ls.forEach((l,n)=>{ensure(lh);cx.fillText(l,M+ind,y);y+=lh});return ls.length}
+  function tx(el){const c=el.cloneNode(true);c.querySelectorAll("br").forEach(b=>b.replaceWith("\n"));c.querySelectorAll(".blank").forEach(b=>b.replaceWith("____________________________"));return c.textContent.replace(/\u00a0/g," ").replace(/[ \t]+/g," ").trim()}
+  function table(tb){
+    const rows=Array.from(tb.querySelectorAll("tr")).map(r=>Array.from(r.children).map(c=>({t:tx(c),h:c.tagName==="TH"})));
+    if(!rows.length)return; const n=Math.max(...rows.map(r=>r.length)); font(24,false);
+    const nat=Array.from({length:n},(_,c)=>Math.max(60,...rows.map(r=>r[c]?Math.min(CW*.55,cx.measureText(r[c].t).width+28):0)));
+    const sum=nat.reduce((a,b)=>a+b,0), cw=nat.map(v=>v/sum*CW), lh=36;
+    const head=rows[0]&&rows[0].every(c=>c.h)?rows[0]:null;
+    function row(r){const ls=r.map((c,k)=>{font(24,c.h);return wrap(c.t,cw[k]-20)});const h=Math.max(...ls.map(l=>l.length))*lh+16;
+      if(y+h>PH-M){newPage();if(head&&r!==head)row(head)}
+      let x=M;r.forEach((c,k)=>{if(c.h){cx.fillStyle="#eee";cx.fillRect(x,y,cw[k],h);cx.fillStyle="#000"}cx.lineWidth=1.5;cx.strokeRect(x,y,cw[k],h);font(24,c.h);ls[k].forEach((l,j)=>cx.fillText(l,x+10,y+8+j*lh));x+=cw[k]});
+      y+=h}
+    rows.forEach(row); y+=14}
+  function walk(el){
+    Array.from(el.children).forEach(c=>{const t=c.tagName;
+      if(t==="H1"){text(tx(c),44,true);y+=10}
+      else if(t==="H2"){y+=18;ensure(80);text(tx(c),32,true);cx.fillRect(M,y,CW,3);y+=14}
+      else if(t==="P"){text(tx(c),26,false);y+=8}
+      else if(t==="UL"){Array.from(c.children).forEach(li=>{font(26,false);ensure(39);cx.fillText("•",M+6,y);text(tx(li),26,false,34);y+=4});y+=8}
+      else if(t==="TABLE")table(c);
+      else if(t==="DIV"){y+=10;ensure(60);cx.fillStyle="#888";cx.fillRect(M,y,CW,2);cx.fillStyle="#000";y+=14;walk(c);y+=c.classList.contains("wq")?90:6}
+      else{const s=tx(c);if(s){text(s,26,false);y+=8}}})}
+  newPage(); walk(root);
+  const enc=new TextEncoder(), parts=[], offs=[]; let len=0;
+  const push=x=>{const b=typeof x==="string"?enc.encode(x):x;parts.push(b);len+=b.length};
+  const n=pages.length, pw=595.28, ph=841.89;
+  push("%PDF-1.4\n");
+  const obj=(id,body)=>{offs[id]=len;push(id+" 0 obj\n"+body+"\nendobj\n")};
+  obj(1,"<< /Type /Catalog /Pages 2 0 R >>");
+  obj(2,"<< /Type /Pages /Kids ["+pages.map((_,k)=>(3+3*k)+" 0 R").join(" ")+"] /Count "+n+" >>");
+  pages.forEach((cv,k)=>{const p=3+3*k,im=p+1,ct=p+2;
+    const u=cv.toDataURL("image/jpeg",.85), bs=atob(u.slice(u.indexOf(",")+1)), j=new Uint8Array(bs.length);for(let q=0;q<bs.length;q++)j[q]=bs.charCodeAt(q);
+    obj(p,"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+pw+" "+ph+"] /Resources << /XObject << /Im0 "+im+" 0 R >> >> /Contents "+ct+" 0 R >>");
+    offs[im]=len;push(im+" 0 obj\n<< /Type /XObject /Subtype /Image /Width "+PW+" /Height "+PH+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+j.length+" >>\nstream\n");push(j);push("\nendstream\nendobj\n");
+    const cs="q "+pw+" 0 0 "+ph+" 0 0 cm /Im0 Do Q";
+    obj(ct,"<< /Length "+cs.length+" >>\nstream\n"+cs+"\nendstream")});
+  const total=3+3*n, xref=len; let x="xref\n0 "+total+"\n0000000000 65535 f \n";
+  for(let q=1;q<total;q++)x+=String(offs[q]).padStart(10,"0")+" 00000 n \n";
+  push(x);push("trailer\n<< /Size "+total+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF\n");
+  return new Blob(parts,{type:"application/pdf"});
 }
 
 const VIEWS={home:viewHome,roadmap:viewRoadmap,strategy:viewStrategy,export:viewExport,words:viewWords,grammar:viewGrammar,parts:viewParts,mock:viewMock,review:viewReview,diag:viewDiag,stats:viewStats};
