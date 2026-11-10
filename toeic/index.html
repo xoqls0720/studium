@@ -2,7 +2,13 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="토익 990">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
 <title>태빈 토익 독학</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,6 +57,8 @@ h3{font-size:1.1rem;margin:0 0 .5rem;text-wrap:balance}
 .opts{display:grid;gap:10px}
 .opt{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:14px 16px;text-align:left;min-height:52px;cursor:pointer;font-family:var(--en)}
 .opt.ok{border-color:var(--good);background:var(--good-soft)} .opt.no{border-color:var(--bad);background:var(--bad-soft)}
+.pic{border:1px solid var(--line);border-radius:12px;background:#fff;margin:14px 0;padding:6px}
+.pic svg{display:block;width:100%;height:auto;max-height:340px}
 .ex{margin-top:14px;padding:14px 16px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 12px 12px 0;white-space:pre-wrap}
 .bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden} .bar i{display:block;height:100%;background:var(--accent)}
 ul.pts{padding-left:1.2rem;margin:.4rem 0 1rem} ul.pts li{margin:.3rem 0}
@@ -72,7 +80,7 @@ table{border-collapse:collapse;width:100%} td,th{padding:8px;border-bottom:1px s
 <header>
   <div class="top"><h1>태빈 토익 독학 · 목표 990</h1><span class="chip" id="sync">저장 준비 중</span></div>
   <nav id="nav">
-    <a href="#home">오늘</a><a href="#roadmap">로드맵</a><a href="#words">단어</a><a href="#grammar">문법</a><a href="#parts">파트별</a><a href="#mock">모의고사</a><a href="#review">오답노트</a><a href="#diag">진단</a><a href="#stats">기록</a>
+    <a href="#home">오늘</a><a href="#roadmap">로드맵</a><a href="#strategy">전략</a><a href="#words">단어</a><a href="#grammar">문법</a><a href="#parts">파트별</a><a href="#mock">모의고사</a><a href="#review">오답노트</a><a href="#diag">진단</a><a href="#stats">기록</a>
   </nav>
 </header>
 <main id="app"></main>
@@ -471,8 +479,8 @@ const LEVELS=[
  {name:"만점",score:"900~990",desc:"실제 토익 최고 난도. 미묘한 어휘 구별, 함정 보기, 간접 응답(파트2), 추론·문장 삽입(파트7), 동의어 문제."}
 ];
 const PARTS={
- p1:{name:"파트1 사진 묘사",lc:true,opts:4,short:"사진 대신 장면 설명을 읽고, 들리는 문장 4개 중 장면과 맞는 것을 고르기",
-   spec:'세트 4개. 각 세트: "scene"=사진 대신 쓸 장면 묘사(한국어, 2~3문장, 사람·사물 위치와 동작을 구체적으로), "items"=[{"q":"","o":[영어 진술 4개],"a":정답,"ex":해설,"tag":"파트1"}]. 오답은 실제 토익처럼 동작 착오(-ing/수동 진행), 없는 사물 언급, 비슷한 소리 단어 함정.'},
+ p1:{name:"파트1 사진 묘사",lc:true,opts:4,short:"그림을 보고, 들리는 문장 4개 중 그림과 맞는 것을 고르기",
+   spec:'세트 4개. 각 세트: "scene"=장면 묘사(한국어, 2~3문장, 사람·사물 위치와 동작을 구체적으로), "svg"=그 장면을 그린 SVG 일러스트 코드 문자열. <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">로 시작해 사람·사물을 단순한 도형(rect, circle, line, path)과 단색으로 그린다. 글자(text), script, image, 애니메이션은 절대 넣지 않는다. "items"=[{"q":"","o":[영어 진술 4개],"a":정답,"ex":해설,"tag":"파트1"}]. 오답은 실제 토익처럼 동작 착오(-ing/수동 진행), 없는 사물 언급, 비슷한 소리 단어 함정.'},
  p2:{name:"파트2 질문·응답",lc:true,opts:3,short:"질문을 듣고 알맞은 응답 고르기 (보기 3개)",
    spec:'세트 1개, items 10개. 각 item: "q"=영어 질문이나 진술, "o"=영어 응답 3개, 정답 1개. 의문사·Yes/No·부탁·제안·평서문·간접 응답을 섞는다. 오답은 같은 단어 반복, 비슷한 소리, 엉뚱한 의문사 답 함정.'},
  p3:{name:"파트3 대화",lc:true,opts:4,short:"두세 사람 대화를 듣고 3문제",
@@ -501,7 +509,7 @@ ${focus&&focus.length?"특히 이 약점을 집중 출제: "+focus.join(", "):""
 - "tag"는 짧은 한국어 유형명(예: 품사, 시제, 수일치, 능동/수동, 관계사, 접속사/전치사, 어휘, 대명사, 비교, 의문사 응답, 간접 응답, 세부 사항, 추론, 주제, 동의어, 문장 삽입, 화자 의도).
 - 영어는 자연스러운 미국식 비즈니스 영어. 사람 이름·회사 이름은 가상으로.
 - 출력은 JSON 하나만. 설명 문장, 코드 블록 표시 금지.
-형식: {"sets":[{"scene":"(파트1만)","passage":"(파트6·7만)","audio":[{"sp":"M","t":"..."}](파트3·4만),"items":[{"q":"...","o":["..."],"a":0,"ex":"...","tag":"..."}]}]}`;
+형식: {"sets":[{"scene":"(파트1만)","svg":"(파트1만)","passage":"(파트6·7만)","audio":[{"sp":"M","t":"..."}](파트3·4만),"items":[{"q":"...","o":["..."],"a":0,"ex":"...","tag":"..."}]}]}`;
 }
 function cleanSets(raw,part){
   const P=PARTS[part], out=[];
@@ -515,6 +523,7 @@ function cleanSets(raw,part){
     if(!items.length)return;
     const set={items};
     if(s.scene)set.scene=String(s.scene);
+    if(s.svg)set.svg=String(s.svg);
     if(s.passage)set.passage=String(s.passage);
     if(Array.isArray(s.audio)&&s.audio.length)set.audio=s.audio.filter(a=>a&&a.t).map(a=>({sp:a.sp==="W"?"W":a.sp==="M"?"M":"N",t:String(a.t)}));
     if((part==="p3"||part==="p4")&&!set.audio)return;
@@ -544,6 +553,18 @@ function genError(e){
 }
 
 // ================= 공용 풀이 화면 =================
+function svgSan(code){try{
+  const d=new DOMParser().parseFromString(String(code),"image/svg+xml");
+  if(d.querySelector("parsererror"))return null;
+  const r=d.documentElement; if(!r||r.nodeName.toLowerCase()!=="svg")return null;
+  r.querySelectorAll("script,foreignObject,image,use,a,iframe,animate,animateTransform,animateMotion,set,text").forEach(e=>e.remove());
+  [r].concat(Array.from(r.querySelectorAll("*"))).forEach(e=>{Array.from(e.attributes).forEach(at=>{
+    const n=at.name.toLowerCase(), v=String(at.value);
+    if(n.indexOf("on")===0||n==="href"||n==="xlink:href"||/url\s*\(|javascript:|data:/i.test(v))e.removeAttribute(at.name)})});
+  if(!r.getAttribute("viewBox"))r.setAttribute("viewBox","0 0 400 260");
+  r.removeAttribute("width");r.removeAttribute("height");
+  return new XMLSerializer().serializeToString(r)
+}catch(e){return null}}
 let busy=false, curTick=null;
 // sets: [{scene?,passage?,audio?,items:[{id,src,part,tag,q,o,a,ex,say?}]}]
 function runSets(sets,opt){
@@ -568,10 +589,12 @@ function runSets(sets,opt){
     const {s,it}=steps[i], P=PARTS[it.part]||{}, isLC=!!P.lc;
     const hideText=isLC&&(it.part==="p1"||it.part==="p2");
     const showAudio=s.audio||it.say;
+    if(s.svg&&s._svg===undefined)s._svg=svgSan(s.svg);
+    const pic=s._svg||null;
     $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>${esc(opt.title||"문제")}</h2><span class="row"><span class="muted">${i+1} / ${steps.length}</span>${timeStr()}</span></div>
       <div class="bar" style="margin-bottom:16px"><i style="width:${i/steps.length*100}%"></i></div>
       <div class="card"><div class="row" style="justify-content:space-between"><span class="pill">${esc(it.src)}${it.tag&&it.tag!==it.src?" · "+esc(it.tag):""}</span><button class="btn ghost sm" id="flag" title="이상한 문제 버리기">이상한 문제예요</button></div>
-      ${s.scene?`<div class="ex" style="border-left-color:var(--warn);background:var(--warn-soft)"><b>장면</b> ${esc(s.scene)}</div>`:""}
+      ${pic?`<div class="pic">${pic}</div>`:s.scene?`<div class="ex" style="border-left-color:var(--warn);background:var(--warn-soft)"><b>장면</b> ${esc(s.scene)}</div>`:""}
       ${showAudio?`<div class="row" style="margin:14px 0"><button class="btn" id="play">▶ 듣기</button><button class="btn ghost" id="slow">▶ 천천히</button><button class="btn ghost" id="script">스크립트 보기</button></div><div id="scr" hidden class="passage"></div>`:""}
       ${s.passage?`<div class="passage">${esc(s.passage)}</div>`:""}
       ${hideText?"":`<p class="q">${esc(it.q).replace(/_{3,}/,"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>")}</p>`}
@@ -604,7 +627,7 @@ function runSets(sets,opt){
         S.wrong[it.id]=w; trimWrong()}
       save();
       if(opt.mock&&!opt.explain){i++;draw();return}
-      document.getElementById("ex").innerHTML=`<div class="ex"><strong>${ok?"맞았어요.":"틀렸어요. 정답은 "+L[it.a]+"."}</strong>\n${esc(it.ex)}</div><div class="row" style="margin-top:14px"><button class="btn" id="next">${i+1<steps.length?"다음":"결과 보기"}</button></div>`;
+      document.getElementById("ex").innerHTML=`<div class="ex"><strong>${ok?"맞았어요.":"틀렸어요. 정답은 "+L[it.a]+"."}</strong>\n${esc(it.ex)}${pic&&s.scene?`\n\n장면 설명: ${esc(s.scene)}`:""}</div><div class="row" style="margin-top:14px"><button class="btn" id="next">${i+1<steps.length?"다음":"결과 보기"}</button></div>`;
       if(showAudio){const t=document.getElementById("scr");t.hidden=false;t.textContent=scriptText()}
       document.getElementById("next").onclick=()=>{i++;draw();window.scrollTo(0,0)};
     });
@@ -779,7 +802,7 @@ function viewRoadmap(){
   $app.innerHTML=`<h2>990점 로드맵</h2>
    <div class="grid"><div class="card"><div class="muted">원서 접수까지</div><div class="big">D-${dday()}</div></div><div class="card"><div class="muted">최근 토익</div><div class="big">${sc??"–"}</div><div class="muted">목표 990</div></div><div class="card"><div class="muted">지금 단계</div><div class="big">${idx+1}단계</div></div></div>
    <div class="list" style="margin-top:14px">${STAGES.map((st,k)=>`<div class="card stage ${k<idx?"done":k===idx?"now":""}"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${esc(st.name)}</h3>${k<idx?'<span class="pill g">통과</span>':k===idx?'<span class="pill">지금</span>':""}</div><ul class="pts">${st.todo.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`).join("")}</div>
-   <div class="card" style="margin-top:12px"><h3>솔직한 안내</h3><p>이 앱의 문제는 실제 토익 형식과 난이도를 본떠 Claude가 새로 만든 문제예요. 만점은 실제 시험장의 녹음 속도, 여러 나라 억양, 사진 문제까지 흔들림 없이 맞혀야 나와요. 4단계에 들어서면 실제 토익 시험을 한두 달 간격으로 직접 보면서 점수를 확인하세요. 시험 점수는 '기록'에 넣으면 단계가 자동으로 바뀌어요.</p></div>`;
+   <div class="card" style="margin-top:12px"><h3>솔직한 안내</h3><p>이 앱의 문제는 실제 토익 형식과 난이도를 본떠 Claude가 새로 만든 문제예요. 만점은 실제 시험장의 녹음 속도, 여러 나라 억양, 사진 문제까지 흔들림 없이 맞혀야 나와요. 4단계에 들어서면 실제 토익 시험을 한두 달 간격으로 직접 보면서 점수를 확인하세요. 시험 점수는 '기록'에 넣으면 단계가 자동으로 바뀌어요. 실제 기출문제집을 쓰는 시기와 만점 받은 사람들의 방법은 <a href="#strategy">전략</a>에 정리해 뒀어요.</p></div>`;
 }
 
 // ================= 기록 =================
@@ -833,7 +856,58 @@ function viewHome(){
 }
 
 // ================= 화면 전환 =================
-const VIEWS={home:viewHome,roadmap:viewRoadmap,words:viewWords,grammar:viewGrammar,parts:viewParts,mock:viewMock,review:viewReview,diag:viewDiag,stats:viewStats};
+// ================= 만점 전략 =================
+function viewStrategy(){
+  $app.innerHTML=`<h2>만점 전략</h2>
+  <p class="muted">토익 990을 받은 사람들의 후기와 수기에서 겹치는 방법만 모았어요. 이 앱의 기능이 그 방법대로 움직이게 되어 있어요.</p>
+  <div class="card"><h3>아이패드 홈 화면에 앱으로 넣기</h3>
+   <ul class="pts">
+    <li>아이패드 <b>Safari</b>에서 이 페이지를 열어요. claude.ai에 로그인된 상태여야 해요.</li>
+    <li>주소창 옆 <b>공유 단추(네모에 위 화살표)</b>를 눌러요.</li>
+    <li><b>홈 화면에 추가</b>를 누르고 이름을 '토익 990'으로 바꾸면 끝이에요.</li>
+   </ul>
+   <p class="muted">홈 화면 아이콘으로 열면 주소창 없이 전체 화면 앱처럼 열려요. 문제 생성과 기록 저장이 Claude 계정으로 되기 때문에 인터넷 연결과 로그인은 계속 필요해요.</p></div>
+  <div class="card"><h3>만점이 어떤 점수인지 먼저</h3>
+   <ul class="pts">
+    <li>990 = 듣기 495 + 독해 495, 모두 200문제. 만점은 보통 <b>0~2문제 실수</b>까지만 허용돼요.</li>
+    <li>2025년 정기시험 평균은 686점이고, 905~990점 구간은 응시자의 10% 정도였어요. 945점부터가 최고 등급(C1)이에요.</li>
+    <li>목표는 한 번에 990이 아니라 <b>900 → 950 → 970 → 990</b> 순서로 잡는 게 만점자들의 공통 조언이에요.</li>
+   </ul></div>
+  <div class="card"><h3>900 이후는 '새 공부'가 아니라 '실수 줄이기'</h3>
+   <ul class="pts">
+    <li>900을 넘긴 뒤에는 새 개념보다 <b>아는 문제를 틀리지 않는 정확도</b>가 점수를 결정해요.</li>
+    <li>틀린 문제마다 <b>'이 문제가 묻는 것'</b>과 <b>'내가 틀린 이유'</b>를 함께 적어요. 이 앱의 오답노트가 문제·지문·해설을 통째로 저장하는 이유예요.</li>
+    <li>960까지 올린 사람들의 수기: 새 문제를 계속 푸는 것보다 <b>풀었던 지문을 다시 분석</b>하고, 몰랐던 표현과 패러프레이징(같은 말 바꿔 쓰기)을 정리했어요.</li>
+    <li>점수가 멈추는 시기는 누구에게나 와요. 낙담하지 않고 계속하는 것 자체가 전략이에요.</li>
+   </ul></div>
+  <div class="card"><h3>독해(RC) 시간 배분 — 900점 이상 목표 기준</h3>
+   <table><tr><th>파트</th><th>시간</th><th>기준</th></tr>
+    <tr><td>파트5 (30문제)</td><td>8~10분</td><td>한 문제 30초 안</td></tr>
+    <tr><td>파트6 (16문제)</td><td>7~8분</td><td>빈칸 앞뒤 흐름으로</td></tr>
+    <tr><td>파트7 (54문제)</td><td>57~60분</td><td>남는 시간은 검토</td></tr></table>
+   <p class="muted">답은 모아서 옮기지 말고 <b>문제를 푼 즉시 마킹</b>해요. 이 앱의 모의고사 타이머가 이 배분에 맞춰져 있어요.</p></div>
+  <div class="card"><h3>듣기(LC)는 입으로</h3>
+   <ul class="pts">
+    <li><b>쉐도잉</b>: 스크립트를 보며 음성을 반 박자 뒤에서 그대로 따라 말해요. 파트2·3부터 시작해요.</li>
+    <li><b>받아쓰기</b>: 틀린 문장만 다시 듣고 받아 적어요. 어떤 소리가 안 들리는지 드러나요.</li>
+    <li>시험장에서 파트1·2 안내 방송이 나오는 동안 <b>파트3·4 질문을 미리 읽어</b> 둬요.</li>
+    <li>이 앱의 '스크립트 보기'와 '천천히 듣기'를 쉐도잉에 쓰면 돼요.</li>
+   </ul></div>
+  <div class="card"><h3>실전 체력</h3>
+   <ul class="pts">
+    <li>실제 시험은 쉬는 시간 없이 <b>2시간</b>이에요. 주기적으로 하프 모의고사 두 개를 연달아 풀어 2시간 집중을 몸에 익혀요.</li>
+    <li>3단계부터는 <b>실제 시험을 한두 달 간격으로 접수</b>해서 점수를 확인하고, 결과를 '기록'에 넣어요. 접수는 토익 공식 사이트(toeic.co.kr)에서 해요.</li>
+   </ul></div>
+  <div class="card"><h3>기출문제에 대해 솔직하게</h3>
+   <p>실제 ETS 기출문제는 저작권이 있어서 이 앱에 넣을 수 없어요. 이 앱의 문제는 실제 시험의 형식·난이도·함정 유형을 본떠 Claude가 매번 새로 만드는 문제예요.</p>
+   <ul class="pts">
+    <li>1~2단계(기본기)까지는 이 앱만으로 충분해요.</li>
+    <li>3~4단계부터는 서점의 <b>ETS 토익 정기시험 기출문제집(YBM 출판)</b>을 병행하세요. 실제 시험과 같은 녹음 속도·억양·사진을 쓰는 공식 교재예요.</li>
+    <li>만점자 수기 기준, 시험 <b>보름 전부터는 기출 위주로 10회분</b> 정도를 실전처럼 풀어요. 틀린 것은 이 앱 방식대로 '묻는 것·틀린 이유'를 정리하고요.</li>
+   </ul></div>`;
+}
+
+const VIEWS={home:viewHome,roadmap:viewRoadmap,strategy:viewStrategy,words:viewWords,grammar:viewGrammar,parts:viewParts,mock:viewMock,review:viewReview,diag:viewDiag,stats:viewStats};
 function route(){busy=false;clearInterval(curTick);const h=(location.hash||"#home").slice(1),v=VIEWS[h]?h:"home";
   document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+v));
   stopSpeak(); VIEWS[v](); window.scrollTo(0,0)}
