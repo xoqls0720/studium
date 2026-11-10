@@ -1,0 +1,113 @@
+'use strict';
+// ── 합격 로드맵: 시험 제도·최근 결과·과목별 전략·답안 작성법 ─────────────────
+// 2026-11 조사 기준 — 법원행정처 공고(exam.scourt.go.kr)와 법률저널·법률신문 보도.
+// 숫자는 제32회(2026)까지 확정치. 다음 회차 공고가 나오면 D-day·회차는 저절로 바뀐다(22-plan 의 officialExam).
+
+const G_CUT = [[29, 59.5], [30, 60.0], [31, 64.5], [32, 65.0]];   // 1차 합격선(100점 환산)
+
+// 과목별 독학 전략 — 배점·과락 통계·1차 2차 연계를 근거로
+const G_STRAT = {
+  const: ['헌법 판례와 부속법령(국회법·헌법재판소법) 지문이 늘어나는 추세. 기본권 단원이 늘 절반 가까이 나와요.', '점수를 벌기보다 지키는 과목 — 기출 지문 회독만 꾸준히.'],
+  comm: ['제1과목의 60점. 회사법 비중이 가장 크고, 최근 회차는 난도가 올라가요.', '조문 싸움이에요. 조문 빈칸 카드와 기출 지문을 같이 돌려요.'],
+  civil: ['1차 80점 + 2차 100점, 전 과목의 뿌리. 가장 먼저, 가장 깊게.', '판례 지문이 대부분 — 사안·결론을 한 줄로 말할 수 있게. 2차 사례형은 민사소송법과 엮여 나와요.'],
+  family: ['20점이지만 범위가 좁아 점수 효율이 가장 좋아요.', '절차 조문을 그대로 묻기 때문에 기출 회독 + 조문 카드면 충분해요.'],
+  exec: ['해마다 과락이 가장 많이 나오는 과목(제3과목 70점). 절차 흐름을 그림으로 잡고 판례를 얹어요.', '2차 민사소송법·민사서류와 이어져요 — 1차 공부가 그대로 2차 밑천.'],
+  comreg: ['제3과목의 30점. 범위가 좁고 조문 반복 출제 — 버리면 과락, 잡으면 효자.', '상업등기법 중심으로, 비송은 기출에 나온 절차만.'],
+  realreg: ['1차 60점 + 2차 70점 + 등기서류 30점 = 시험 전체에서 가장 비싼 법. 최대 투자 과목이에요.', '법·규칙에 더해 등기예규·선례 지문이 늘어요. 기출 지문으로 범위를 잡아요.'],
+  deposit: ['제4과목의 40점. 범위가 좁고 같은 지문이 되풀이돼요 — 기출 회독 효과가 가장 큰 과목.', '공탁 선례 지문도 기출에 나온 것부터.'],
+  crim: ['1차에 없는 2차 전용 과목 — 1차 전에 미리 깔아 두는 게 동차 합격 수기들의 공통점.', '사례형 대문제 위주. 총론 쟁점(고의·과실·공범·죄수)을 답안 틀로 연습해요.'],
+  crimpro: ['최근 2차 과락률 1위 교시(형법·형사소송법 과목이 42.9%). 조문 + 판례 약술을 정확하게.', '수사·증거 단원이 핵심. 조문 번호까지 쓰는 연습.'],
+  civpro: ['2차 70점. 민법과 통합형 사례로 나오는 추세 — 민법 공부와 한 몸으로.', '판결 절차 전체 흐름을 목차로 외우고, 쟁점별 판례를 붙여요.'],
+  civdoc: ['소장·답변서·준비서면의 틀을 몸에 붙이는 과목(30점). 형식 점수를 놓치면 아까워요.', '앱의 주관식 연습과 백지 복습으로 서식 틀을 손으로 반복해요.'],
+  regdoc: ['등기신청서 서식(30점) — 부동산등기법과 한 몸. 신청서 기재례를 그대로 손으로 써 봐요.', '첨부정보·등록면허세까지 묻기 때문에 기재례 암기가 점수예요.'],
+};
+
+// 1년 로드맵 — 1차(8월 말)·2차(10월 말) 역산. [시기, 할 일, 앱에서]
+const G_PLAN = [
+  ['기초 (11~2월)', '민법 → 부동산등기법 → 민사집행법 순서로 기본서 1~2회독, 기출 지문을 바로 병행. 2차 전용(형법·형사소송법)도 주 1~2번 미리 깔기.', '기본서 읽기 + 단원 기출 지문 + 조문 카드'],
+  ['확장 (3~5월)', '8개 법 전부 1회독 완성, 기출 지문 3회독. 틀린 지문은 카드로 넘겨 간격 반복.', 'D-day 계획이 나눠 주는 하루 몫 + 오답 카드'],
+  ['완성 (6~7월)', '기출 5회독 이상, 과목 주간 로테이션. 회차 단위 실전 풀이로 시간 감각(문제당 72초).', '실전 모드(회차 풀기) + 출제 경향으로 약한 단원 확인'],
+  ['마무리 (8월)', '최근 3개 회차 실전, ★ 상습 오답, 개정 조문, 요약서만. 새 것을 벌리지 않아요.', '★ 지문 모아 풀기 + 법령 개정 + 직전 요약'],
+  ['1차 끝 ~ 2차 (9~10월)', '발표를 기다리지 말고 바로 답안 연습 — 발표에서 2차까지 5주뿐. 민사서류·등기서류 서식을 날마다 손으로.', '주관식 연습 + AI 채점 + 백지 복습'],
+];
+
+async function viewGuide() {
+  frame('합격 로드맵', '#/');
+  render(`<div class="card">${thinking('가이드를 준비하는 중…')}</div>`);
+  await loadSite();
+  if (!state.cfgStages) state.cfgStages = (await readJSON('수집/subjects.json').catch(() => null))?.stages || {};
+  const gidx = await readJSON('기출/index.json').catch(() => ({exams: []}));
+  const o1 = officialExam(1), d1 = stageExam(1);
+  const round = o1 ? o1.round : (Math.max(0, ...gidx.exams.map(e => e.round)) + 1);
+  const name = sid => subjById(sid)?.name || sid;
+
+  // 과목·배점 표 (수집기가 공고에서 정리한 subjects.json 그대로)
+  const stageTable = st => {
+    const gs = state.cfgStages?.[st] || [];
+    if (!gs.length) return '<p class="muted">과목 정보를 아직 못 받았어요.</p>';
+    return `<table class="plan"><tr><td><b>과목</b></td><td><b>배점</b></td></tr>
+      ${gs.map(g => `<tr><td>${esc(g.name)}</td><td>${g.parts.map(([id, w]) => `${esc(name(id))} <b>${w}</b>`).join(' · ')}</td></tr>`).join('')}</table>`;
+  };
+
+  // 기출 보유 현황 — 앱에 든 회차와 빠진 회차
+  const have = {};
+  for (const e of gidx.exams) (have[e.round] ||= {})[e.stage] = e;
+  const rounds = Object.keys(have).map(Number);
+  const missing1 = [], latest = Math.max(round - 1, ...rounds, 0);
+  for (let r = 13; r <= latest; r++) if (!have[r]?.[1]) missing1.push(r);
+  const gichulRows = rounds.sort((a, b) => b - a).map(r => `<tr><td>제${r}회 (${have[r][1]?.year || have[r][2]?.year})</td>
+    <td>${have[r][1] ? `${have[r][1].n}문제 · 지문 ${have[r][1].ox}` : '<span class="faint">—</span>'}</td>
+    <td>${have[r][2] ? `${have[r][2].n}문제` : '<span class="faint">—</span>'}</td></tr>`).join('');
+
+  const h = `<section class="hero" style="margin-bottom:18px"><div class="eyebrow">법무사 시험 안내</div><h2 class="display">합격 로드맵</h2>
+    <p class="lede">이 앱 하나로 1차 회독부터 2차 답안 연습까지. 제도·최근 결과·과목별 전략을 한 자리에 모았어요${d1 ? ` — 제${round}회 1차 ${ddayText(ddays(d1))}` : ''}.</p></section>
+
+  <div class="stats" style="margin-bottom:16px">
+    <div class="stat"><b>140명</b><span>최종 선발 (제32회 공고)</span></div>
+    <div class="stat"><b>65.0점</b><span>1차 합격선 (제32회)</span></div>
+    <div class="stat"><b>9.8%</b><span>1차 합격률 (응시 4,351 중 428)</span></div>
+    <div class="stat"><b>5.4 : 1</b><span>2차 경쟁률 (2년 연속)</span></div></div>
+
+  <div class="sect">시험 제도</div>
+  <div class="card"><h2>제1차 — 객관식 (8월 말 토요일)</h2>
+    ${stageTable(1)}
+    <p class="faint" style="margin:10px 0 0">5지선다 · 두 교시, 교시마다 120분에 100문항(문제당 72초) · 총 200문항 400점. 합격은 <b>매 과목 40점 이상 + 총득점 고득점순</b>으로 최종 선발 인원의 3배수쯤(제32회 428명). 응시 자격 제한이 없어 누구나 칠 수 있어요. 1차 합격자는 다음 회 1차가 면제돼요(기회 2번).</p></div>
+  <div class="card"><h2>제2차 — 주관식 (10월 말, 이틀)</h2>
+    ${stageTable(2)}
+    <p class="faint" style="margin:10px 0 0">과목마다 120분 서술·서류 작성, 시험장에 시험용 법전이 있어요(암기보다 찾는 연습). 합격은 <b>매 과목 40점 이상 + 총득점 고득점순 140명</b> — 평균 과락이 없어서 한 과목만 무너져도 떨어져요. 최근 과락은 형법·형사소송법 과목에 몰렸어요(제32회 42.9%, 가장 낮은 제4과목은 20.6%).</p></div>
+
+  <div class="card"><h2>최근 1차 합격선</h2><table class="plan">
+    ${G_CUT.map(([r, c]) => `<tr><td>제${r}회</td><td><div class="bar" style="margin:0"><i style="width:${c}%"></i></div><span class="faint">${c.toFixed(1)}점</span></td></tr>`).join('')}</table>
+    <p class="faint" style="margin:10px 0 0">해마다 오르는 추세라 <b>평균 70점</b>을 목표로 잡는 게 안전해요. 1차 과락은 제3·4과목(민사집행·상업등기·비송, 부동산등기·공탁)에서 응시자 과반이 나와요 — 절차법이 당락을 갈라요.</p></div>
+
+  <div class="sect">과목별 전략</div>
+  ${[1, 2].map(st => `<div class="card"><h2>제${st}차</h2><ul class="list">${(state.cfgStages?.[st] || []).flatMap(g => g.parts).map(([id]) => {
+    const t = G_STRAT[id] || [];
+    return `<li data-go="#/s/${id}/book"><span class="grow"><span class="tt">${esc(name(id))}</span><div class="faint">${esc(t[0] || '')}<br>${esc(t[1] || '')}</div></span><span class="chev">${ic('chev', 16)}</span></li>`;
+  }).join('')}</ul></div>`).join('')}
+
+  <div class="sect">1년 로드맵</div>
+  <div class="card"><table class="plan">${G_PLAN.map(([t, w, a]) => `<tr><td style="width:30%"><b>${esc(t)}</b></td><td>${esc(w)}<div class="faint">앱에서: ${esc(a)}</div></td></tr>`).join('')}</table>
+    <p class="faint" style="margin:10px 0 0">합격 수기의 수험 기간은 보통 2~5년(24~60개월)이에요. 양을 끝까지 벌리지 말고, 기출 지문 회독 수를 쌓는 쪽이 독학의 정석 — <a href="#/plan">D-day 계획</a>이 남은 날로 하루 몫을 나눠 줘요.</p></div>
+
+  <div class="sect">2차 답안 작성법</div>
+  <div class="card"><ul class="list">
+    <li><span class="grow"><span class="tt">쟁점 → 법리 → 적용 → 결론</span><div class="faint">목차를 먼저 쓰고 채워요. 쟁점마다 근거 조문·판례를 한 줄씩 — 사법시험식 논점 백화점이 아니라, 묻는 것에 바로 답해요.</div></span></li>
+    <li><span class="grow"><span class="tt">배점이 분량</span><div class="faint">10점이면 반 쪽, 30점 대문제면 두세 쪽. 최근엔 20~30점짜리 대문제와 긴 지문이 늘어서, 논점을 놓치지 않는 연습과 시간 배분이 점수예요.</div></span></li>
+    <li><span class="grow"><span class="tt">서류 과목은 손 암기</span><div class="faint">민사서류(소장·답변서)·등기서류(신청서 기재례)는 틀을 그대로 손으로 반복 — 백지 복습에 쓰기 좋아요.</div></span></li>
+    <li data-go="#/quiz"><span class="grow"><span class="tt">앱에서 연습</span><div class="faint">주관식 모드로 쓰고 AI 채점(쟁점·법리·적용·결론 기준)을 받아 보세요.</div></span><span class="chev">${ic('chev', 16)}</span></li></ul></div>
+
+  <div class="sect">기출 보유 현황</div>
+  <div class="card"><table class="plan"><tr><td><b>회차</b></td><td><b>1차</b></td><td><b>2차</b></td></tr>${gichulRows || '<tr><td colspan="3" class="muted">아직 기출이 없어요</td></tr>'}</table>
+    ${missing1.length ? `<p class="faint" style="margin:10px 0 0">빠진 1차: ${missing1.map(r => `제${r}회`).join(' · ')} — 법원시험정보의 옛 회차는 보호된 한글(배포용) 파일이라 자동으로 못 읽어요. 한컴오피스 뷰어로 열어 PDF로 저장해 <b>받은 자료/기출/제N회 1차</b> 폴더에 넣으면 다음 자동 돌기에서 정리돼요.</p>` : ''}</div>
+
+  <div class="sect">법무사라는 직업</div>
+  <div class="card"><p style="margin:0">법무사는 법무사법에 따라 <b>법원·검찰청에 내는 서류 작성</b>과 <b>등기·공탁·민사집행(경매) 신청 대리</b>, 개인회생·파산 서류 작성 등을 맡는 법률 전문직이에요. 등기가 전통적인 밥줄이고, 경매·회생·성년후견 쪽으로 일이 넓어지고 있어요. 자격 취득 뒤 대한법무사협회 연수를 거쳐 개업하거나 법무사 사무소·법인에서 일해요.</p>
+    <p class="faint" style="margin:10px 0 0">2026-11 조사 — 법원행정처 공고(exam.scourt.go.kr)·법률저널·법률신문 보도 기준. 다음 회차 공고가 나오면 날짜·회차는 저절로 바뀌어요.</p></div>
+  ${aiCard('수험 멘토', '시험 제도와 내 회독 기록을 알고 조언해요')}`;
+  render(h);
+  const P = await planOf(1).catch(() => null);
+  const ctx = P ? P.rows.map(r => `- ${r.s.name}(배점 ${r.w}): 기출 지문 ${r.N}개 중 ${r.p}회독 ${Math.round(r.ps.pct)}%, 기본서 남은 ${r.rBook}단원`).join('\n') : '';
+  bindAi('guide', `너는 법무사 시험 합격생 출신 멘토다. 제도: 1차 객관식(매 과목 40점 이상+상대평가, 최근 합격선 59.5→60.0→64.5→65.0점, 과락은 제3·4과목 절차법 집중), 2차 주관식(민법100·형법50·형소50·민소70·민사서류30·부등70·등기서류30, 매 과목 40점 이상+총득점순 140명, 형법·형소 과락률 42.9%). 1차는 8월 말, 2차는 10월 말이라 1차 발표 뒤 5주뿐 — 형법·형소는 1차 전에 미리. 수험생의 현재 기록:\n${ctx}\n이 사실들을 근거로 한국어로 간결하고 현실적으로 조언한다.`,
+    [['독학 순서', '지금 기록 기준으로 과목 공부 순서와 비중을 짜 줘.'], ['동차 합격 전략', '1차와 2차를 한 해에 붙으려면 달력을 어떻게 짜야 해?'], ['과락 피하기', '내가 과락 위험이 큰 과목과 처방을 알려 줘.'], ['2차 답안 틀', '민법 사례형 답안 틀을 예시로 보여 줘.']]);
+}
