@@ -2,7 +2,8 @@
 // ── 글 보기(마크다운 일부) ──────────────────────────────────────────
 function inline(s) {
   return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1<i>$2</i>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>').replace(/★([^<\n]*)/g, '<span class="star">★$1</span>');
+    .replace(/`([^`]+)`/g, '<code>$1</code>').replace(/★([^<\n]*)/g, '<span class="star">★$1</span>')
+    .replace(/\[\[그림\s*p?\.?\s*(\d+)\s*[::]?\s*([^\]]*)\]\]/g, (_, n, cap) => `<button class="figchip" data-fig="${n}">그림 p.${n}${cap.trim() ? ' · ' + cap.trim() : ''}</button>`);
 }
 function md(src_) {
   const lines = String(src_ || '').replace(/\r/g, '').split('\n'), out = [];

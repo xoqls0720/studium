@@ -78,7 +78,11 @@ async function viewUnit(s, uid) {
   const readBtn = $('#u-read');
   const paintRead = () => readBtn.innerHTML = isRead(u.id) ? ic('check', 18, 2.2) + '읽음' : '읽음 표시';
   readBtn.onclick = () => { setRead(u.id, !isRead(u.id)); paintRead(); };
-  hydrateSlides(document.getElementById('u-slides'), u).catch(() => {});
+  hydrateSlides(document.getElementById('u-slides'), u, d).catch(() => {});
+  main_.querySelectorAll('.figchip').forEach(b => b.onclick = () => {
+    if (state.openFig) state.openFig(+b.dataset.fig);
+    else { document.getElementById('u-slides')?.scrollIntoView({behavior: 'smooth'}); toast('원본 PDF가 연결되면 그 쪽으로 바로 열려요'); }
+  });
   $('#u-quiz').onclick = () => startQuiz(shuffle([...questionsOf(s, u, d), ...extraQuestions(s, [u.id]).filter(q => q.uids?.length === 1)]), u.title, `#/s/${s.id}/u/${u.id}`);
   $('#u-cards').onclick = () => startCards(cards, u.title + ' 카드', `#/s/${s.id}/u/${u.id}`);
   // 끝까지 읽으면 읽음(회독) 표시

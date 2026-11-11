@@ -110,8 +110,11 @@ const GD = {
   tok: store.get('tok', null), folders: {}, lists: {},
   valid() { return this.tok && this.tok.exp > Date.now() + 60e3; },
   async gis() {
-    if (window.google?.accounts?.oauth2) return;
-    await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.onload = res; s.onerror = () => rej(new Error('구글 로그인 스크립트를 받지 못했어요')); document.head.append(s); });
+    for (let i = 0; i < 3; i++) {   // 한 번 못 받아도 두 번 더 — 느린 연결에서 종종 첫 시도가 끊긴다
+      if (window.google?.accounts?.oauth2) return;
+      await new Promise(res => { const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.onload = res; s.onerror = () => { s.remove(); setTimeout(res, 700 * (i + 1)); }; document.head.append(s); });
+    }
+    if (!window.google?.accounts?.oauth2) throw new Error('구글 로그인 창을 받지 못했어요. 인터넷 연결을 확인하고, 콘텐츠(광고) 차단이 accounts.google.com을 막고 있지 않은지 봐 주세요. 잠시 뒤 다시 누르면 되는 경우가 많아요');
   },
   login() {
     if (!cfg.client) return Promise.reject(new Error('설정 › 고급에서 구글 클라이언트 ID를 먼저 넣어 주세요'));

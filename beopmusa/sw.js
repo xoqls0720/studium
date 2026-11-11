@@ -1,5 +1,5 @@
 // 오프라인에서도 열리게 앱 껍데기를 저장해 둔다(자료·진도는 IndexedDB가 맡는다). 셸 파일을 바꾸면 CACHE 이름을 올린다.
-const CACHE = 'beopmusa-22';
+const CACHE = 'beopmusa-23';
 const JS = ['01-core', '02-sync', '03-data', '04-ui', '05-srs', '10-home', '11-subject', '12-ink', '13-exam', '14-quiz', '15-settings', '16-cards', '17-focus', '18-add', '19-tools', '20-gichul', '21-law', '22-plan', '23-guide', '24-terms', '99-boot'];
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'css/app.css', ...JS.map(n => `js/${n}.js`)];
 

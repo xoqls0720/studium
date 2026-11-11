@@ -289,3 +289,7 @@ details summary{cursor:pointer}
 .lsay{font-family:var(--serif);font-size:21px;line-height:1.6;min-height:3.2em}
 .lsay.ans{color:var(--pri);font-size:18px;min-height:0}
 @media (max-width:600px){ .grades .btn b{font-size:14px} .ring.timer{width:210px;height:210px} .ring.timer>div{width:184px;height:184px} .ring.timer b{font-size:38px} nav button{padding:7px 12px 6px} }
+
+.figchip{display:inline-flex;align-items:center;gap:4px;margin:0 2px;padding:2px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card,#fff);color:var(--pri,#2a6);font:inherit;font-size:.86em;cursor:pointer;vertical-align:1px}
+.figchip:hover{border-color:var(--pri,#2a6)}
+@media print{.figchip{border:none;padding:0;color:inherit}}
