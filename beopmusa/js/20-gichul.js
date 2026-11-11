@@ -71,7 +71,7 @@ function examToQuiz(d, q) {
   const e = oxs.filter(j => j.e).map(j => `${j.id.split(':').pop().replace(/^c(\d)$/, (_, i) => '①②③④⑤'[i])} ${j.v ? '(O)' : '(X)'} ${j.e}`).join('\n');
   const stem = q.stem + (q.items?.length ? '\n' + q.items.map(it => `${it.k}. ${it.t}`).join('\n') : '');
   if (q.ask === 'essay' || !q.choices?.length) return {id: q.id, type: 'short', q: stem, a: q.outline || '모범 답안 뼈대는 PC 생성기의 해설 단계에서 만들어져요. Gemini 채점은 지금도 쓸 수 있어요.', k: q.refs || [], from, sid: q.sid, exam: true};
-  return {id: q.id, type: 'mcq', q: stem, c: q.choices, a: q.answer[0] ?? 0, alt: q.answer, e: e || (q.refs?.length ? '근거: ' + q.refs.join(', ') : ''), from, sid: q.sid, exam: true, revised: q.revisedBy || (q.revised ? '개정 주의' : '')};
+  return {id: q.id, type: 'mcq', q: stem, c: q.choices, a: q.answer[0] ?? 0, alt: q.answer, e: [q.e, e].filter(Boolean).join('\n\n') || (q.refs?.length ? '근거: ' + q.refs.join(', ') : ''), from, sid: q.sid, exam: true, revised: q.revisedBy || (q.revised ? '개정 주의' : '')};
 }
 async function examQuestionsById(ids) {
   const want = new Set(ids), out = [], idx = await loadGichulIndex();

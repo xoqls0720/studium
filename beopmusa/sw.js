@@ -1,5 +1,5 @@
 // ???????? ??? ???(??????????IndexedDB ????? ???). ????? ??? ??CACHE ??????????
-const CACHE = 'beopmusa-18';
+const CACHE = 'beopmusa-19';
 const JS = ['01-core', '02-sync', '03-data', '04-ui', '05-srs', '10-home', '11-subject', '12-ink', '13-exam', '14-quiz', '15-settings', '16-cards', '17-focus', '18-add', '19-tools', '20-gichul', '21-law', '22-plan', '23-guide', '99-boot'];
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'css/app.css', ...JS.map(n => `js/${n}.js`)];
 
