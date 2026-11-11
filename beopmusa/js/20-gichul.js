@@ -145,8 +145,9 @@ async function viewExamRound(id) {
   }
   const bySub = new Map();
   for (const q of d.questions) (bySub.get(q.sid) || bySub.set(q.sid, []).get(q.sid)).push(q);
+  const yr = d.year || (await loadGichulIndex()).exams.find(e => e.id === id)?.year;   // 회차 파일에 연도가 없으면 목록의 연도로
   const ok = q => prog.q[q.id], rate = qs => { const a = qs.filter(ok); return a.length ? Math.round(a.filter(q => prog.q[q.id].streak > 0).length / a.length * 100) : null; };
-  render(`<section class="hero" style="margin-bottom:18px"><div class="eyebrow">${d.year}년 시행</div><h2 class="display">${esc(d.title)}</h2>
+  render(`<section class="hero" style="margin-bottom:18px"><div class="eyebrow">${yr ? yr + '년 시행' : '기출'}</div><h2 class="display">${esc(d.title)}</h2>
     <p class="lede">문제 ${d.questions.length}개 · 지문 ${d.ox.length}개. 실제 시험처럼 풀거나, 과목별로 풀어요.</p></section>
     <div class="row" style="margin-bottom:14px"><button class="btn pri" id="er-all">전체 풀기 ${d.questions.length}</button>${(() => {
       // 실전 모드: 1차는 교시당 120분에 100문제(문제당 72초). 교시 정보가 없으면 문제 수 × 72초.
