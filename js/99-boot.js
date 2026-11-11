@@ -8,7 +8,7 @@ async function route() {
   if (h === '#/set') return viewSettings();
   if (h === '#/connect') return needConnect();
   if (!state.index) { state.index = {subjects: [], events: []}; state.subs = null; }   // 연결 전에도 앱에서 넣은 자료로 쓸 수 있다
-  const simple = {'#/quiz': viewQuiz, '#/review': viewReview, '#/cards': viewCards, '#/focus': viewFocus, '#/stats': viewStats, '#/add': viewAdd, '#/search': viewSearch, '#/listen': viewListen};
+  const simple = {'#/quiz': viewQuiz, '#/review': viewReview, '#/cards': viewCards, '#/focus': viewFocus, '#/stats': viewStats, '#/add': viewAdd, '#/search': viewSearch, '#/listen': viewListen, '#/guide': viewGuide};
   if (simple[h]) return simple[h]();
   const m = h.match(/^#\/s\/([^/]+)\/?([^/]*)\/?(.*)$/);
   if (m) {

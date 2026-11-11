@@ -10,7 +10,7 @@ function viewHome() {
   const lib = store.get('homeLib', 'all'), libs = libsOf();
   const shown = subs.filter(s => lib === 'all' || s.lib === lib);
   let h = `<section class="hero"><div class="row" style="align-items:flex-end"><div class="grow"><div class="eyebrow">${fmtLong(new Date())}</div><h2 class="display">오늘의 공부</h2></div>
-      <button class="btn noprint" data-go="#/search" aria-label="찾기">${ic('search', 18)}</button><button class="btn pri noprint" data-go="#/add">${ic('plus', 18, 2)}자료 넣기</button></div>
+      <button class="btn noprint" data-go="#/guide">공부법</button><button class="btn noprint" data-go="#/search" aria-label="찾기">${ic('search', 18)}</button><button class="btn pri noprint" data-go="#/add">${ic('plus', 18, 2)}자료 넣기</button></div>
     <div class="stats">
       <div class="stat" style="cursor:pointer" data-go="#/focus"><b>${fmtMin(mins)}</b><span>오늘 공부 · 목표 ${fmtMin(goal)}</span><div class="bar" style="margin:8px 0 0"><i style="width:${Math.min(100, mins / goal * 100)}%;background:var(--pri)"></i></div></div>
       <div class="stat" style="cursor:pointer" data-go="#/stats"><b style="display:flex;align-items:center;gap:6px">${streak}<span style="color:var(--gold)">${ic('flame', 22)}</span></b><span>연속 공부한 날</span></div>
