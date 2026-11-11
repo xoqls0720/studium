@@ -75,6 +75,8 @@ table{border-collapse:collapse;width:100%} td,th{padding:8px;border-bottom:1px s
 .stage{border-left:4px solid var(--line);padding-left:14px} .stage.now{border-left-color:var(--accent)} .stage.done{border-left-color:var(--good)}
 @media (prefers-reduced-motion:no-preference){.opt,.btn,.item{transition:background .15s,border-color .15s}}
 .pr{color:var(--sub);font-size:.88em;letter-spacing:.01em}
+.pr b{color:#000}
+.ipa{font-family:"Times New Roman","Noto Serif","Charis SIL",serif;color:var(--sub)}
 .prlist{margin:10px 0 0;padding:10px 14px;border:1px dashed var(--line);border-radius:10px;background:#fff}
 .prlist div{margin:4px 0}
 .prdoc{background:#fff}
@@ -114,7 +116,7 @@ function uid(){return "x"+Date.now().toString(36)+Math.random().toString(36).sli
 function dday(){return Math.max(0,Math.ceil((APPLY-new Date())/86400000))}
 
 // ================= 상태 =================
-const BLANK=()=>({v:2,words:{},xw:[],wrong:{},solved:{},lessons:{},logs:{},scores:[],diag:[],tags:{},parts:{},level:0,mocks:[],pr:{}});
+const BLANK=()=>({v:2,words:{},xw:[],wrong:{},solved:{},lessons:{},logs:{},scores:[],diag:[],tags:{},parts:{},level:0,mocks:[],pr2:{}});
 let S=BLANK();
 function fix(){const b=BLANK();for(const k in b)if(S[k]==null)S[k]=b[k];
   // v1 오답(문제 id만 있던 것)을 v2 형식으로
@@ -271,26 +273,37 @@ function genError(e){
 }
 
 // ================= 발음 =================
-function wpron(w){return (w&&(w[5]||PRON[w[0]]||S.pr[String(w[0]).toLowerCase()]))||""}
-function prTag(p){return p?` <span class="pr">[${esc(p)}]</span>`:""}
-function trimPr(){const ks=Object.keys(S.pr);if(ks.length>3000)ks.slice(0,ks.length-3000).forEach(k=>delete S.pr[k])}
+function pobj(v){return Array.isArray(v)&&v[0]?{h:String(v[0]),i:String(v[1]||"")}:null}
+function wpron(w){if(!w)return null;if(w[5])return {h:String(w[5]),i:String(w[6]||"")};return pobj(PRON[w[0]])||pobj(S.pr2[String(w[0]).toLowerCase()])}
+function cpr(t){t=String(t||"").trim();return pobj(PRON[t])||pobj(S.pr2[t])}
+function hHtml(h){return esc(h).replace(/\*([^*]+)\*/g,"<b>$1</b>")}
+function prTag(o){return o?` <span class="pr">[${hHtml(o.h)}]${o.i?` <span class="ipa">/${esc(o.i)}/</span>`:""}</span>`:""}
+function prText(o){if(!o)return "";const h=o.h.replace(/\*([^*]+)\*/g,"ˈ$1").replace(/\*/g,"");return "["+h+"]"+(o.i?" /"+o.i+"/":"")}
+function trimPr(){const ks=Object.keys(S.pr2);if(ks.length>3000)ks.slice(0,ks.length-3000).forEach(k=>delete S.pr2[k])}
 async function pronFetch(texts){
   const all=texts.map(t=>String(t||"").trim()).filter(Boolean);
-  const need=Array.from(new Set(all.filter(t=>!S.pr[t]&&!PRON[t])));
+  const need=Array.from(new Set(all.filter(t=>!cpr(t))));
   if(need.length){
     if(!sampleFn)throw {code:"none"};
     for(let k=0;k<need.length;k+=30){
       const chunk=need.slice(k,k+30);
-      const r=await sampleFn.json(`다음 영어 단어·문장마다 영어를 처음 배우는 한국인이 읽을 수 있는 미국식 한글 발음을 붙여라.
-규칙: 실제 들리는 대로 쓴다(연음·약화 반영, 예: "an apple"→"어내플", "want to"→"원투"). 긴 소리는 '-'(예: "see"→"시-"). 문장 부호는 빼고 단어 사이는 띄운다. 키는 원문 그대로.
-JSON만 출력: {"p":{"원문":"한글 발음"}}
+      const r=await sampleFn.json(`너는 미국 영어 발음 교사다. 다음 영어 단어·문장마다 (1) 영어를 처음 배우는 한국인이 소리 내어 읽을 한글 발음과 (2) 사전식 미국 영어 IPA를 붙여라.
+한글 발음 규칙(정확도가 가장 중요):
+- 미국 원어민이 보통 속도로 말할 때 실제 들리는 소리를 쓴다. 철자대로 쓰지 않는다.
+- 강세를 받는 음절을 *로 감싼다. 단어마다 하나(예: available→어*베일*러블, opportunity→아퍼*투-*너디). 문장에서는 내용어마다 강세 음절을 감싼다.
+- 모음 사이 t·d는 ㄹ처럼 굴린다(water→*워-*러, meeting→*미-*링, item→*아이*럼).
+- 연음·약화를 반영한다(an apple→어*내*플, want to→*원*투/워너, of→어브, and→언).
+- 긴 모음은 '-'(see→*시-*). 끝 자음 t는 '트'보다 '잇/엇'처럼 짧게 들리면 그대로(update→업*데잇*).
+- 단어 사이는 띄우고 문장 부호는 뺀다.
+IPA 규칙: 미국식, 강세 ˈ 표시, 슬래시는 빼고 기호만.
+키는 원문 그대로. JSON만 출력: {"p":{"원문":["한글 발음","IPA"]}}
 ${JSON.stringify(chunk)}`,{modelTier:"default"});
       const p=(r&&r.p)||{};
-      chunk.forEach(t=>{if(typeof p[t]==="string"&&p[t].trim())S.pr[t]=p[t].trim().slice(0,400)});
+      chunk.forEach(t=>{const v=p[t];if(Array.isArray(v)&&typeof v[0]==="string"&&v[0].trim())S.pr2[t]=[v[0].trim().slice(0,400),String(v[1]||"").trim().slice(0,400)]});
     }
     trimPr(); save();
   }
-  return all.map(t=>S.pr[t]||PRON[t]||"");
+  return all.map(t=>cpr(t));
 }
 function engRuns(s){return (String(s).match(/[A-Za-z][A-Za-z0-9'’,\-\s]*[A-Za-z0-9.?!]/g)||[]).map(x=>x.trim()).filter(x=>/[a-z]/i.test(x)&&x.length>1&&!/^(S|V|O|C|p\.p|to|ing|ed|er|est|ly|tion|ment|ness|ful|ive|able|ous)$/i.test(x))}
 async function showPron(btn,box,texts){
@@ -407,6 +420,13 @@ function viewWords(){
    <div class="grid"><div class="card"><div class="muted">오늘 복습</div><div class="big">${due.length}</div></div>
    <div class="card"><div class="muted">오늘 새 단어</div><div class="big">${fresh.length}</div></div>
    <div class="card"><div class="muted">외운 단어 / 전체</div><div class="big">${mastered} / ${W.length}</div><div class="muted">본 단어 ${seen}개 · 만점권 목표 3,000개</div></div></div>
+   <details class="card" style="margin-top:12px"><summary><b>발음 읽는 법</b> <span class="muted">— 한글 발음은 길잡이, 정답은 ▶ 소리</span></summary>
+    <ul class="pts">
+     <li><b>굵은 음절</b>을 세고 길게 읽어요. 영어는 강세가 틀리면 다른 단어로 들려요. (어<b>베일</b>러블)</li>
+     <li>'-'는 길게: <b>피-</b>(fee). 모음 사이 t는 ㄹ처럼 굴러요: 커<b>패</b>서디(capacity).</li>
+     <li>한글로 못 적는 소리: r과 l, f와 p, v와 b, th, z. 이건 옆의 <span class="ipa">/발음기호/</span>와 ▶ 소리로 구분해요.</li>
+     <li>발음기호 핵심: ˈ 뒤가 강세 · ː 길게 · ə 힘 뺀 '어' · æ 입을 크게 연 '애' · θ/ð 혀를 이 사이에 · ʃ '쉬' · ʒ '쥐' · ŋ 받침 'ㅇ'.</li>
+    </ul></details>
    <div class="row" style="margin:16px 0"><button class="btn" id="go" ${due.length+fresh.length?"":"disabled"}>${due.length+fresh.length?"오늘 단어 시작":"오늘 분량 끝"}</button>
    <span class="seg" id="wl">${LEVELS.map((l,k)=>`<button data-l="${k}" class="${k===S.level?"on":""}">${l.name}</button>`).join("")}</span><button class="btn ghost" id="more">이 수준 단어 30개 더 받기</button></div>
    <div id="wmsg" class="muted"></div>
@@ -420,10 +440,10 @@ function viewWords(){
     m.textContent="Claude가 단어를 고르는 중이에요…";
     const have=new Set(allWords().map(w=>w[0].toLowerCase()));
     const pr=`TOEIC ${LEVELS[S.level].name}(${LEVELS[S.level].score}) 수준 핵심 어휘 30개를 골라라. 이미 아는 단어는 제외: ${Array.from(have).slice(-1500).join(", ")}.
-각 단어: [영어 단어, 품사(명/동/형/부/전/접 중 하나), 토익에서 주로 쓰이는 한국어 뜻(쉼표로 2개까지), 토익식 비즈니스 영어 예문, 예문 한국어 번역, 단어의 미국식 한글 발음(긴 소리는 "-", 예: achieve→어치-브)]. 고급·만점 수준이면 헷갈리는 유의어와 숙어(예: be eligible for)도 포함.
-JSON만 출력: {"words":[["...","...","...","...","...","..."]]}`;
+각 단어: [영어 단어, 품사(명/동/형/부/전/접 중 하나), 토익에서 주로 쓰이는 한국어 뜻(쉼표로 2개까지), 토익식 비즈니스 영어 예문, 예문 한국어 번역, 단어의 미국식 한글 발음(강세 음절을 *로 감싸고 긴 소리는 "-", 모음 사이 t는 ㄹ로, 예: achieve→어*치-*브, capacity→커*패*서디), 미국식 IPA(강세 ˈ 표시, 예: əˈtʃiːv)]. 고급·만점 수준이면 헷갈리는 유의어와 숙어(예: be eligible for)도 포함.
+JSON만 출력: {"words":[["...","...","...","...","...","...","..."]]}`;
     try{const r=await sampleFn.json(pr,{modelTier:"default"});
-      const add=((r&&r.words)||[]).filter(w=>Array.isArray(w)&&(w.length===5||w.length===6)&&w.every(x=>typeof x==="string"&&x)&&!have.has(w[0].toLowerCase()));
+      const add=((r&&r.words)||[]).filter(w=>Array.isArray(w)&&w.length>=5&&w.length<=7&&w.every(x=>typeof x==="string"&&x)&&!have.has(w[0].toLowerCase()));
       S.xw=S.xw.concat(add); save(); m.textContent=add.length+"개를 단어장에 넣었어요. 내일부터 새 단어로 나와요."; setTimeout(viewWords,1200);
     }catch(e){m.textContent=genError(e);b.disabled=false}};
   const wl=document.getElementById("wlist");
@@ -440,12 +460,12 @@ function wordSession(queue){
     if(!q.length){busy=false;$app.innerHTML=`<h2>오늘 단어 끝</h2><div class="card"><div class="big">${done}장</div><p class="muted">몰랐던 단어는 내일 다시 나와요.</p><a class="btn" href="#home">오늘 화면으로</a></div>`;return}
     const i=q[0], w=W[i];
     $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>단어</h2><span class="muted">남은 카드 ${q.length}</span></div>
-      <div class="card flash"><div class="w">${esc(w[0])}</div>${wpron(w)?`<div class="pr" style="font-size:1.1rem">[${esc(wpron(w))}]</div>`:""}<div class="muted">${esc(w[1])}사</div>
+      <div class="card flash"><div class="w">${esc(w[0])}</div>${wpron(w)?`<div style="font-size:1.15rem">${prTag(wpron(w))}</div>`:""}<div class="muted">${esc(w[1])}사</div>
       <div class="row"><button class="btn ghost" id="say">▶ 발음</button><button class="btn" id="show">뜻 보기</button></div><div id="back"></div></div>
       <div class="row" style="margin-top:14px;justify-content:center"><button class="btn bad" id="no" disabled>몰랐어요</button><button class="btn good" id="yes" disabled>알았어요</button></div>`;
     document.getElementById("say").onclick=()=>speak(w[0]);
-    document.getElementById("show").onclick=()=>{document.getElementById("back").innerHTML=`<div style="font-size:1.4rem;font-weight:700">${esc(w[2])}</div><p class="en" style="margin:.6rem 0 0">${esc(w[3])}</p><p class="pr" id="exPr" style="margin:.2rem 0">${S.pr[w[3]]?"["+esc(S.pr[w[3]])+"]":""}</p><p class="muted" style="margin:.2rem 0">${esc(w[4])}</p><button class="btn ghost" id="sayEx">▶ 예문 듣기</button>`;
-      if(!S.pr[w[3]]&&sampleFn)pronFetch([w[3]]).then(ps=>{const el=document.getElementById("exPr");if(el&&ps[0])el.textContent="["+ps[0]+"]"}).catch(()=>{});
+    document.getElementById("show").onclick=()=>{document.getElementById("back").innerHTML=`<div style="font-size:1.4rem;font-weight:700">${esc(w[2])}</div><p class="en" style="margin:.6rem 0 0">${esc(w[3])}</p><p id="exPr" style="margin:.2rem 0">${cpr(w[3])?prTag(cpr(w[3])):""}</p><p class="muted" style="margin:.2rem 0">${esc(w[4])}</p><button class="btn ghost" id="sayEx">▶ 예문 듣기</button>`;
+      if(!cpr(w[3])&&sampleFn)pronFetch([w[3]]).then(ps=>{const el=document.getElementById("exPr");if(el&&ps[0])el.innerHTML=prTag(ps[0])}).catch(()=>{});
       document.getElementById("sayEx").onclick=()=>speak(w[3]);document.getElementById("no").disabled=false;document.getElementById("yes").disabled=false;document.getElementById("show").remove()};
     function answer(ok){
       const t=TODAY(), key=wkey(i); let s=S.words[key]||{b:0,d:t,f:t};
@@ -714,13 +734,13 @@ const STRATEGY_DOC=`<h1>토익 990 만점 전략 요약</h1>
 <li>3~4단계: ETS 토익 정기시험 기출문제집(YBM) 병행, 시험 보름 전 기출 10회분</li></ul>`;
 function grammarDoc(){
   return "<h1>토익 문법 10단원 핵심 노트</h1>"+UNITS.map((u,k)=>"<h2>"+(k+1)+"단원 · "+esc(u.title)+"</h2><p>"+esc(u.sum)+"</p><ul>"+u.pts.map(p=>{
-    const prs=engRuns(p).map(x=>S.pr[x]?x+" ["+S.pr[x]+"]":"").filter(Boolean);
+    const prs=engRuns(p).map(x=>cpr(x)?x+" "+prText(cpr(x)):"").filter(Boolean);
     return "<li>"+esc(p)+(prs.length?"<br>"+esc("발음: "+prs.join(" / ")):"")+"</li>"}).join("")+"</ul>").join("");
 }
 function grammarRuns(){const t=[];UNITS.forEach(u=>u.pts.forEach(p=>engRuns(p).forEach(x=>t.push(x))));return t}
 function wordsDoc(){
   const W=allWords();
-  return "<h1>토익 단어 체크표 ("+W.length+"개)</h1><p>외운 단어는 ✓ 칸에 표시하세요.</p><table><tr><th>단어</th><th>발음</th><th>품사</th><th>뜻</th><th>✓</th></tr>"+W.map(w=>"<tr><td><b>"+esc(w[0])+"</b></td><td>"+esc(wpron(w))+"</td><td>"+esc(w[1])+"</td><td>"+esc(w[2])+"</td><td></td></tr>").join("")+"</table>";
+  return "<h1>토익 단어 체크표 ("+W.length+"개)</h1><p>외운 단어는 ✓ 칸에 표시하세요.</p><table><tr><th>단어</th><th>발음</th><th>품사</th><th>뜻</th><th>✓</th></tr>"+W.map(w=>"<tr><td><b>"+esc(w[0])+"</b></td><td>"+esc(prText(wpron(w)))+"</td><td>"+esc(w[1])+"</td><td>"+esc(w[2])+"</td><td></td></tr>").join("")+"</table>";
 }
 function wrongDoc(){
   const ws=Object.values(S.wrong).sort((a,b)=>String(a.item&&a.item.part||"").localeCompare(String(b.item&&b.item.part||"")));
@@ -731,7 +751,7 @@ function wrongDoc(){
      +(ctx.scene?"<p>장면: "+esc(ctx.scene)+"</p>":"")
      +(ctx.audio?"<p style=\"font-size:.9em\">"+ctx.audio.map(a=>(a.sp==="N"?"":a.sp+": ")+esc(a.t)).join("<br>")+"</p>":"")
      +(ctx.passage?"<p style=\"font-size:.9em;white-space:pre-wrap\">"+esc(ctx.passage)+"</p>":"")
-     +(it.q?"<p>"+esc(it.q)+(S.pr[it.q]?"<br>["+esc(S.pr[it.q])+"]":"")+"</p>":"")
+     +(it.q?"<p>"+esc(it.q)+(cpr(it.q)?"<br>"+esc(prText(cpr(it.q))):"")+"</p>":"")
      +"<p>"+(it.o||[]).map((o,k)=>L[k]+". "+esc(o)).join("&nbsp;&nbsp;&nbsp;")+"</p>"
      +"<p><b>정답 "+L[it.a||0]+"</b> — "+esc(it.ex||"")+"</p>"
      +"<p>묻는 것: <span class=\"blank\">&nbsp;</span><br>틀린 이유: <span class=\"blank\">&nbsp;</span></p></div>"}).join("");

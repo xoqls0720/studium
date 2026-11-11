@@ -75,6 +75,8 @@ table{border-collapse:collapse;width:100%} td,th{padding:8px;border-bottom:1px s
 .stage{border-left:4px solid var(--line);padding-left:14px} .stage.now{border-left-color:var(--accent)} .stage.done{border-left-color:var(--good)}
 @media (prefers-reduced-motion:no-preference){.opt,.btn,.item{transition:background .15s,border-color .15s}}
 .pr{color:var(--sub);font-size:.88em;letter-spacing:.01em}
+.pr b{color:#000}
+.ipa{font-family:"Times New Roman","Noto Serif","Charis SIL",serif;color:var(--sub)}
 .prlist{margin:10px 0 0;padding:10px 14px;border:1px dashed var(--line);border-radius:10px;background:#fff}
 .prlist div{margin:4px 0}
 .prdoc{background:#fff}
@@ -391,8 +393,8 @@ const LC = [
 ["Where can I find the printer?",["Next to the copier.","Yes, I printed it.","Print two copies."],0,"Where(어디) → 장소로 답한 A. Yes로 시작하는 C는 의문사 질문에 오답이에요."],
 ["Have you met the new manager?",["Yes, she seems nice.","The meeting is at ten.","He manages the team."],0,"Have you ~?(만나 봤니) → 만나 본 느낌으로 답한 A. B는 met과 비슷한 meeting 소리 함정이에요."]
 ];
-// 한글 발음(미국식, '-'는 길게). 정확한 소리는 ▶ 발음으로 확인
-const PRON = {"achieve": "어치-브", "acquire": "어콰이어", "additional": "어디셔널", "address": "어드레스", "adjust": "어저스트", "advance": "어드밴스", "affordable": "어포-더블", "agenda": "어젠더", "agreement": "어그리-먼트", "allow": "얼라우", "announce": "어나운스", "annual": "애뉴얼", "apply": "어플라이", "appointment": "어포인트먼트", "appreciate": "어프리-시에잇", "approve": "어프루-브", "arrange": "어레인지", "attach": "어태치", "attend": "어텐드", "available": "어베일러블", "benefit": "베너핏", "branch": "브랜치", "brochure": "브로우슈어", "budget": "버짓", "candidate": "캔디데잇", "capacity": "커패서티", "cancel": "캔슬", "colleague": "칼리-그", "commute": "커뮤-트", "complete": "컴플리-트", "conduct": "컨덕트", "confirm": "컨펌", "consider": "컨시더", "construction": "컨스트럭션", "contact": "칸택트", "contract": "칸트랙트", "contribute": "컨트리뷰-트", "convenient": "컨비-니언트", "customer": "커스터머", "deadline": "데드라인", "decline": "디클라인", "deliver": "딜리버", "demand": "디맨드", "department": "디파-트먼트", "describe": "디스크라이브", "design": "디자인", "directly": "디렉틀리", "discount": "디스카운트", "distribute": "디스트리뷰-트", "due": "듀-", "effective": "이펙티브", "efficient": "이피션트", "employee": "임플로이-", "enclose": "인클로우즈", "ensure": "인슈어", "equipment": "이큅먼트", "estimate": "에스티밋", "event": "이벤트", "exhibit": "이그지빗", "expand": "익스팬드", "expect": "익스펙트", "expense": "익스펜스", "experience": "익스피어리언스", "facility": "퍼실러티", "feature": "피-처", "fee": "피-", "finance": "파이낸스", "former": "포-머", "frequently": "프리-퀀틀리", "fund": "펀드", "guarantee": "개런티-", "handle": "핸들", "hire": "하이어", "immediately": "이미-디엇리", "implement": "임플러먼트", "improve": "임프루-브", "include": "인클루-드", "increase": "인크리-스", "inform": "인폼", "inquiry": "인콰이어리", "inspect": "인스펙트", "install": "인스톨", "instead": "인스테드", "invoice": "인보이스", "issue": "이슈-", "item": "아이텀", "launch": "론-치", "lease": "리-스", "location": "로우케이션", "maintain": "메인테인", "maintenance": "메인터넌스", "manage": "매니지", "manufacture": "매뉴팩처", "merchandise": "머-천다이즈", "merger": "머-저", "notify": "노우티파이", "obtain": "업테인", "offer": "오-퍼", "operate": "아퍼레잇", "opportunity": "아퍼투-너티", "order": "오-더", "organize": "오-거나이즈", "participate": "파-티서페잇", "payment": "페이먼트", "performance": "퍼포-먼스", "permit": "퍼-밋", "policy": "팔러시", "position": "퍼지션", "postpone": "포우스트포운", "prefer": "프리퍼-", "prepare": "프리페어", "previous": "프리-비어스", "produce": "프러듀-스", "profit": "프라핏", "promote": "프러모우트", "proposal": "프러포우절", "provide": "프러바이드", "purchase": "퍼-처스", "qualified": "콸러파이드", "quarter": "쿼-터", "recently": "리-슨틀리", "receipt": "리시-트", "recommend": "레커멘드", "reduce": "리듀-스", "refund": "리-펀드", "register": "레지스터", "regulation": "레귤레이션", "reimburse": "리-임버-스", "release": "릴리-스", "relocate": "릴-로우케잇", "renovate": "레너베잇", "replace": "리플레이스", "request": "리퀘스트", "require": "리콰이어", "reservation": "레저베이션", "resign": "리자인", "responsible": "리스판서블", "résumé": "레주메이", "retire": "리타이어", "revenue": "레버뉴-", "review": "리뷰-", "revise": "리바이즈", "schedule": "스케줄", "shipment": "십먼트", "significant": "시그니피컨트", "submit": "서브밋", "subscription": "서브스크립션", "supervisor": "수-퍼바이저", "supply": "서플라이", "survey": "서-베이", "temporary": "템퍼레리", "transfer": "트랜스퍼-", "update": "업데잇", "urgent": "어-전트", "valid": "밸리드", "vendor": "벤더", "warehouse": "웨어하우스", "warranty": "워-런티"};
+// 발음: [한글(*강세*), IPA 미국식]. 정확한 소리는 ▶ 발음으로 확인
+const PRON = {"achieve": ["어*치-*브", "əˈtʃiːv"], "acquire": ["어*콰이*어", "əˈkwaɪər"], "additional": ["어*디*셔널", "əˈdɪʃənəl"], "address": ["어*드레*스", "əˈdrɛs"], "adjust": ["어*저*스트", "əˈdʒʌst"], "advance": ["어드*밴*스", "ədˈvæns"], "affordable": ["어*포-*더블", "əˈfɔːrdəbəl"], "agenda": ["어*젠*더", "əˈdʒɛndə"], "agreement": ["어*그리-*먼트", "əˈɡriːmənt"], "allow": ["얼*라우*", "əˈlaʊ"], "announce": ["어*나운*스", "əˈnaʊns"], "annual": ["*애*뉴얼", "ˈænjuəl"], "apply": ["어*플라이*", "əˈplaɪ"], "appointment": ["어*포인*트먼트", "əˈpɔɪntmənt"], "appreciate": ["어*프리-*시에잇", "əˈpriːʃieɪt"], "approve": ["어*프루-*브", "əˈpruːv"], "arrange": ["어*레인*지", "əˈreɪndʒ"], "attach": ["어*태*치", "əˈtætʃ"], "attend": ["어*텐*드", "əˈtɛnd"], "available": ["어*베일*러블", "əˈveɪləbəl"], "benefit": ["*베*너핏", "ˈbɛnəfɪt"], "branch": ["*브랜*치", "bræntʃ"], "brochure": ["브로우*슈*어", "broʊˈʃʊr"], "budget": ["*버*짓", "ˈbʌdʒɪt"], "candidate": ["*캔*디데잇", "ˈkændɪdeɪt"], "capacity": ["커*패*서디", "kəˈpæsəti"], "cancel": ["*캔*슬", "ˈkænsəl"], "colleague": ["*칼*리-그", "ˈkɑːliːɡ"], "commute": ["커*뮤-*트", "kəˈmjuːt"], "complete": ["컴*플리-*트", "kəmˈpliːt"], "conduct": ["컨*덕*트", "kənˈdʌkt"], "confirm": ["컨*펌-*", "kənˈfɜːrm"], "consider": ["컨*시*더", "kənˈsɪdər"], "construction": ["컨스*트럭*션", "kənˈstrʌkʃən"], "contact": ["*칸*택트", "ˈkɑːntækt"], "contract": ["*칸*트랙트", "ˈkɑːntrækt"], "contribute": ["컨*트리*뷰트", "kənˈtrɪbjuːt"], "convenient": ["컨*비-*니언트", "kənˈviːniənt"], "customer": ["*커*스터머", "ˈkʌstəmər"], "deadline": ["*데*드라인", "ˈdɛdlaɪn"], "decline": ["디*클라인*", "dɪˈklaɪn"], "deliver": ["딜*리*버", "dɪˈlɪvər"], "demand": ["디*맨*드", "dɪˈmænd"], "department": ["디*파-*트먼트", "dɪˈpɑːrtmənt"], "describe": ["디스*크라이*브", "dɪˈskraɪb"], "design": ["디*자인*", "dɪˈzaɪn"], "directly": ["더*렉*틀리", "dəˈrɛktli"], "discount": ["*디*스카운트", "ˈdɪskaʊnt"], "distribute": ["디스*트리*뷰트", "dɪˈstrɪbjuːt"], "due": ["*두-*", "duː"], "effective": ["이*펙*티브", "ɪˈfɛktɪv"], "efficient": ["이*피*션트", "ɪˈfɪʃənt"], "employee": ["임플로이*이-*", "ɪmˌplɔɪˈiː"], "enclose": ["인*클로우*즈", "ɪnˈkloʊz"], "ensure": ["인*슈*어", "ɪnˈʃʊr"], "equipment": ["이*큅*먼트", "ɪˈkwɪpmənt"], "estimate": ["*에*스티멋", "ˈɛstɪmət"], "event": ["이*벤*트", "ɪˈvɛnt"], "exhibit": ["이그*지*빗", "ɪɡˈzɪbɪt"], "expand": ["익스*팬*드", "ɪkˈspænd"], "expect": ["익스*펙*트", "ɪkˈspɛkt"], "expense": ["익스*펜*스", "ɪkˈspɛns"], "experience": ["익스*피*어리언스", "ɪkˈspɪriəns"], "facility": ["퍼*실*러디", "fəˈsɪləti"], "feature": ["*피-*처", "ˈfiːtʃər"], "fee": ["*피-*", "fiː"], "finance": ["*파이*낸스", "ˈfaɪnæns"], "former": ["*포-*머", "ˈfɔːrmər"], "frequently": ["*프리-*퀀틀리", "ˈfriːkwəntli"], "fund": ["*펀*드", "fʌnd"], "guarantee": ["개런*티-*", "ˌɡærənˈtiː"], "handle": ["*핸*들", "ˈhændəl"], "hire": ["*하이*어", "haɪər"], "immediately": ["이*미-*디엇리", "ɪˈmiːdiətli"], "implement": ["*임*플러멘트", "ˈɪmpləmɛnt"], "improve": ["임*프루-*브", "ɪmˈpruːv"], "include": ["인*클루-*드", "ɪnˈkluːd"], "increase": ["인*크리-*스", "ɪnˈkriːs"], "inform": ["인*폼-*", "ɪnˈfɔːrm"], "inquiry": ["인*콰이*어리", "ɪnˈkwaɪəri"], "inspect": ["인스*펙*트", "ɪnˈspɛkt"], "install": ["인스*톨-*", "ɪnˈstɔːl"], "instead": ["인스*테*드", "ɪnˈstɛd"], "invoice": ["*인*보이스", "ˈɪnvɔɪs"], "issue": ["*이*슈-", "ˈɪʃuː"], "item": ["*아이*럼", "ˈaɪtəm"], "launch": ["*론-*치", "lɔːntʃ"], "lease": ["*리-*스", "liːs"], "location": ["로우*케이*션", "loʊˈkeɪʃən"], "maintain": ["메인*테인*", "meɪnˈteɪn"], "maintenance": ["*메인*터넌스", "ˈmeɪntənəns"], "manage": ["*매*니지", "ˈmænɪdʒ"], "manufacture": ["매뉴*팩*처", "ˌmænjəˈfæktʃər"], "merchandise": ["*머-*천다이즈", "ˈmɜːrtʃəndaɪz"], "merger": ["*머-*저", "ˈmɜːrdʒər"], "notify": ["*노우*리파이", "ˈnoʊtɪfaɪ"], "obtain": ["업*테인*", "əbˈteɪn"], "offer": ["*오-*퍼", "ˈɔːfər"], "operate": ["*아*퍼레잇", "ˈɑːpəreɪt"], "opportunity": ["아퍼*투-*너디", "ˌɑːpərˈtuːnəti"], "order": ["*오-*더", "ˈɔːrdər"], "organize": ["*오-*거나이즈", "ˈɔːrɡənaɪz"], "participate": ["파-*티*서페잇", "pɑːrˈtɪsɪpeɪt"], "payment": ["*페이*먼트", "ˈpeɪmənt"], "performance": ["퍼*포-*먼스", "pərˈfɔːrməns"], "permit": ["*퍼-*밋", "ˈpɜːrmɪt"], "policy": ["*팔*러시", "ˈpɑːləsi"], "position": ["퍼*지*션", "pəˈzɪʃən"], "postpone": ["포우스트*포운*", "poʊstˈpoʊn"], "prefer": ["프리*퍼-*", "prɪˈfɜːr"], "prepare": ["프리*페*어", "prɪˈpɛr"], "previous": ["*프리-*비어스", "ˈpriːviəs"], "produce": ["프러*두-*스", "prəˈduːs"], "profit": ["*프라*핏", "ˈprɑːfɪt"], "promote": ["프러*모우*트", "prəˈmoʊt"], "proposal": ["프러*포우*절", "prəˈpoʊzəl"], "provide": ["프러*바이*드", "prəˈvaɪd"], "purchase": ["*퍼-*처스", "ˈpɜːrtʃəs"], "qualified": ["*콸*러파이드", "ˈkwɑːlɪfaɪd"], "quarter": ["*쿼-*러", "ˈkwɔːrtər"], "recently": ["*리-*슨틀리", "ˈriːsəntli"], "receipt": ["리*시-*트", "rɪˈsiːt"], "recommend": ["레커*멘*드", "ˌrɛkəˈmɛnd"], "reduce": ["리*두-*스", "rɪˈduːs"], "refund": ["*리-*펀드", "ˈriːfʌnd"], "register": ["*레*지스터", "ˈrɛdʒɪstər"], "regulation": ["레귤*레이*션", "ˌrɛɡjəˈleɪʃən"], "reimburse": ["리-임*버-*스", "ˌriːɪmˈbɜːrs"], "release": ["릴*리-*스", "rɪˈliːs"], "relocate": ["리-*로우*케잇", "riːˈloʊkeɪt"], "renovate": ["*레*너베잇", "ˈrɛnəveɪt"], "replace": ["리*플레이*스", "rɪˈpleɪs"], "request": ["리*퀘*스트", "rɪˈkwɛst"], "require": ["리*콰이*어", "rɪˈkwaɪər"], "reservation": ["레저*베이*션", "ˌrɛzərˈveɪʃən"], "resign": ["리*자인*", "rɪˈzaɪn"], "responsible": ["리스*판*서블", "rɪˈspɑːnsəbəl"], "résumé": ["*레*저메이", "ˈrɛzəmeɪ"], "retire": ["리*타이*어", "rɪˈtaɪər"], "revenue": ["*레*버누-", "ˈrɛvənuː"], "review": ["리*뷰-*", "rɪˈvjuː"], "revise": ["리*바이*즈", "rɪˈvaɪz"], "schedule": ["*스케*줄", "ˈskɛdʒuːl"], "shipment": ["*십*먼트", "ˈʃɪpmənt"], "significant": ["시그*니*피컨트", "sɪɡˈnɪfɪkənt"], "submit": ["서브*밋*", "səbˈmɪt"], "subscription": ["서브스*크립*션", "səbˈskrɪpʃən"], "supervisor": ["*수-*퍼바이저", "ˈsuːpərvaɪzər"], "supply": ["서*플라이*", "səˈplaɪ"], "survey": ["*서-*베이", "ˈsɜːrveɪ"], "temporary": ["*템*퍼레리", "ˈtɛmpərɛri"], "transfer": ["트랜스*퍼-*", "trænsˈfɜːr"], "update": ["업*데잇*", "ʌpˈdeɪt"], "urgent": ["*어-*전트", "ˈɜːrdʒənt"], "valid": ["*밸*리드", "ˈvælɪd"], "vendor": ["*벤*더", "ˈvɛndər"], "warehouse": ["*웨어*하우스", "ˈwɛrhaʊs"], "warranty": ["*워-*런티", "ˈwɔːrənti"]};
 
 </script>
 <script>
@@ -410,7 +412,7 @@ function uid(){return "x"+Date.now().toString(36)+Math.random().toString(36).sli
 function dday(){return Math.max(0,Math.ceil((APPLY-new Date())/86400000))}
 
 // ================= 상태 =================
-const BLANK=()=>({v:2,words:{},xw:[],wrong:{},solved:{},lessons:{},logs:{},scores:[],diag:[],tags:{},parts:{},level:0,mocks:[],pr:{}});
+const BLANK=()=>({v:2,words:{},xw:[],wrong:{},solved:{},lessons:{},logs:{},scores:[],diag:[],tags:{},parts:{},level:0,mocks:[],pr2:{}});
 let S=BLANK();
 function fix(){const b=BLANK();for(const k in b)if(S[k]==null)S[k]=b[k];
   // v1 오답(문제 id만 있던 것)을 v2 형식으로
@@ -567,26 +569,37 @@ function genError(e){
 }
 
 // ================= 발음 =================
-function wpron(w){return (w&&(w[5]||PRON[w[0]]||S.pr[String(w[0]).toLowerCase()]))||""}
-function prTag(p){return p?` <span class="pr">[${esc(p)}]</span>`:""}
-function trimPr(){const ks=Object.keys(S.pr);if(ks.length>3000)ks.slice(0,ks.length-3000).forEach(k=>delete S.pr[k])}
+function pobj(v){return Array.isArray(v)&&v[0]?{h:String(v[0]),i:String(v[1]||"")}:null}
+function wpron(w){if(!w)return null;if(w[5])return {h:String(w[5]),i:String(w[6]||"")};return pobj(PRON[w[0]])||pobj(S.pr2[String(w[0]).toLowerCase()])}
+function cpr(t){t=String(t||"").trim();return pobj(PRON[t])||pobj(S.pr2[t])}
+function hHtml(h){return esc(h).replace(/\*([^*]+)\*/g,"<b>$1</b>")}
+function prTag(o){return o?` <span class="pr">[${hHtml(o.h)}]${o.i?` <span class="ipa">/${esc(o.i)}/</span>`:""}</span>`:""}
+function prText(o){if(!o)return "";const h=o.h.replace(/\*([^*]+)\*/g,"ˈ$1").replace(/\*/g,"");return "["+h+"]"+(o.i?" /"+o.i+"/":"")}
+function trimPr(){const ks=Object.keys(S.pr2);if(ks.length>3000)ks.slice(0,ks.length-3000).forEach(k=>delete S.pr2[k])}
 async function pronFetch(texts){
   const all=texts.map(t=>String(t||"").trim()).filter(Boolean);
-  const need=Array.from(new Set(all.filter(t=>!S.pr[t]&&!PRON[t])));
+  const need=Array.from(new Set(all.filter(t=>!cpr(t))));
   if(need.length){
     if(!sampleFn)throw {code:"none"};
     for(let k=0;k<need.length;k+=30){
       const chunk=need.slice(k,k+30);
-      const r=await sampleFn.json(`다음 영어 단어·문장마다 영어를 처음 배우는 한국인이 읽을 수 있는 미국식 한글 발음을 붙여라.
-규칙: 실제 들리는 대로 쓴다(연음·약화 반영, 예: "an apple"→"어내플", "want to"→"원투"). 긴 소리는 '-'(예: "see"→"시-"). 문장 부호는 빼고 단어 사이는 띄운다. 키는 원문 그대로.
-JSON만 출력: {"p":{"원문":"한글 발음"}}
+      const r=await sampleFn.json(`너는 미국 영어 발음 교사다. 다음 영어 단어·문장마다 (1) 영어를 처음 배우는 한국인이 소리 내어 읽을 한글 발음과 (2) 사전식 미국 영어 IPA를 붙여라.
+한글 발음 규칙(정확도가 가장 중요):
+- 미국 원어민이 보통 속도로 말할 때 실제 들리는 소리를 쓴다. 철자대로 쓰지 않는다.
+- 강세를 받는 음절을 *로 감싼다. 단어마다 하나(예: available→어*베일*러블, opportunity→아퍼*투-*너디). 문장에서는 내용어마다 강세 음절을 감싼다.
+- 모음 사이 t·d는 ㄹ처럼 굴린다(water→*워-*러, meeting→*미-*링, item→*아이*럼).
+- 연음·약화를 반영한다(an apple→어*내*플, want to→*원*투/워너, of→어브, and→언).
+- 긴 모음은 '-'(see→*시-*). 끝 자음 t는 '트'보다 '잇/엇'처럼 짧게 들리면 그대로(update→업*데잇*).
+- 단어 사이는 띄우고 문장 부호는 뺀다.
+IPA 규칙: 미국식, 강세 ˈ 표시, 슬래시는 빼고 기호만.
+키는 원문 그대로. JSON만 출력: {"p":{"원문":["한글 발음","IPA"]}}
 ${JSON.stringify(chunk)}`,{modelTier:"default"});
       const p=(r&&r.p)||{};
-      chunk.forEach(t=>{if(typeof p[t]==="string"&&p[t].trim())S.pr[t]=p[t].trim().slice(0,400)});
+      chunk.forEach(t=>{const v=p[t];if(Array.isArray(v)&&typeof v[0]==="string"&&v[0].trim())S.pr2[t]=[v[0].trim().slice(0,400),String(v[1]||"").trim().slice(0,400)]});
     }
     trimPr(); save();
   }
-  return all.map(t=>S.pr[t]||PRON[t]||"");
+  return all.map(t=>cpr(t));
 }
 function engRuns(s){return (String(s).match(/[A-Za-z][A-Za-z0-9'’,\-\s]*[A-Za-z0-9.?!]/g)||[]).map(x=>x.trim()).filter(x=>/[a-z]/i.test(x)&&x.length>1&&!/^(S|V|O|C|p\.p|to|ing|ed|er|est|ly|tion|ment|ness|ful|ive|able|ous)$/i.test(x))}
 async function showPron(btn,box,texts){
@@ -703,6 +716,13 @@ function viewWords(){
    <div class="grid"><div class="card"><div class="muted">오늘 복습</div><div class="big">${due.length}</div></div>
    <div class="card"><div class="muted">오늘 새 단어</div><div class="big">${fresh.length}</div></div>
    <div class="card"><div class="muted">외운 단어 / 전체</div><div class="big">${mastered} / ${W.length}</div><div class="muted">본 단어 ${seen}개 · 만점권 목표 3,000개</div></div></div>
+   <details class="card" style="margin-top:12px"><summary><b>발음 읽는 법</b> <span class="muted">— 한글 발음은 길잡이, 정답은 ▶ 소리</span></summary>
+    <ul class="pts">
+     <li><b>굵은 음절</b>을 세고 길게 읽어요. 영어는 강세가 틀리면 다른 단어로 들려요. (어<b>베일</b>러블)</li>
+     <li>'-'는 길게: <b>피-</b>(fee). 모음 사이 t는 ㄹ처럼 굴러요: 커<b>패</b>서디(capacity).</li>
+     <li>한글로 못 적는 소리: r과 l, f와 p, v와 b, th, z. 이건 옆의 <span class="ipa">/발음기호/</span>와 ▶ 소리로 구분해요.</li>
+     <li>발음기호 핵심: ˈ 뒤가 강세 · ː 길게 · ə 힘 뺀 '어' · æ 입을 크게 연 '애' · θ/ð 혀를 이 사이에 · ʃ '쉬' · ʒ '쥐' · ŋ 받침 'ㅇ'.</li>
+    </ul></details>
    <div class="row" style="margin:16px 0"><button class="btn" id="go" ${due.length+fresh.length?"":"disabled"}>${due.length+fresh.length?"오늘 단어 시작":"오늘 분량 끝"}</button>
    <span class="seg" id="wl">${LEVELS.map((l,k)=>`<button data-l="${k}" class="${k===S.level?"on":""}">${l.name}</button>`).join("")}</span><button class="btn ghost" id="more">이 수준 단어 30개 더 받기</button></div>
    <div id="wmsg" class="muted"></div>
@@ -716,10 +736,10 @@ function viewWords(){
     m.textContent="Claude가 단어를 고르는 중이에요…";
     const have=new Set(allWords().map(w=>w[0].toLowerCase()));
     const pr=`TOEIC ${LEVELS[S.level].name}(${LEVELS[S.level].score}) 수준 핵심 어휘 30개를 골라라. 이미 아는 단어는 제외: ${Array.from(have).slice(-1500).join(", ")}.
-각 단어: [영어 단어, 품사(명/동/형/부/전/접 중 하나), 토익에서 주로 쓰이는 한국어 뜻(쉼표로 2개까지), 토익식 비즈니스 영어 예문, 예문 한국어 번역, 단어의 미국식 한글 발음(긴 소리는 "-", 예: achieve→어치-브)]. 고급·만점 수준이면 헷갈리는 유의어와 숙어(예: be eligible for)도 포함.
-JSON만 출력: {"words":[["...","...","...","...","...","..."]]}`;
+각 단어: [영어 단어, 품사(명/동/형/부/전/접 중 하나), 토익에서 주로 쓰이는 한국어 뜻(쉼표로 2개까지), 토익식 비즈니스 영어 예문, 예문 한국어 번역, 단어의 미국식 한글 발음(강세 음절을 *로 감싸고 긴 소리는 "-", 모음 사이 t는 ㄹ로, 예: achieve→어*치-*브, capacity→커*패*서디), 미국식 IPA(강세 ˈ 표시, 예: əˈtʃiːv)]. 고급·만점 수준이면 헷갈리는 유의어와 숙어(예: be eligible for)도 포함.
+JSON만 출력: {"words":[["...","...","...","...","...","...","..."]]}`;
     try{const r=await sampleFn.json(pr,{modelTier:"default"});
-      const add=((r&&r.words)||[]).filter(w=>Array.isArray(w)&&(w.length===5||w.length===6)&&w.every(x=>typeof x==="string"&&x)&&!have.has(w[0].toLowerCase()));
+      const add=((r&&r.words)||[]).filter(w=>Array.isArray(w)&&w.length>=5&&w.length<=7&&w.every(x=>typeof x==="string"&&x)&&!have.has(w[0].toLowerCase()));
       S.xw=S.xw.concat(add); save(); m.textContent=add.length+"개를 단어장에 넣었어요. 내일부터 새 단어로 나와요."; setTimeout(viewWords,1200);
     }catch(e){m.textContent=genError(e);b.disabled=false}};
   const wl=document.getElementById("wlist");
@@ -736,12 +756,12 @@ function wordSession(queue){
     if(!q.length){busy=false;$app.innerHTML=`<h2>오늘 단어 끝</h2><div class="card"><div class="big">${done}장</div><p class="muted">몰랐던 단어는 내일 다시 나와요.</p><a class="btn" href="#home">오늘 화면으로</a></div>`;return}
     const i=q[0], w=W[i];
     $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>단어</h2><span class="muted">남은 카드 ${q.length}</span></div>
-      <div class="card flash"><div class="w">${esc(w[0])}</div>${wpron(w)?`<div class="pr" style="font-size:1.1rem">[${esc(wpron(w))}]</div>`:""}<div class="muted">${esc(w[1])}사</div>
+      <div class="card flash"><div class="w">${esc(w[0])}</div>${wpron(w)?`<div style="font-size:1.15rem">${prTag(wpron(w))}</div>`:""}<div class="muted">${esc(w[1])}사</div>
       <div class="row"><button class="btn ghost" id="say">▶ 발음</button><button class="btn" id="show">뜻 보기</button></div><div id="back"></div></div>
       <div class="row" style="margin-top:14px;justify-content:center"><button class="btn bad" id="no" disabled>몰랐어요</button><button class="btn good" id="yes" disabled>알았어요</button></div>`;
     document.getElementById("say").onclick=()=>speak(w[0]);
-    document.getElementById("show").onclick=()=>{document.getElementById("back").innerHTML=`<div style="font-size:1.4rem;font-weight:700">${esc(w[2])}</div><p class="en" style="margin:.6rem 0 0">${esc(w[3])}</p><p class="pr" id="exPr" style="margin:.2rem 0">${S.pr[w[3]]?"["+esc(S.pr[w[3]])+"]":""}</p><p class="muted" style="margin:.2rem 0">${esc(w[4])}</p><button class="btn ghost" id="sayEx">▶ 예문 듣기</button>`;
-      if(!S.pr[w[3]]&&sampleFn)pronFetch([w[3]]).then(ps=>{const el=document.getElementById("exPr");if(el&&ps[0])el.textContent="["+ps[0]+"]"}).catch(()=>{});
+    document.getElementById("show").onclick=()=>{document.getElementById("back").innerHTML=`<div style="font-size:1.4rem;font-weight:700">${esc(w[2])}</div><p class="en" style="margin:.6rem 0 0">${esc(w[3])}</p><p id="exPr" style="margin:.2rem 0">${cpr(w[3])?prTag(cpr(w[3])):""}</p><p class="muted" style="margin:.2rem 0">${esc(w[4])}</p><button class="btn ghost" id="sayEx">▶ 예문 듣기</button>`;
+      if(!cpr(w[3])&&sampleFn)pronFetch([w[3]]).then(ps=>{const el=document.getElementById("exPr");if(el&&ps[0])el.innerHTML=prTag(ps[0])}).catch(()=>{});
       document.getElementById("sayEx").onclick=()=>speak(w[3]);document.getElementById("no").disabled=false;document.getElementById("yes").disabled=false;document.getElementById("show").remove()};
     function answer(ok){
       const t=TODAY(), key=wkey(i); let s=S.words[key]||{b:0,d:t,f:t};
@@ -1010,13 +1030,13 @@ const STRATEGY_DOC=`<h1>토익 990 만점 전략 요약</h1>
 <li>3~4단계: ETS 토익 정기시험 기출문제집(YBM) 병행, 시험 보름 전 기출 10회분</li></ul>`;
 function grammarDoc(){
   return "<h1>토익 문법 10단원 핵심 노트</h1>"+UNITS.map((u,k)=>"<h2>"+(k+1)+"단원 · "+esc(u.title)+"</h2><p>"+esc(u.sum)+"</p><ul>"+u.pts.map(p=>{
-    const prs=engRuns(p).map(x=>S.pr[x]?x+" ["+S.pr[x]+"]":"").filter(Boolean);
+    const prs=engRuns(p).map(x=>cpr(x)?x+" "+prText(cpr(x)):"").filter(Boolean);
     return "<li>"+esc(p)+(prs.length?"<br>"+esc("발음: "+prs.join(" / ")):"")+"</li>"}).join("")+"</ul>").join("");
 }
 function grammarRuns(){const t=[];UNITS.forEach(u=>u.pts.forEach(p=>engRuns(p).forEach(x=>t.push(x))));return t}
 function wordsDoc(){
   const W=allWords();
-  return "<h1>토익 단어 체크표 ("+W.length+"개)</h1><p>외운 단어는 ✓ 칸에 표시하세요.</p><table><tr><th>단어</th><th>발음</th><th>품사</th><th>뜻</th><th>✓</th></tr>"+W.map(w=>"<tr><td><b>"+esc(w[0])+"</b></td><td>"+esc(wpron(w))+"</td><td>"+esc(w[1])+"</td><td>"+esc(w[2])+"</td><td></td></tr>").join("")+"</table>";
+  return "<h1>토익 단어 체크표 ("+W.length+"개)</h1><p>외운 단어는 ✓ 칸에 표시하세요.</p><table><tr><th>단어</th><th>발음</th><th>품사</th><th>뜻</th><th>✓</th></tr>"+W.map(w=>"<tr><td><b>"+esc(w[0])+"</b></td><td>"+esc(prText(wpron(w)))+"</td><td>"+esc(w[1])+"</td><td>"+esc(w[2])+"</td><td></td></tr>").join("")+"</table>";
 }
 function wrongDoc(){
   const ws=Object.values(S.wrong).sort((a,b)=>String(a.item&&a.item.part||"").localeCompare(String(b.item&&b.item.part||"")));
@@ -1027,7 +1047,7 @@ function wrongDoc(){
      +(ctx.scene?"<p>장면: "+esc(ctx.scene)+"</p>":"")
      +(ctx.audio?"<p style=\"font-size:.9em\">"+ctx.audio.map(a=>(a.sp==="N"?"":a.sp+": ")+esc(a.t)).join("<br>")+"</p>":"")
      +(ctx.passage?"<p style=\"font-size:.9em;white-space:pre-wrap\">"+esc(ctx.passage)+"</p>":"")
-     +(it.q?"<p>"+esc(it.q)+(S.pr[it.q]?"<br>["+esc(S.pr[it.q])+"]":"")+"</p>":"")
+     +(it.q?"<p>"+esc(it.q)+(cpr(it.q)?"<br>"+esc(prText(cpr(it.q))):"")+"</p>":"")
      +"<p>"+(it.o||[]).map((o,k)=>L[k]+". "+esc(o)).join("&nbsp;&nbsp;&nbsp;")+"</p>"
      +"<p><b>정답 "+L[it.a||0]+"</b> — "+esc(it.ex||"")+"</p>"
      +"<p>묻는 것: <span class=\"blank\">&nbsp;</span><br>틀린 이유: <span class=\"blank\">&nbsp;</span></p></div>"}).join("");
