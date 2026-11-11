@@ -35,7 +35,7 @@ async function onWake() {
     GD.lists = {};
     await loadIndex(true); state.loadedAt = Date.now();
     if (state.index.updated !== before) {
-      state.units = {}; state.summ = {};
+      state.units = {}; state.summ = {}; state.slides = {};
       if (!/^#\/(quiz|listen|s\/[^/]+\/u\/)/.test(location.hash)) { const y = scrollY; await route(); scrollTo(0, y); }
       toast('새 강의 자료가 들어왔어요');
     }
@@ -70,7 +70,7 @@ async function boot() {
     GD.lists = {};
     await loadIndex(true);
     state.loadedAt = Date.now();
-    state.units = {}; state.summ = {};
+    state.units = {}; state.summ = {}; state.slides = {};
     setSync(state.offline ? '받아 둔 자료' : '');
     paintSync();
     if (!/^#\/quiz/.test(location.hash)) route();

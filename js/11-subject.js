@@ -59,6 +59,7 @@ async function viewUnit(s, uid) {
     <div id="u-podbox" class="card" hidden></div>
     <div id="u-memobox" class="card" ${memoOf(u.id) ? '' : 'hidden'}><div class="row" style="margin-bottom:8px"><span class="grow" style="font-size:13px;font-weight:650;color:var(--sub)">내 메모 · 기기끼리 맞춰져요</span><button class="btn ghost sm" id="u-mp"></button></div><textarea id="u-memotext" style="min-height:150px" placeholder="이해한 것, 헷갈리는 것, 교수님 말씀…">${esc(memoOf(u.id))}</textarea></div>
     <div id="pw"><div class="card paper" id="paper" style="padding:28px">${unitHtml(u, d)}</div></div>
+    <div id="u-slides" class="noprint"></div>
     ${d.terms?.length ? `<div class="sect">용어 · 눌러서 뜻 보기</div><div class="terms">${d.terms.map(t => `<div class="term"><b>${esc(t.t)}</b><span>${esc(t.d)}</span></div>`).join('')}</div>` : ''}
     <div class="row noprint" style="margin:22px 0">
       <button class="btn pri" id="u-quiz">문제 풀기 · ${qn}</button>
@@ -77,6 +78,7 @@ async function viewUnit(s, uid) {
   const readBtn = $('#u-read');
   const paintRead = () => readBtn.innerHTML = isRead(u.id) ? ic('check', 18, 2.2) + '읽음' : '읽음 표시';
   readBtn.onclick = () => { setRead(u.id, !isRead(u.id)); paintRead(); };
+  hydrateSlides(document.getElementById('u-slides'), u).catch(() => {});
   $('#u-quiz').onclick = () => startQuiz(shuffle([...questionsOf(s, u, d), ...extraQuestions(s, [u.id]).filter(q => q.uids?.length === 1)]), u.title, `#/s/${s.id}/u/${u.id}`);
   $('#u-cards').onclick = () => startCards(cards, u.title + ' 카드', `#/s/${s.id}/u/${u.id}`);
   // 끝까지 읽으면 읽음(회독) 표시
