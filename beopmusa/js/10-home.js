@@ -26,7 +26,7 @@ async function viewHome() {
     h += `<div class="sect">제${stg}차 과목</div><div class="grid">${ss.map(subjCard).join('')}</div>`;
   }
   if (!subs.length) h += `<div class="card muted" style="margin-top:16px">아직 과목이 없어요. PC에서 생성기를 한 번 돌리거나 드라이브를 연결해 주세요.</div>`;
-  h += `<div class="row" style="margin-top:20px"><button class="btn" data-go="#/guide">${ic('map', 18)}합격 로드맵</button><button class="btn" data-go="#/gichul">${ic('flag', 18)}기출 회독</button><button class="btn" data-go="#/laws">${ic('scale', 18)}법령 개정</button><button class="btn" data-go="#/cases">${ic('gavel', 18)}최신 판례</button><button class="btn" data-go="#/trend">${ic('chart', 18)}출제 경향</button><button class="btn" data-go="#/plan">${ic('cal', 18)}D-day 계획</button></div>`;
+  h += `<div class="row" style="margin-top:20px"><button class="btn" data-go="#/guide">${ic('map', 18)}합격 로드맵</button><button class="btn" data-go="#/terms">${ic('book', 18)}용어 사전</button><button class="btn" data-go="#/gichul">${ic('flag', 18)}기출 회독</button><button class="btn" data-go="#/laws">${ic('scale', 18)}법령 개정</button><button class="btn" data-go="#/cases">${ic('gavel', 18)}최신 판례</button><button class="btn" data-go="#/trend">${ic('chart', 18)}출제 경향</button><button class="btn" data-go="#/plan">${ic('cal', 18)}D-day 계획</button></div>`;
   if (idx.updated) h += `<p class="faint" style="text-align:center;margin-top:28px">자료 ${esc(idx.updated.replace('T', ' ').slice(0, 16))} 기준</p>`;
   render(h);
   $('#relogin') && ($('#relogin').onclick = async () => { try { await GD.login(); boot(); } catch (e) { toast(e.message); } });

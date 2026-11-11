@@ -92,7 +92,7 @@ async function viewGuide() {
     <td>${have[r][2] ? `${have[r][2].n}문제` : '<span class="faint">—</span>'}</td></tr>`).join('');
 
   const h = `<section class="hero" style="margin-bottom:18px"><div class="eyebrow">법무사 시험 안내</div><h2 class="display">합격 로드맵</h2>
-    <p class="lede">이 앱 하나로 1차 회독부터 2차 답안 연습까지. 제도·최근 결과·과목별 전략을 한 자리에 모았어요${d1 ? ` — 제${round}회 1차 ${ddayText(ddays(d1))}` : ''}.</p></section>
+    <p class="lede">용어가 하나도 기억 안 나면 <a href="#/terms">용어 사전</a>부터. 이 앱 하나로 1차 회독부터 2차 답안 연습까지. 제도·최근 결과·과목별 전략을 한 자리에 모았어요${d1 ? ` — 제${round}회 1차 ${ddayText(ddays(d1))}` : ''}.</p></section>
 
   <div class="stats" style="margin-bottom:16px">
     <div class="stat"><b>140명</b><span>최종 선발 (제32회 공고)</span></div>

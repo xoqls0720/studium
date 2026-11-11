@@ -35,7 +35,13 @@ async function slideUrl(f) {
 // 단원 화면의 자리(box)에 슬라이드 넘겨보기를 채운다. 찾는 폴더가 없으면 조용히 치운다.
 async function hydrateSlides(box, u) {
   if (!box) return;
-  if (!GD.valid() || !u.file) { box.remove(); return; }
+  if (!u.file) { box.remove(); return; }
+  if (!GD.valid()) {   // 드라이브를 쓰는데 로그인이 풀렸으면 숨기지 말고 다시 로그인을 권한다
+    if (cfg.mode === 'drive' || store.get('gdLinked')) box.innerHTML = `<div class="card callout"><div class="mark">${ic('camera')}</div><div class="grow muted">강의 화면(표·그래프)을 보려면 구글 로그인이 필요해요.</div><button class="btn sm" id="sl-login">다시 로그인</button></div>`,
+      box.querySelector('#sl-login').onclick = async e => { busy(e.target, ''); try { await GD.login(); hydrateSlides(box, u); } catch (err) { toast(err.message); hydrateSlides(box, u); } };
+    else box.remove();
+    return;
+  }
   const list = await slideList(u);
   if (!list) { box.remove(); return; }
   let i = Math.min(store.get('slide.' + u.id, 0), list.length - 1);
