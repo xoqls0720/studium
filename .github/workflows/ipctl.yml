@@ -58,7 +58,7 @@ jobs:
         shell: pwsh
         run: |
           cd tools/ipctl
-          pyinstaller --noconfirm --onefile --windowed --name iPhoneControl --icon icon.ico --add-data "ios.exe;." --add-data "WDA.ipa;." app.py
+          pyinstaller --noconfirm --onefile --windowed --name iPhoneControl --icon icon.ico --add-data "ios.exe;." --add-data "WDA.ipa;." --hidden-import web app.py
           Get-Item dist/iPhoneControl.exe | Format-Table Name, Length | Out-String | Tee-Object -Append build-info.txt
       - name: Publish to ipctl-dist branch
         shell: pwsh

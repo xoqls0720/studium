@@ -114,6 +114,13 @@ class App:
         for i, f in enumerate([self.home, self.switcher, self.cc, self.nc, self.lock, lambda: self.btn("volumeDown"), lambda: self.btn("volumeUp")], 1):
             r.bind(f"<F{i}>", lambda e, f=f: f())
         r.protocol("WM_DELETE_WINDOW", self.quit)
+        try:
+            import web
+            self.url = web.start(self, IOS, HERE, MJ)
+            r.title("아이폰 조작 (선 연결) — 브라우저: " + self.url)
+            log("웹 조작:", self.url)
+        except Exception as e:
+            log("웹 서버 실패", e)
         threading.Thread(target=self.boot, daemon=True).start()
 
     def say(self, t): log(t); self.root.after(0, lambda: (self.cv.itemconfigure(self.msg, text=t), self.cv.tag_raise(self.msg)))
