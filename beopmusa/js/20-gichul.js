@@ -13,6 +13,24 @@ const examLabel = (d, q) => d.gen ? `예상 지문 · ${d.title}` : `제${d.roun
 // 회독 범위는 기본으로 최근 RECENT개 회차(합격 수기: '10개년치 기출을 실전처럼'). 오래된 회차는 개정 전 법이라 답이 바뀐 지문이 많다.
 // 회차를 직접 고를 때(examIds)와 이미 복습에 들어온 지문(dueOx)은 범위와 상관없이 다룬다.
 const oxRecent = () => pref('oxRecent', 10);
+// ── 법 개정 반영 ──
+// 생성기가 근거 조문 개정을 찾으면 j.revisedBy 를 달고, 새 조문으로 다시 판단해 j.now = {v:'O'|'X'|'?', e, at} 을 붙인다.
+// 생성기가 아직 못 한 지문은 이 기기에서 AI로 판단해 store('oxnow.'+id)에 둔다. 판단이 있으면 정답·해설을 지금 법 기준으로 바꾼다.
+function nowLaw(j) {
+  if (!j.revisedBy) return j;
+  const n = j.now?.v ? j.now : store.get('oxnow.' + j.id, null);
+  if (!n || (n.v !== 'O' && n.v !== 'X')) return j;
+  return {...j, vOld: j.v, eOld: j.e, v: n.v === 'O', e: n.e || j.e, nowAt: n.at || ''};
+}
+async function lawTextFor(refs) {   // 근거 조문의 지금 조문 글
+  const out = [];
+  for (const r of refs || []) {
+    const m = String(r).match(/\s*(.+?)\s*제(\d+)조(?:의(\d+))?/);
+    if (!m) continue;
+    try { const l = await loadLaw(m[1].replace(/\s/g, '')); const a = l.articles.find(x => x.k === m[2] + (m[3] ? '-' + m[3] : '')); if (a) out.push(`${l.name} ${a.no}${a.title ? '(' + a.title + ')' : ''}: ${a.text}`); } catch {}
+  }
+  return out.join('\n\n');
+}
 function inRecent(idx, e) {
   const R = oxRecent(); if (!R) return true;
   const maxR = Math.max(0, ...idx.exams.filter(x => x.stage === e.stage).map(x => x.round || 0));
@@ -24,7 +42,7 @@ async function oxPool(sid, examIds, gen = !examIds && oxGenOn(), all = false) {
     let d;
     try { d = await loadExam(e.id); } catch { continue; }
     const qs = new Map(d.questions.map(q => [q.id, q]));
-    for (const j of d.ox) if (!sid || j.sid === sid) out.push({...j, ex: d, qq: qs.get(j.q)});
+    for (const j of d.ox) if (!sid || j.sid === sid) out.push(nowLaw({...j, ex: d, qq: qs.get(j.q)}));
   }
   if (gen) out.push(...genStubs(sid));
   return out;
@@ -79,7 +97,7 @@ function examToQuiz(d, q) {
   const e = oxs.filter(j => j.e).map(j => `${j.id.split(':').pop().replace(/^c(\d)$/, (_, i) => '①②③④⑤'[i])} ${j.v ? '(O)' : '(X)'} ${j.e}`).join('\n');
   const stem = q.stem + (q.items?.length ? '\n' + q.items.map(it => `${it.k}. ${it.t}`).join('\n') : '');
   if (q.ask === 'essay' || !q.choices?.length) return {id: q.id, type: 'short', q: stem, a: q.outline || '모범 답안 뼈대는 PC 생성기의 해설 단계에서 만들어져요. Gemini 채점은 지금도 쓸 수 있어요.', k: q.refs || [], from, sid: q.sid, exam: true};
-  return {id: q.id, type: 'mcq', q: stem, c: q.choices, a: q.answer[0] ?? 0, alt: q.answer, e: [q.e, e].filter(Boolean).join('\n\n') || (q.refs?.length ? '근거: ' + q.refs.join(', ') : ''), from, sid: q.sid, exam: true, revised: q.revisedBy || (q.revised ? '개정 주의' : '')};
+  return {id: q.id, type: 'mcq', q: stem, c: q.choices, a: q.answer[0] ?? 0, alt: q.answer, e: [q.now?.e ? `〔개정 반영 ${q.now.at || ''}〕 ${q.now.e}` : '', q.e, e].filter(Boolean).join('\n\n') || (q.refs?.length ? '근거: ' + q.refs.join(', ') : ''), from, sid: q.sid, exam: true, revised: q.revisedBy || (q.revised ? '개정 주의' : '')};
 }
 async function examQuestionsById(ids) {
   const want = new Set(ids), out = [], idx = await loadGichulIndex();
@@ -272,13 +290,24 @@ function viewOx() {
     if (!ok) main_.querySelector(`.choice[data-v="${mine ? 1 : 0}"]`).classList.add('bad');
     const ex = j.e || store.get('oxe.' + j.id, '');
     $('#fb').innerHTML = `<div class="fb ${ok ? 'ok' : 'bad'}"><div class="ttl">${ic(ok ? 'check' : 'x', 18, 2.2)}${ok ? '맞았어요' : '틀렸어요'} · 이 지문은 ${j.v ? 'O (옳음)' : 'X (틀림)'} · ${(ms / 1000).toFixed(1)}초</div>
-        ${ex ? `<div>${inline(ex)}</div>` : '<div class="faint">해설은 PC 생성기가 과목별로 조금씩 붙여요.</div>'}${j.refs?.length ? `<div class="faint" style="margin-top:6px">근거: ${esc(j.refs.join(' · '))}</div>` : ''}${j.revisedBy ? `<div style="margin-top:6px;color:var(--gold)">${ic('alert', 14)} ${esc(j.revisedBy)} — 지금 법으로는 답이 다를 수 있어요</div>` : ''}</div>
+        ${ex ? `<div>${inline(ex)}</div>` : '<div class="faint">해설은 PC 생성기가 과목별로 조금씩 붙여요.</div>'}${j.refs?.length ? `<div class="faint" style="margin-top:6px">근거: ${esc(j.refs.join(' · '))}</div>` : ''}${j.revisedBy ? (j.vOld !== undefined ? `<div style="margin-top:6px;color:var(--gold)">${ic('alert', 14)} 개정 반영 — ${esc(j.revisedBy)}. ${j.vOld !== j.v ? `시험 당시 정답은 ${j.vOld ? 'O' : 'X'}였지만 지금 법으로는 <b>${j.v ? 'O' : 'X'}</b>예요.` : '지금 법으로도 정답은 같아요.'}</div>` : `<div style="margin-top:6px;color:var(--gold)">${ic('alert', 14)} ${esc(j.revisedBy)} — 지금 법으로는 답이 다를 수 있어요 <button class="btn sm" id="oxnow">지금 법으로 다시 판단</button></div>`) : ''}</div>
       <div id="why"></div>
       <div class="row">${!ex && aiOn() ? `<button class="btn gem sm" id="oxwhy">${ic('spark', 16)}${aiName()} 해설</button>` : ''}<span class="grow"></span>
         ${ok ? `<button class="btn" id="oxtri">△ 헷갈렸어요</button>` : ''}<button class="btn pri" id="oxnext">${z.i + 1 < z.list.length ? '다음' : '결과 보기'}</button></div>`;
     $('#oxnext').onclick = () => commit(ok ? 'O' : 'X');
     $('#oxtri') && ($('#oxtri').onclick = () => commit('△'));
     $('#oxnext').focus({preventScroll: true});
+    $('#oxnow') && ($('#oxnow').onclick = async () => {
+      if (!aiOn()) return toast('설정에서 AI(Gemini 등)를 켜면 바로 판단해요. PC 생성기는 다음 자동 실행 때 반영해요');
+      busy($('#oxnow'), '지금 조문으로 판단 중…');
+      try {
+        const law = await lawTextFor(j.refs);
+        const r = await gem(`법무사 기출 지문을 지금(개정 후) 법령으로 다시 판단하라. 시험 당시 정답: ${j.v ? 'O' : 'X'}. 개정: ${j.revisedBy}.\n지금 조문:\n${law || '(조문을 찾지 못함 — 아는 범위에서 판단하고 불확실하면 ?)'}\n지문: ${j.t}\n시험 당시 해설: ${j.e || '(없음)'}\nv는 지금 기준 'O' 또는 'X', 확신이 없으면 '?'. e는 지금 기준 해설 2~4문장(바뀐 점을 먼저).`, {schema: obj({v: S_, e: S_}), temp: .2});
+        const n = {v: r.v, e: r.e, at: todayKey()};
+        store.set('oxnow.' + j.id, n);
+        $('#why').innerHTML = `<div class="card ai" style="box-shadow:none"><b>지금 법 기준: ${esc(n.v)}</b><div class="md">${md(n.e)}</div><div class="faint">다음부터 이 지문은 이 기준으로 채점해요.</div></div>`; $('#oxnow').remove();
+      } catch (e) { toast(e.message); unbusy($('#oxnow')); }
+    });
     $('#oxwhy') && ($('#oxwhy').onclick = async () => {
       busy($('#oxwhy'), '해설 받는 중…');
       try {
