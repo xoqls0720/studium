@@ -1,0 +1,25 @@
+{
+  "name": "studium-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Studium · 생각과 글 · 토익 · 법무사를 하나로 묶은 아이폰·아이패드·안드로이드 앱",
+  "scripts": {
+    "prepare-www": "node scripts/prepare.mjs",
+    "sync": "node scripts/prepare.mjs && npx cap sync"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/browser": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/filesystem": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/share": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/assets": "^3.0.0"
+  }
+}

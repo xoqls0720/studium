@@ -1,0 +1,11 @@
+{
+  "appId": "io.github.xoqls0720.studium",
+  "appName": "Studium",
+  "webDir": "www",
+  "ios": { "contentInset": "never", "scheme": "Studium", "limitsNavigationsToAppBoundDomains": false },
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 300, "backgroundColor": "#fcfcfa", "showSpinner": false },
+    "StatusBar": { "style": "LIGHT", "overlaysWebView": false, "backgroundColor": "#fcfcfa" }
+  }
+}

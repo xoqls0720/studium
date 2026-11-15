@@ -38,3 +38,13 @@
 - 문제 생성·첨삭은 Studium 설정에 넣은 **Gemini 키**를 같이 쓴다. claude.ai 아티팩트로 열면 Claude가 대신한다.
 - LEET 기출·ETS 샘플은 저장소에 없다. 앱이 내 구글 드라이브의 `LEET기출_앱용.json`, 시험지 PDF, `ETS_LR_샘플시험지.pdf`를 직접 읽는다.
 - `shim/claude.js`: claude.ai 밖에서 `window.claude`(저장·생성·내보내기)를 드라이브와 Gemini로 대신한다. 각 앱의 `artifact.html`은 claude.ai용, `index.html`은 홈 화면 앱용.
+
+## 진짜 앱 (아이폰·아이패드·안드로이드) — `app/`
+
+네 앱(Studium·생각과 글·토익·법무사)을 하나로 묶은 **Studium** 앱. 아래쪽 탭으로 오가고, 웹 파일을 앱 안에 담아 인터넷 없이도 바로 열린다.
+
+- `main`에 올리면 깃허브 Actions(`.github/workflows/app.yml`)가 맥 서버에서 **Studium.ipa**(서명 없음), 리눅스에서 **Studium.apk**를 만들어 릴리스에 올리고 `altstore.json`을 갱신한다.
+- **아이폰·아이패드(무료)**: 윈도우 PC에 AltServer(+애플 iTunes·iCloud) 설치 → AltStore를 기기에 설치 → AltStore › Sources › `https://xoqls0720.github.io/studium/altstore.json` 추가 → Studium 설치. 무료 애플 ID는 7일마다 다시 서명해야 하는데, PC에서 AltServer가 켜져 있고 같은 와이파이면 AltStore가 백그라운드에서 알아서 갱신한다. 새 빌드가 나오면 AltStore에 업데이트가 뜬다.
+- **안드로이드**: 릴리스의 Studium.apk를 받아 설치.
+- **구글 로그인(한 번만 설정)**: 구글이 앱 속 화면 로그인을 막아서, 앱은 시스템 브라우저로 로그인한 뒤 `auth.html`을 거쳐 `studium://auth`로 돌아온다. Google Cloud 콘솔 › API 및 서비스 › 사용자 인증 정보 › (웹 클라이언트 ID) › **승인된 리디렉션 URI**에 `https://xoqls0720.github.io/studium/auth.html` 을 추가해야 한다.
+- 로컬에서: `cd app && npm install && npm run sync` 후 `npx cap open ios`(맥) / `npx cap open android`.

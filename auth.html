@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>로그인 · Studium</title>
+<style>body{font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;color:#000;background:#fcfcfa;display:flex;min-height:90vh;align-items:center;justify-content:center;text-align:center}a{display:inline-block;margin-top:14px;padding:12px 20px;border-radius:12px;background:#1d5a66;color:#fff;text-decoration:none}</style></head>
+<body><div><p>구글 로그인을 마쳤어요. 앱으로 돌아가는 중이에요…</p><a id="go" href="#">앱으로 돌아가기</a></div>
+<script>
+// Studium 앱(아이폰·아이패드·안드로이드)의 구글 로그인 결과를 앱에 넘긴다. 토큰은 주소의 # 뒤에만 있어 서버로 가지 않는다.
+var h = location.hash || ("#" + location.search.slice(1)), u = "studium://auth" + h;
+document.getElementById("go").href = u;
+if (/access_token|error/.test(h)) setTimeout(function () { location.replace(u); }, 50);
+</script></body></html>

@@ -1,0 +1,115 @@
+# 아이폰·아이패드(.ipa)와 안드로이드(.apk) 앱을 만들고, 릴리스와 AltStore 소스(altstore.json)를 갱신한다.
+# 웹 앱(Studium·생각과 글·토익·법무사)을 바꿔 main 에 올리면 자동으로 새 앱이 나온다.
+name: app
+on:
+  push:
+    branches: [main]
+    paths: ["app/**", "index.html", "js/**", "css/**", "geul/**", "toeic/**", "beopmusa/**", "shim/**", ".github/workflows/app.yml"]
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: app
+  cancel-in-progress: true
+env:
+  BUILD: ${{ github.run_number }}
+jobs:
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: 웹 파일 모으기
+        working-directory: app
+        run: npm install --no-audit --no-fund && node scripts/prepare.mjs
+      - name: iOS 프로젝트
+        working-directory: app
+        run: |
+          npx cap add ios
+          npx capacitor-assets generate --ios --iconBackgroundColor '#1d5a66' --splashBackgroundColor '#fcfcfa' || true
+          PL=ios/App/App/Info.plist
+          VER=$(node -p "require('./package.json').version")
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VER" $PL
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" $PL
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Studium" $PL || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Studium" $PL
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" $PL || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" $PL
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string studium" $PL
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" $PL
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string studium" $PL
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" $PL || true
+          npx cap sync ios
+      - name: 서명 없이 빌드 → .ipa (AltStore·Sideloadly 가 내 애플 ID 로 서명)
+        working-directory: app/ios/App
+        run: |
+          if [ -d App.xcworkspace ]; then W="-workspace App.xcworkspace"; else W="-project App.xcodeproj"; fi
+          xcodebuild $W -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | tail -40
+          mkdir -p Payload && cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry ../../Studium.ipa Payload
+          ls -la ../../Studium.ipa
+      - uses: actions/upload-artifact@v4
+        with: { name: ios, path: app/Studium.ipa }
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - name: 안드로이드 프로젝트
+        working-directory: app
+        run: |
+          npm install --no-audit --no-fund && node scripts/prepare.mjs
+          npx cap add android
+          npx capacitor-assets generate --android --iconBackgroundColor '#1d5a66' --splashBackgroundColor '#fcfcfa' || true
+          python3 - <<'PY'
+          p='android/app/src/main/AndroidManifest.xml'; a=open(p).read()
+          f='<intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="studium" android:host="auth"/></intent-filter>'
+          i=a.index('</activity>'); a=a[:i]+f+a[i:]; open(p,'w').write(a)
+          PY
+          npx cap sync android
+      - name: APK
+        working-directory: app/android
+        run: ./gradlew assembleDebug --no-daemon -q && cp app/build/outputs/apk/debug/app-debug.apk ../Studium.apk
+      - uses: actions/upload-artifact@v4
+        with: { name: android, path: app/Studium.apk }
+  release:
+    needs: [ios, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: out }
+      - name: 버전
+        id: v
+        run: echo "ver=$(node -p "require('./app/package.json').version")" >> $GITHUB_OUTPUT
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-${{ steps.v.outputs.ver }}-${{ github.run_number }}
+          name: Studium 앱 ${{ steps.v.outputs.ver }} (${{ github.run_number }})
+          body: "아이폰·아이패드: AltStore 에서 소스 https://xoqls0720.github.io/studium/altstore.json 을 추가하면 자동으로 업데이트돼요. 안드로이드: Studium.apk 를 받아 설치."
+          files: |
+            out/ios/Studium.ipa
+            out/android/Studium.apk
+      - name: AltStore 소스 갱신
+        run: |
+          python3 - <<'PY'
+          import json, os, datetime
+          ver=os.popen("node -p \"require('./app/package.json').version\"").read().strip(); b=os.environ["BUILD"]
+          tag=f"app-{ver}-{b}"; size=os.path.getsize("out/ios/Studium.ipa")
+          p="altstore.json"
+          try: src=json.load(open(p))
+          except Exception: src=None
+          entry={"version":ver,"buildVersion":b,"date":datetime.date.today().isoformat(),"localizedDescription":f"빌드 {b}","downloadURL":f"https://github.com/xoqls0720/studium/releases/download/{tag}/Studium.ipa","size":size,"minOSVersion":"15.0"}
+          if not src:
+              src={"name":"태빈 공부 앱","identifier":"io.github.xoqls0720.source","subtitle":"Studium · 생각과 글 · 토익 · 법무사","sourceURL":"https://xoqls0720.github.io/studium/altstore.json","iconURL":"https://xoqls0720.github.io/studium/icon-512.png","tintColor":"1d5a66",
+                   "apps":[{"name":"Studium","bundleIdentifier":"io.github.xoqls0720.studium","developerName":"태빈","subtitle":"공부 서재 · LEET · 토익 · 법무사","localizedDescription":"대학 공부(Studium), 생각과 글(LEET·논리·심리·서재·글쓰기·소설), 토익 990, 법무사를 하나로 묶은 공부 앱.","iconURL":"https://xoqls0720.github.io/studium/icon-512.png","tintColor":"1d5a66","category":"education","versions":[]}],"news":[]}
+          app=src["apps"][0]; app["versions"]=[entry]+app.get("versions",[])[:9]
+          app.update({k:entry[k] for k in ("version","downloadURL","size")}); app["versionDate"]=entry["date"]; app["versionDescription"]=entry["localizedDescription"]
+          json.dump(src,open(p,"w"),ensure_ascii=False,indent=1)
+          PY
+          git config user.name "app-bot"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add altstore.json; git commit -m "AltStore 소스: 빌드 ${BUILD} [skip ci]" && git push || echo "바뀐 것 없음"

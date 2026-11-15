@@ -17,6 +17,7 @@
     return new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.onload = ok; s.onerror = () => no(new Error("구글 로그인 창을 받지 못했어요")); document.head.appendChild(s); });
   }
   async function login() {
+    if (window.nativeGoogleLogin) { await window.nativeGoogleLogin(SC); return; }
     await gis();
     await new Promise((ok, no) => {
       google.accounts.oauth2.initTokenClient({ client_id: (ls("cfg") || {}).client || CLIENT, scope: SC, callback: r => {
@@ -107,9 +108,9 @@
   window.addEventListener("DOMContentLoaded", () => {
     if (tok()) return;
     const b = document.createElement("button");
-    b.textContent = "☁ 구글에 저장 켜기"; b.style.cssText = "position:fixed;right:12px;bottom:12px;z-index:50;border:1px solid #1d5a66;background:#fff;color:#1d5a66;border-radius:999px;padding:8px 14px;font:inherit;font-size:.85rem";
+    b.textContent = "☁ 구글에 저장 켜기"; b.className = "app-float"; b.style.cssText = "position:fixed;right:12px;bottom:12px;z-index:50;border:1px solid #1d5a66;background:#fff;color:#1d5a66;border-radius:999px;padding:8px 14px;font:inherit;font-size:.85rem";
     b.onclick = async () => { try { await login(); location.reload(); } catch (e) { b.textContent = "로그인 실패 · 다시"; } };
     document.body.appendChild(b);
   });
-  if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  if ("serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 })();

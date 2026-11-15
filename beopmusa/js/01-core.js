@@ -123,6 +123,8 @@ const GD = {
     if (!window.google?.accounts?.oauth2) throw new Error('구글 로그인 창을 받지 못했어요. 인터넷 연결을 확인하고, 콘텐츠(광고) 차단이 accounts.google.com을 막고 있지 않은지 봐 주세요. 잠시 뒤 다시 누르면 되는 경우가 많아요');
   },
   async login() {
+    // 아이폰·아이패드 앱 안에서는 구글이 앱 속 브라우저 로그인을 막아서, 시스템 브라우저로 로그인하고 돌아온다
+    if (window.nativeGoogleLogin) return window.nativeGoogleLogin(SC).then(t => { this.tok = t; store.set('tok', t); store.set('gdLinked', true); });
     if (!cfg.client) throw new Error('설정에서 구글 클라이언트 ID를 먼저 넣어 주세요');
     await this.gis();
     return new Promise((res, rej) => {
