@@ -94,7 +94,7 @@ table{border-collapse:collapse;width:100%} td,th{padding:8px;border-bottom:1px s
 <header>
   <div class="top"><h1>태빈 토익 독학 · 목표 990</h1><span class="chip" id="sync">저장 준비 중</span></div>
   <nav id="nav">
-    <a href="#home">오늘</a><a href="#roadmap">로드맵</a><a href="#strategy">전략</a><a href="#export">굿노트</a><a href="#words">단어</a><a href="#grammar">문법</a><a href="#parts">파트별</a><a href="#mock">모의고사</a><a href="#review">오답노트</a><a href="#diag">진단</a><a href="#stats">기록</a>
+    <a href="#home">오늘</a><a href="#plan">플랜</a><a href="#words">단어</a><a href="#grammar">문법</a><a href="#parts">파트별</a><a href="#mock">모의고사</a><a href="#review">오답노트</a><a href="#stats">기록</a>
   </nav>
 </header>
 <main id="app"></main>
@@ -541,7 +541,7 @@ function viewMock(){
 // ================= 오답노트 =================
 function viewReview(){
   const ids=Object.keys(S.wrong).sort((a,b)=>S.wrong[b].n-S.wrong[a].n||S.wrong[b].t-S.wrong[a].t);
-  $app.innerHTML=`<h2>오답노트</h2>${ids.length?`<div class="row" style="margin-bottom:14px"><button class="btn" id="rv">오답 ${Math.min(ids.length,20)}문제 다시 풀기</button><span class="muted">다시 맞히면 빠져요. 이상한 문제는 '이상한 문제예요'로 버릴 수 있어요.</span></div>`:"<div class='card'>아직 틀린 문제가 없어요. 문제를 풀면 틀린 것만 여기 모여요.</div>"}
+  $app.innerHTML=`<h2>오답노트</h2>${ids.length?`<div class="row" style="margin-bottom:14px"><button class="btn" id="rv">오답 ${Math.min(ids.length,20)}문제 다시 풀기</button><a class="btn ghost" href="#export">굿노트로 정리</a><span class="muted">다시 맞히면 빠져요. 이상한 문제는 '이상한 문제예요'로 버릴 수 있어요.</span></div>`:"<div class='card'>아직 틀린 문제가 없어요. 문제를 풀면 틀린 것만 여기 모여요.</div>"}
    <div class="list">${ids.slice(0,100).map(id=>{const w=S.wrong[id],x=w.item;return `<div class="card"><div class="row" style="justify-content:space-between"><span class="pill">${esc(x.src)} · ${esc(x.tag)}</span><span class="pill b">${w.n}번 틀림</span></div>
    <p class="en" style="margin:.6rem 0">${esc(x.q||"(듣기 문제)")}</p><p class="muted" style="margin:0">정답: <span class="en">${esc(x.o[x.a])}</span></p></div>`}).join("")}</div>`;
   const b=document.getElementById("rv"); if(b)b.onclick=()=>{
@@ -561,25 +561,31 @@ function viewDiag(){
     const g=shuffle(Object.keys(QB).filter(k=>k.startsWith("g:"))).slice(0,7), p=shuffle(Object.keys(QB).filter(k=>k.startsWith("p:"))).slice(0,7);
     const items=shuffle(vitems.concat(g.concat(p).map(id=>Object.assign({id},QB[id]))));
     runSets([{items}],{title:"진단 테스트",onDone:(r,n)=>{const pct=Math.round(r/n*100),b=band(pct);S.diag.push({d:TODAY(),p:pct,b:b[0]});S.level=pct<50?0:pct<70?1:pct<85?2:3;save();
-      $app.innerHTML=`<h2>진단 결과</h2><div class="card"><div class="big">${pct}%</div><h3>${esc(b[0])}</h3><p>${esc(b[1])}</p><p>난이도를 <b>${LEVELS[S.level].name}</b>으로 맞춰 두었어요.</p><a class="btn" href="#roadmap">로드맵 보기</a></div>`}});
+      $app.innerHTML=`<h2>진단 결과</h2><div class="card"><div class="big">${pct}%</div><h3>${esc(b[0])}</h3><p>${esc(b[1])}</p><p>난이도를 <b>${LEVELS[S.level].name}</b>으로 맞춰 두었어요.</p><a class="btn" href="#plan">플랜 보기</a></div>`}});
   };
 }
 
 // ================= 로드맵 =================
+// 단계마다 '하는 것'과 '하지 않는 것'. 점수에 안 이어지는 공부를 단계별로 지운다.
 const STAGES=[
- {name:"1단계 · 뼈대 (~450)",goal:450,todo:["단어 하루 30개 (기초)","문법 10단원 퀴즈 모두 3/4 이상","파트5 기본 45문제, 파트2 기본 15문제 끝내기"]},
- {name:"2단계 · 유형 익히기 (450~700)",goal:700,todo:["단어 중급으로 올려 누적 1,000개","파트별 새 문제를 중급으로 매일 2파트","파트5 정답률 75%, 파트2 70% 넘기기"]},
- {name:"3단계 · 실전 (700~900)",goal:900,todo:["단어 고급, 누적 2,000개","하프 모의고사 주 2회 (고급)","약점 유형 집중을 켜고 파트3·4·7 매일"]},
- {name:"4단계 · 만점 (900~990)",goal:990,todo:["단어 만점 수준, 누적 3,000개 이상","만점 난이도 모의고사 주 3회, 시간 안에 다 풀기","모든 파트 정답률 95% 이상, 오답노트 0개 유지"]}
+ {name:"1단계 · 뼈대 (~450)",goal:450,weeks:"4~6주",todo:["단어 하루 30개 (기초)","문법 10단원 퀴즈 모두 3/4 이상","파트5 기본 45문제, 파트2 기본 15문제 끝내기"],
+  skip:["모의고사 — 아직 시간만 쓰고 배우는 게 없어요","파트7 장문 독해 — 문장 뼈대가 먼저","두꺼운 문법책 처음부터 읽기 — 이 앱의 10단원이면 충분"]},
+ {name:"2단계 · 유형 익히기 (450~700)",goal:700,weeks:"6~8주",todo:["단어 중급으로 올려 누적 1,000개","파트별 새 문제를 중급으로 매일 2파트","파트5 정답률 75%, 파트2 70% 넘기기"],
+  skip:["문법 이론 다시 공부 — 틀린 유형만 오답노트로","단어장 처음부터 다시 — 간격 반복이 알아서 돌려요","토익 스피킹·라이팅 — 점수와 따로인 다른 시험"]},
+ {name:"3단계 · 실전 (700~900)",goal:900,weeks:"8~10주",todo:["단어 고급, 누적 2,000개","하프 모의고사 주 2회 (고급) + ETS 기출문제집 병행","약점 유형 집중을 켜고 파트3·4·7 매일"],
+  skip:["문법 단원 학습 — 이제 파트5 문제 속에서만","새 교재 늘리기 — 기출문제집 한 권을 회독","전부 해석하며 풀기 — 빈칸 앞뒤와 보기 차이부터"]},
+ {name:"4단계 · 만점 (900~990)",goal:990,weeks:"시험까지",todo:["만점 난이도 모의고사 주 3회, 시간 안에 다 풀기","보름 전부터 기출 10회분 실전, 오답은 '묻는 것·틀린 이유' 정리","모든 파트 정답률 95% 이상, 오답노트 0개 유지"],
+  skip:["새 개념 공부 — 900 위는 실수 줄이기 싸움","단어 양 늘리기 — 틀린 단어만","시험 직전 새 자료 — 해 온 것만 다듬기"]}
 ];
 function curScore(){const s=S.scores.slice().sort((a,b)=>a.d-b.d);return s.length?s[s.length-1].s:null}
 function viewRoadmap(){
   const sc=curScore(), now=sc==null?(S.diag.length?Math.min(3,S.level):0):STAGES.findIndex(x=>sc<x.goal);
   const idx=now<0?3:now;
-  $app.innerHTML=`<h2>990점 로드맵</h2>
+  $app.innerHTML=`<h2>990 플랜</h2><p class="muted">합격(목표 점수)에 이어지는 것만 남겼어요. 단계마다 하지 않을 것도 정해 두었어요 — 그 시간을 지금 단계에 쓰세요.</p>
    <div class="grid"><div class="card"><div class="muted">원서 접수까지</div><div class="big">D-${dday()}</div></div><div class="card"><div class="muted">최근 토익</div><div class="big">${sc??"–"}</div><div class="muted">목표 990</div></div><div class="card"><div class="muted">지금 단계</div><div class="big">${idx+1}단계</div></div></div>
-   <div class="list" style="margin-top:14px">${STAGES.map((st,k)=>`<div class="card stage ${k<idx?"done":k===idx?"now":""}"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${esc(st.name)}</h3>${k<idx?'<span class="pill g">통과</span>':k===idx?'<span class="pill">지금</span>':""}</div><ul class="pts">${st.todo.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`).join("")}</div>
-   <div class="card" style="margin-top:12px"><h3>솔직한 안내</h3><p>이 앱의 문제는 실제 토익 형식과 난이도를 본떠 Claude가 새로 만든 문제예요. 만점은 실제 시험장의 녹음 속도, 여러 나라 억양, 사진 문제까지 흔들림 없이 맞혀야 나와요. 4단계에 들어서면 실제 토익 시험을 한두 달 간격으로 직접 보면서 점수를 확인하세요. 시험 점수는 '기록'에 넣으면 단계가 자동으로 바뀌어요. 실제 기출문제집을 쓰는 시기와 만점 받은 사람들의 방법은 <a href="#strategy">전략</a>에 정리해 뒀어요.</p></div>`;
+   <div class="list" style="margin-top:14px">${STAGES.map((st,k)=>`<div class="card stage ${k<idx?"done":k===idx?"now":""}"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${esc(st.name)}</h3>${k<idx?'<span class="pill g">통과</span>':k===idx?'<span class="pill">지금</span>':""}</div><div class="muted" style="margin:4px 0 6px">예상 기간 ${esc(st.weeks)} · 통과 기준 ${st.goal}점</div><ul class="pts">${st.todo.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>${k>=idx?`<div class="muted" style="margin-top:6px"><b>이 단계에서 하지 않는 것</b></div><ul class="pts" style="color:var(--sub)">${st.skip.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`:""}</div>`).join("")}</div>
+   ${S.diag.length?"":`<div class="card" style="margin-top:12px"><h3>처음이면 진단 20문제부터</h3><p class="muted">지금 위치를 재서 난이도와 단계를 자동으로 맞춰요.</p><a class="btn" href="#diag">진단 테스트</a></div>`}
+   ${planStrategy()}`;
 }
 
 // ================= 기록 =================
@@ -594,7 +600,7 @@ function viewStats(){
       <polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="${sc.map((s,k)=>xs(k)+","+y(s.s)).join(" ")}"></polyline>${sc.map((s,k)=>`<circle cx="${xs(k)}" cy="${y(s.s)}" r="${k===sc.length-1?6:4}" fill="var(--accent)"></circle><text x="${xs(k)}" y="${y(s.s)-10}" text-anchor="middle" style="fill:var(--ink)">${s.s}</text>`).join("")}</svg>`}
   const totalM=Object.values(S.logs).reduce((a,l)=>a+(l.m||0),0);
   const tags=Object.entries(S.tags).filter(([k,v])=>v.c+v.w>=2).map(([k,v])=>[k,v.c,v.w,Math.round(v.c/(v.c+v.w)*100)]).sort((a,b)=>a[3]-b[3]);
-  $app.innerHTML=`<h2>기록</h2><div class="grid">
+  $app.innerHTML=`<div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">기록</h2><span class="row"><a class="btn ghost sm" href="#export">굿노트로 보내기</a><a class="btn ghost sm" href="#diag">진단 다시</a></span></div><div class="grid" style="margin-top:12px">
    <div class="card"><div class="muted">연속 공부</div><div class="big">${streak()}일</div></div>
    <div class="card"><div class="muted">오늘 공부</div><div class="big">${(S.logs[t]||{m:0}).m}분</div><div class="muted">누적 ${Math.floor(totalM/60)}시간 ${totalM%60}분</div></div>
    <div class="card"><div class="muted">원서 접수까지</div><div class="big">D-${dday()}</div></div></div>
@@ -618,7 +624,7 @@ function viewHome(){
   const wt=weakTags(), lvl=LEVELS[S.level];
   const tasks=[
     [due.length+fresh.length>0,`단어 ${due.length+fresh.length}장`,"복습 "+due.length+" · 새 단어 "+fresh.length,"#words"],
-    [nextU>=0,nextU>=0?`문법 ${nextU+1}단원 · ${UNITS[nextU].title}`:"문법 단원 모두 끝","설명 읽고 퀴즈, 부족하면 더 받기","#grammar"],
+    ...(S.level<2?[[nextU>=0,nextU>=0?`문법 ${nextU+1}단원 · ${UNITS[nextU].title}`:"문법 단원 모두 끝","설명 읽고 퀴즈, 부족하면 더 받기","#grammar"]]:[]),
     [true,`파트5 새 문제 10개 (${lvl.name})`,wt.length?"약점: "+wt.join(", "):"문장 빈칸 채우기","#parts"],
     [true,`듣기 한 파트 (${lvl.name})`,"파트2 → 파트3 → 파트4 순서로 매일 하나","#parts"],
     [S.level>=1,"독해 파트7 한 세트","지문 근거 문장을 찾는 연습","#parts"],
@@ -633,55 +639,30 @@ function viewHome(){
 }
 
 // ================= 화면 전환 =================
-// ================= 만점 전략 =================
-function viewStrategy(){
-  $app.innerHTML=`<h2>만점 전략</h2>
-  <p class="muted">토익 990을 받은 사람들의 후기와 수기에서 겹치는 방법만 모았어요. 이 앱의 기능이 그 방법대로 움직이게 되어 있어요.</p>
-  <div class="card"><h3>아이패드 홈 화면에 앱으로 넣기</h3>
+// ================= 플랜 안의 전략 (만점 수기에서 점수에 이어지는 것만) =================
+function planStrategy(){
+  return `<div class="card" style="margin-top:12px"><h3>시험장 운영 — 900 위는 이걸로 갈려요</h3>
+   <table><tr><th>독해(RC)</th><th>시간</th><th>기준</th></tr>
+    <tr><td>파트5 (30문제)</td><td>8~10분</td><td>한 문제 30초, 빈칸 앞뒤·보기 차이부터</td></tr>
+    <tr><td>파트6 (16문제)</td><td>7~8분</td><td>빈칸 앞뒤 흐름</td></tr>
+    <tr><td>파트7 (54문제)</td><td>57~60분</td><td>근거 문장을 찾고 남는 시간은 검토</td></tr></table>
+   <ul class="pts" style="margin-top:10px">
+    <li>답은 모아 옮기지 말고 <b>푼 즉시 마킹</b>.</li>
+    <li>듣기: 파트1·2 안내 방송 동안 <b>파트3·4 질문을 미리 읽기</b>.</li>
+    <li>쉬는 시간 없이 2시간 — 3단계부터 하프 모의 두 개를 연달아 풀어 몸에 익히기.</li></ul></div>
+  <div class="card" style="margin-top:12px"><h3>매일 하는 공부 방법</h3>
    <ul class="pts">
-    <li>아이패드 <b>Safari</b>에서 이 페이지를 열어요. claude.ai에 로그인된 상태여야 해요.</li>
-    <li>주소창 옆 <b>공유 단추(네모에 위 화살표)</b>를 눌러요.</li>
-    <li><b>홈 화면에 추가</b>를 누르고 이름을 '토익 990'으로 바꾸면 끝이에요.</li>
-   </ul>
-   <p class="muted">홈 화면 아이콘으로 열면 주소창 없이 전체 화면 앱처럼 열려요. 문제 생성과 기록 저장이 Claude 계정으로 되기 때문에 인터넷 연결과 로그인은 계속 필요해요.</p></div>
-  <div class="card"><h3>만점이 어떤 점수인지 먼저</h3>
+    <li><b>오답은 두 줄</b>: 이 문제가 묻는 것 / 내가 틀린 이유. 앱 오답노트에 문제·해설이 통째로 남아요.</li>
+    <li><b>듣기는 입으로</b>: 틀린 문장만 받아쓰기 → 스크립트 보며 쉐도잉('천천히 듣기'·'문장 한글 발음 보기').</li>
+    <li><b>새 문제보다 다시 보기</b>: 풀었던 지문에서 몰랐던 표현과 바꿔 말하기(패러프레이징)를 정리.</li></ul></div>
+  <div class="card" style="margin-top:12px"><h3>교재와 실제 시험</h3>
    <ul class="pts">
-    <li>990 = 듣기 495 + 독해 495, 모두 200문제. 만점은 보통 <b>0~2문제 실수</b>까지만 허용돼요.</li>
-    <li>2025년 정기시험 평균은 686점이고, 905~990점 구간은 응시자의 10% 정도였어요. 945점부터가 최고 등급(C1)이에요.</li>
-    <li>목표는 한 번에 990이 아니라 <b>900 → 950 → 970 → 990</b> 순서로 잡는 게 만점자들의 공통 조언이에요.</li>
-   </ul></div>
-  <div class="card"><h3>900 이후는 '새 공부'가 아니라 '실수 줄이기'</h3>
-   <ul class="pts">
-    <li>900을 넘긴 뒤에는 새 개념보다 <b>아는 문제를 틀리지 않는 정확도</b>가 점수를 결정해요.</li>
-    <li>틀린 문제마다 <b>'이 문제가 묻는 것'</b>과 <b>'내가 틀린 이유'</b>를 함께 적어요. 이 앱의 오답노트가 문제·지문·해설을 통째로 저장하는 이유예요.</li>
-    <li>960까지 올린 사람들의 수기: 새 문제를 계속 푸는 것보다 <b>풀었던 지문을 다시 분석</b>하고, 몰랐던 표현과 패러프레이징(같은 말 바꿔 쓰기)을 정리했어요.</li>
-    <li>점수가 멈추는 시기는 누구에게나 와요. 낙담하지 않고 계속하는 것 자체가 전략이에요.</li>
-   </ul></div>
-  <div class="card"><h3>독해(RC) 시간 배분 — 900점 이상 목표 기준</h3>
-   <table><tr><th>파트</th><th>시간</th><th>기준</th></tr>
-    <tr><td>파트5 (30문제)</td><td>8~10분</td><td>한 문제 30초 안</td></tr>
-    <tr><td>파트6 (16문제)</td><td>7~8분</td><td>빈칸 앞뒤 흐름으로</td></tr>
-    <tr><td>파트7 (54문제)</td><td>57~60분</td><td>남는 시간은 검토</td></tr></table>
-   <p class="muted">답은 모아서 옮기지 말고 <b>문제를 푼 즉시 마킹</b>해요. 이 앱의 모의고사 타이머가 이 배분에 맞춰져 있어요.</p></div>
-  <div class="card"><h3>듣기(LC)는 입으로</h3>
-   <ul class="pts">
-    <li><b>쉐도잉</b>: 스크립트를 보며 음성을 반 박자 뒤에서 그대로 따라 말해요. 파트2·3부터 시작해요.</li>
-    <li><b>받아쓰기</b>: 틀린 문장만 다시 듣고 받아 적어요. 어떤 소리가 안 들리는지 드러나요.</li>
-    <li>시험장에서 파트1·2 안내 방송이 나오는 동안 <b>파트3·4 질문을 미리 읽어</b> 둬요.</li>
-    <li>이 앱의 '스크립트 보기'와 '천천히 듣기'를 쉐도잉에 쓰면 돼요.</li>\n    <li>손으로 정리하고 싶은 건 <b>굿노트 탭</b>에서 문서로 만들어 굿노트로 보내면 돼요.</li>
-   </ul></div>
-  <div class="card"><h3>실전 체력</h3>
-   <ul class="pts">
-    <li>실제 시험은 쉬는 시간 없이 <b>2시간</b>이에요. 주기적으로 하프 모의고사 두 개를 연달아 풀어 2시간 집중을 몸에 익혀요.</li>
-    <li>3단계부터는 <b>실제 시험을 한두 달 간격으로 접수</b>해서 점수를 확인하고, 결과를 '기록'에 넣어요. 접수는 토익 공식 사이트(toeic.co.kr)에서 해요.</li>
-   </ul></div>
-  <div class="card"><h3>기출문제에 대해 솔직하게</h3>
-   <p>실제 ETS 기출문제는 저작권이 있어서 이 앱에 넣을 수 없어요. 이 앱의 문제는 실제 시험의 형식·난이도·함정 유형을 본떠 Claude가 매번 새로 만드는 문제예요.</p>
-   <ul class="pts">
-    <li>1~2단계(기본기)까지는 이 앱만으로 충분해요.</li>
-    <li>3~4단계부터는 서점의 <b>ETS 토익 정기시험 기출문제집(YBM 출판)</b>을 병행하세요. 실제 시험과 같은 녹음 속도·억양·사진을 쓰는 공식 교재예요.</li>
-    <li>만점자 수기 기준, 시험 <b>보름 전부터는 기출 위주로 10회분</b> 정도를 실전처럼 풀어요. 틀린 것은 이 앱 방식대로 '묻는 것·틀린 이유'를 정리하고요.</li>
-   </ul></div>`;
+    <li>1~2단계는 이 앱만으로. 3단계부터 <b>ETS 토익 정기시험 기출문제집(YBM)</b> 한 권을 회독 — 실제 기출은 저작권 때문에 앱에 넣을 수 없어요.</li>
+    <li>3단계부터 실제 시험을 1~2달 간격으로 보고 점수를 <a href="#stats">기록</a>에 넣으면 단계가 저절로 바뀌어요.</li></ul></div>
+  <details class="card" style="margin-top:12px"><summary><b>더 보기</b> — 굿노트로 보내기 · 아이패드 홈 화면에 넣기</summary>
+   <ul class="pts" style="margin-top:8px">
+    <li><a href="#export">굿노트로 보내기</a>: 오답노트·단어 체크표·문법 노트를 PDF로 만들어 굿노트에서 손으로 정리.</li>
+    <li>아이패드 Safari → 공유 단추 → <b>홈 화면에 추가</b>하면 앱처럼 열려요(claude.ai 로그인 필요).</li></ul></details>`;
 }
 
 // ================= 굿노트 내보내기 =================
@@ -857,9 +838,10 @@ async function makePdf(root){
   return new Blob(parts,{type:"application/pdf"});
 }
 
-const VIEWS={home:viewHome,roadmap:viewRoadmap,strategy:viewStrategy,export:viewExport,words:viewWords,grammar:viewGrammar,parts:viewParts,mock:viewMock,review:viewReview,diag:viewDiag,stats:viewStats};
+const VIEWS={home:viewHome,plan:viewRoadmap,roadmap:viewRoadmap,strategy:viewRoadmap,export:viewExport,words:viewWords,grammar:viewGrammar,parts:viewParts,mock:viewMock,review:viewReview,diag:viewDiag,stats:viewStats};
 function route(){busy=false;clearInterval(curTick);const h=(location.hash||"#home").slice(1),v=VIEWS[h]?h:"home";
-  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+v));
+  const navV={roadmap:"plan",strategy:"plan",diag:"plan",export:"stats"}[v]||v;
+  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+navV));
   stopSpeak(); VIEWS[v](); window.scrollTo(0,0)}
 window.addEventListener("hashchange",route);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)flush()});
