@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="생각과 글">
+<link rel="apple-touch-icon" href="icon.png"><link rel="icon" type="image/png" href="icon.png">
+<title>생각과 글 · LEET·논리·심리·글쓰기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/*CSS*/
+.flash .w{font-family:var(--font);font-size:2.2rem}
+.hanja{color:var(--sub);font-size:1rem}
+textarea{width:100%;min-height:42vh;font-family:var(--font);font-size:1.05rem;line-height:1.8;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;color:#000;resize:vertical}
+textarea.short{min-height:110px}
+.passage{font-family:var(--font)} .q,.opt{font-family:var(--font)}
+.tech{border-left:4px solid var(--line);padding:4px 0 4px 14px;margin:12px 0}
+.tech b{display:block}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:8px 0}
+details summary{cursor:pointer;font-weight:700}
+.fb{white-space:pre-wrap}
+.fb h4{margin:14px 0 4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="top"><h1>생각과 글</h1><span class="chip" id="sync">저장 준비 중</span></div>
+  <nav id="nav">
+    <a href="#home">오늘</a><a href="#plan">플랜</a><a href="#words">개념어</a><a href="#logic">논리학</a><a href="#leet">LEET</a><a href="#psy">심리학</a><a href="#write">글쓰기</a><a href="#review">오답</a><a href="#stats">기록</a>
+  </nav>
+</header>
+<main id="app"></main>
+<script>
+/*DATA*/
+</script>
+<script>
+(function(){
+"use strict";
+const $app=document.getElementById("app");
+const INT=[0,1,2,4,8,16,30,60], DAILY_NEW=15;
+const N5=["①","②","③","④","⑤"];
+function dayNum(d){d=d||new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*60000)/86400000)}
+function dayStr(n){const d=new Date(n*86400000);return (d.getUTCMonth()+1)+"/"+d.getUTCDate()}
+const TODAY=()=>dayNum();
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function uid(){return "x"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function $(id){return document.getElementById(id)}
+
+// ================= 상태 =================
+const BLANK=()=>({v:1,words:{},xw:[],wrong:{},done:{},logs:{},tags:{},drafts:[],stage:0,sets:[]});
+let S=BLANK();
+function fix(){const b=BLANK();for(const k in b)if(S[k]==null)S[k]=b[k]}
+function log(){const k=TODAY();S.logs[k]=S.logs[k]||{w:0,q:0,c:0,m:0,ch:0};return S.logs[k]}
+function streak(){let n=0,d=TODAY();if(!S.logs[d])d--;while(S.logs[d]&&(S.logs[d].w+S.logs[d].q+S.logs[d].ch)>0){n++;d--}return n}
+
+// ================= 저장 =================
+let ref=null,saving=false,dirty=false,timer=null,busy=false;
+const LS="tb-geul-v1";
+function setSync(t){$("sync").textContent=t}
+function lsGet(){try{return JSON.parse(localStorage.getItem(LS)||"null")}catch(e){return null}}
+function lsSet(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+async function readRef(r){const s=await r.get();if(!s)return null;if(typeof s.data==="function"){return s.exists===false?null:s.data()}if(s.data!==undefined)return s.data;return s}
+function save(){lsSet();dirty=true;clearTimeout(timer);timer=setTimeout(flush,1500)}
+async function flush(){
+  if(!ref||saving||!dirty)return;saving=true;dirty=false;setSync("저장 중…");
+  try{await ref.set({json:JSON.stringify(S),updated:Date.now()});setSync("계정에 저장됨")}
+  catch(e){setSync("저장 실패 · 이 기기에만 저장");dirty=true}
+  saving=false;if(dirty)timer=setTimeout(flush,3000)}
+function size(x){return x?Object.keys(x.logs||{}).length+Object.keys(x.words||{}).length+Object.keys(x.done||{}).length+(x.drafts||[]).length:0}
+async function claudeUse(n){try{if(!window.claude||!window.claude.use)return null;return await Promise.race([window.claude.use(n),new Promise(r=>setTimeout(()=>r(null),10000))])}catch(e){return null}}
+async function initStore(){
+  const l=lsGet();if(l)S=Object.assign(BLANK(),l);fix();setSync("이 기기에만 저장");route();
+  try{
+    const db=await claudeUse("db"),user=await claudeUse("user");if(!db||!user)return;
+    const id=await user.id();if(!id)return;
+    ref=db.collection("data/users/"+id).doc("geul");
+    const got=await readRef(ref);
+    if(got&&got.json){const remote=JSON.parse(got.json);
+      if(size(remote)>=size(lsGet())){S=Object.assign(BLANK(),remote);fix();lsSet()}else{dirty=true;flush()}}
+    else{dirty=true;flush()}
+    setSync("계정에 저장됨");if(!busy)route();
+  }catch(e){setSync("이 기기에만 저장")}
+}
+let lastAct=Date.now();
+["click","keydown","touchstart"].forEach(e=>document.addEventListener(e,()=>{lastAct=Date.now()},{passive:true}));
+setInterval(()=>{if(!document.hidden&&Date.now()-lastAct<180000){log().m++;save()}},60000);
+
+// ================= Claude =================
+let sampleFn=null,sampleState="wait";
+(async()=>{sampleFn=await claudeUse("sample");sampleState=sampleFn?"ok":"none";if(!busy)route()})();
+async function ask(prompt,tier){
+  if(!sampleFn)throw {code:"none"};
+  try{return await sampleFn.json(prompt,{modelTier:tier||"complex"})}
+  catch(e){if(e&&(e.code==="not_granted"||e.code==="rate_limited"))throw e;
+    const r=await sampleFn(prompt+"\nJSON 외의 글자는 절대 쓰지 마.",{modelTier:tier||"complex"});
+    const t=(r&&r.text||"").replace(/^[^{]*/,"").replace(/[^}]*$/,"");return JSON.parse(t)}
+}
+async function askText(prompt,tier){
+  if(!sampleFn)throw {code:"none"};
+  const r=await sampleFn(prompt,{modelTier:tier||"complex"});return (r&&r.text)||String(r||"")}
+function genError(e){
+  if(e&&e.code==="none")return "이 화면에서는 Claude 기능을 쓸 수 없어요. claude.ai에서 앱을 열면 돼요. 기본 문제와 개념어는 그대로 쓸 수 있어요.";
+  if(e&&e.code==="not_granted")return "Claude 사용 허락이 꺼져 있어요. 앱을 다시 열고 허락하면 돼요.";
+  if(e&&e.code==="rate_limited")return "잠깐 너무 많이 요청했어요. 1~2분 뒤에 다시 눌러 주세요.";
+  if(e&&e.code==="empty")return "만들어진 문제가 형식에 맞지 않아 버렸어요. 한 번만 다시 눌러 주세요.";
+  return "만들지 못했어요. 잠시 뒤 다시 눌러 주세요.";
+}
+function cleanItems(raw,src,tag){
+  const arr=(raw&&raw.questions)||[];const out=[];
+  arr.forEach(q=>{if(!q||!q.q||!Array.isArray(q.o)||q.o.length!==5)return;const a=+q.a;if(!(a>=0&&a<5))return;
+    out.push({id:uid(),src,tag:q.type||tag||src,q:String(q.q),o:q.o.map(String),a,ex:String(q.ex||"")})});
+  return out}
+
+// ================= 공용 문제 풀이 =================
+function runQuiz(items,opt){
+  opt=opt||{};busy=true;let i=0,right=0;
+  function finish(){busy=false;
+    if(opt.unit){S.done[opt.unit]=Math.max(S.done[opt.unit]||0,Math.round(right/items.length*100))}
+    save();
+    $app.innerHTML=`<h2>${esc(opt.title||"문제")} 끝</h2><div class="card"><div class="big">${right} / ${items.length}</div>
+     <p class="muted">틀린 문제는 오답에 모였어요. 오답은 '근거 문장'과 '내가 끌린 이유'를 함께 보는 게 핵심이에요.</p>
+     <div class="row"><button class="btn" id="done">확인</button></div></div>`;
+    $("done").onclick=()=>{opt.onDone?opt.onDone(right,items.length):route()}}
+  function draw(){
+    if(i>=items.length)return finish();
+    const it=items[i];
+    $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>${esc(opt.title||"문제")}</h2><span class="muted">${i+1} / ${items.length}</span></div>
+     <div class="bar" style="margin-bottom:16px"><i style="width:${i/items.length*100}%"></i></div>
+     <div class="card"><div class="row" style="justify-content:space-between"><span class="pill">${esc(it.src)}${it.tag&&it.tag!==it.src?" · "+esc(it.tag):""}</span>${it.gen?`<button class="btn ghost sm" id="flag">이상한 문제예요</button>`:""}</div>
+     ${it.passage?`<div class="passage">${esc(it.passage)}</div>`:""}
+     <p class="q">${esc(it.q)}</p>
+     <div class="opts">${it.o.map((o,k)=>`<button class="opt" data-k="${k}">${N5[k]} ${esc(o)}</button>`).join("")}</div>
+     <div id="ex"></div></div>`;
+    if($("flag"))$("flag").onclick=()=>{delete S.wrong[it.id];save();i++;draw()};
+    $app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+      if($app.querySelector(".opt.ok"))return;
+      const k=+b.dataset.k,ok=k===it.a;
+      $app.querySelectorAll(".opt").forEach(o=>{o.disabled=true;if(+o.dataset.k===it.a)o.classList.add("ok")});
+      if(!ok)b.classList.add("no");
+      const lg=log();lg.q++;if(ok)lg.c++;
+      const tg=S.tags[it.tag]||{c:0,w:0};ok?tg.c++:tg.w++;S.tags[it.tag]=tg;
+      if(ok){right++;if(opt.mode==="review")delete S.wrong[it.id]}
+      else{const w=S.wrong[it.id]||{n:0};w.n++;w.t=TODAY();w.why=w.why||"";
+        w.item={id:it.id,src:it.src,tag:it.tag,q:it.q,o:it.o,a:it.a,ex:it.ex,passage:it.passage?it.passage.slice(0,3000):undefined};
+        S.wrong[it.id]=w;trimWrong()}
+      save();
+      $("ex").innerHTML=`<div class="ex"><strong>${ok?"맞았어요.":"틀렸어요. 정답은 "+N5[it.a]+"."}</strong>\n${esc(it.ex)}</div>
+       ${ok?"":`<p class="muted" style="margin:12px 0 4px">내가 ${N5[k]}에 끌린 이유 한 줄 (오답노트에 함께 저장돼요)</p><textarea class="short" id="why" placeholder="예: '대부분'을 '모두'로 읽었다"></textarea>`}
+       <div class="row" style="margin-top:14px"><button class="btn" id="next">${i+1<items.length?"다음":"결과 보기"}</button></div>`;
+      $("next").onclick=()=>{const w=$("why");if(w&&w.value.trim()&&S.wrong[it.id]){S.wrong[it.id].why=w.value.trim();save()}i++;draw();window.scrollTo(0,0)};
+    });
+  }
+  draw();
+}
+function trimWrong(){const ks=Object.keys(S.wrong);if(ks.length>300){ks.sort((a,b)=>S.wrong[a].t-S.wrong[b].t).slice(0,ks.length-300).forEach(k=>delete S.wrong[k])}}
+function unitItems(u,src){return u.q.map((q,n)=>({id:u.id+"-"+n,src,tag:u.title,q:q[0],o:q[1],a:q[2],ex:q[3]}))}
+
+// ================= 개념어 =================
+function allWords(){return WORDS.concat(S.xw)}
+function wq(){
+  const t=TODAY(),ws=allWords(),due=[],fresh=[];
+  ws.forEach((w,i)=>{const s=S.words[i];if(!s)fresh.push(i);else if(s.d<=t)due.push(i)});
+  const newToday=Object.values(S.words).filter(s=>s.f===t).length;
+  return {due,fresh:fresh.slice(0,Math.max(0,DAILY_NEW-newToday)),total:ws.length,known:Object.values(S.words).filter(s=>s.l>=3).length}}
+function viewWords(){
+  const q=wq(),cats={};allWords().forEach((w,i)=>{const c=w[5]||"내가 넣은 말";(cats[c]=cats[c]||[]).push(i)});
+  $app.innerHTML=`<h2>개념어 · 논리 어휘</h2>
+   <div class="grid"><div class="card"><div class="muted">오늘 복습</div><div class="big">${q.due.length}</div></div>
+   <div class="card"><div class="muted">오늘 새 낱말</div><div class="big">${q.fresh.length}</div></div>
+   <div class="card"><div class="muted">익힌 낱말</div><div class="big">${q.known} / ${q.total}</div></div></div>
+   <div class="row" style="margin:16px 0"><button class="btn" id="go"${q.due.length+q.fresh.length?"":" disabled"}>카드 시작</button><button class="btn ghost" id="use">문장 만들기 연습</button></div>
+   <p class="muted">뜻을 외우는 것보다 '헷갈리는 짝'과 함께 기억하는 게 LEET·논술에서 점수가 돼요. 카드 뒷면에서 꼭 확인하세요.</p>
+   <div class="card"><h3>낱말 더하기</h3><p class="muted">책이나 지문에서 막힌 말을 넣으면 Claude가 뜻·예문·헷갈리는 짝을 채워요.</p>
+   <div class="row"><input id="nw" placeholder="예: 정언명령" style="flex:1"><button class="btn" id="add">넣기</button></div><div id="am" class="muted"></div></div>
+   <div class="sep"></div>${Object.entries(cats).map(([c,ix])=>`<details><summary>${esc(c)} <span class="muted">${ix.length}</span></summary>
+   ${ix.map(i=>{const w=allWords()[i];return `<div class="tech"><b>${esc(w[0])} <span class="hanja">${w[1]!=="—"?esc(w[1]):""}</span></b>${esc(w[2])}<div class="muted">${esc(w[4])}</div></div>`}).join("")}</details>`).join("")}`;
+  $("go").onclick=()=>wordSession(shuffle(q.due).concat(q.fresh));
+  $("use").onclick=useWords;
+  $("add").onclick=async()=>{const v=$("nw").value.trim();if(!v)return;$("am").textContent="뜻을 찾는 중…";
+    try{const r=await ask(`한국어 개념어 학습 카드를 만들어. 낱말: "${v}". 대학 신입생이 논리적 글쓰기와 LEET 지문을 읽을 때 필요한 뜻으로.
+JSON: {"w":"낱말","h":"한자나 원어, 없으면 —","m":"쉬운 뜻 한 문장","e":"이 낱말이 들어간 자연스러운 예문 하나","p":"헷갈리는 짝이나 쓰임 주의 한 문장"}`,"default");
+      if(!r||!r.m)throw {code:"empty"};S.xw.push([r.w||v,r.h||"—",r.m,r.e||"",r.p||"","내가 넣은 말"]);save();viewWords()}
+    catch(e){$("am").textContent=genError(e)}};
+}
+function wordSession(queue){
+  busy=true;let i=0;const ws=allWords();
+  function draw(){
+    if(i>=queue.length){busy=false;$app.innerHTML=`<h2>오늘 카드 끝</h2><div class="card"><p>${queue.length}장을 넘겼어요. 내일 다시 나올 카드는 알아서 골라 둘게요.</p><div class="row"><button class="btn" id="b">확인</button><button class="btn ghost" id="u">문장 만들기로</button></div></div>`;$("b").onclick=()=>{location.hash="#home";route()};$("u").onclick=useWords;return}
+    const idx=queue[i],w=ws[idx];
+    $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>개념어</h2><span class="muted">${i+1} / ${queue.length}</span></div>
+     <div class="card flash"><span class="pill">${esc(w[5]||"")}</span><div class="w">${esc(w[0])}</div><div class="hanja">${w[1]!=="—"?esc(w[1]):""}</div>
+     <p class="muted">뜻을 먼저 떠올려 말해 보고 뒤집으세요.</p><button class="btn" id="flip">뜻 보기</button><div id="back" hidden style="text-align:left;width:100%">
+     <div class="ex"><b>${esc(w[2])}</b>\n\n예) ${esc(w[3])}\n\n짝·주의: ${esc(w[4])}</div>
+     <div class="row" style="justify-content:center;margin-top:14px"><button class="btn bad" data-r="0">몰랐다</button><button class="btn ghost" data-r="1">애매했다</button><button class="btn good" data-r="2">알았다</button></div></div></div>`;
+    $("flip").onclick=()=>{$("back").hidden=false;$("flip").hidden=true};
+    $app.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{
+      const r=+b.dataset.r,t=TODAY(),s=S.words[idx]||{l:0,f:t};
+      s.l=r===0?0:r===1?Math.max(1,s.l):Math.min(INT.length-1,s.l+1);s.d=t+(r===0?0:INT[s.l]);S.words[idx]=s;
+      log().w++;save();if(r===0)queue.push(idx);i++;draw()});
+  }
+  draw();
+}
+function useWords(){
+  busy=true;const ws=allWords(),learned=Object.keys(S.words).map(Number).filter(i=>ws[i]);
+  const pick=shuffle(learned.length>=3?learned:ws.map((_,i)=>i)).slice(0,3);
+  $app.innerHTML=`<h2>문장 만들기</h2><div class="card"><p>아래 세 낱말을 <b>모두</b> 써서 두세 문장을 지어 보세요. 주제는 자유 — 오늘 있었던 일이어도 좋아요.</p>
+   <div class="row">${pick.map(i=>`<span class="pill">${esc(ws[i][0])}</span>`).join("")}</div>
+   <textarea class="short" id="t" style="margin-top:12px" placeholder="예: 그럼에도 …"></textarea>
+   <div class="row" style="margin-top:10px"><button class="btn" id="c">Claude에게 봐 달라기</button><button class="btn ghost" id="o">다른 낱말</button></div><div id="fb"></div></div>`;
+  $("o").onclick=useWords;
+  $("c").onclick=async()=>{const t=$("t").value.trim();if(t.length<10)return;$("fb").innerHTML=`<p class="muted">읽는 중…</p>`;
+    try{const r=await askText(`대학 신입생이 개념어 연습으로 쓴 문장이야. 낱말: ${pick.map(i=>ws[i][0]).join(", ")}.
+문장: """${t}"""
+낱말마다 ① 뜻에 맞게 썼는지(맞음/어긋남) ② 어긋났다면 왜, 고친 문장 하나. 마지막에 문장 흐름에 대한 한 줄. 짧게, 존댓말(해요체)로, 마크다운 기호 없이.`,"default");
+      $("fb").innerHTML=`<div class="ex fb">${esc(r)}</div>`;log().ch++;save()}catch(e){$("fb").innerHTML=`<p class="muted">${esc(genError(e))}</p>`}};
+}
+
+// ================= 논리학 · 심리학 단원 =================
+function viewUnits(list,key,title,intro){
+  $app.innerHTML=`<h2>${title}</h2><p class="muted">${intro}</p><div class="list">${list.map((u,n)=>{const d=S.done[u.id];
+   return `<a class="item" href="#${key}/${u.id}"><span>${n+1}. ${esc(u.title)}</span>${d==null?`<span class="pill w">아직</span>`:d>=80?`<span class="pill g">${d}점</span>`:`<span class="pill b">${d}점</span>`}</a>`}).join("")}</div>`}
+function viewUnit(list,key,id,src){
+  const u=list.find(x=>x.id===id);if(!u){location.hash="#"+key;return}
+  $app.innerHTML=`<p><a href="#${key}">← ${src} 목록</a></p><h2>${esc(u.title)}</h2>
+   <div class="card"><p>${esc(u.sum)}</p><ul class="pts">${u.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>
+   ${u.use?`<div class="ex"><b>글쓰기에 쓰는 법</b>\n${esc(u.use)}</div>`:""}</div>
+   <div class="row" style="margin:16px 0"><button class="btn" id="qz">확인 문제 ${u.q.length}개</button><button class="btn ghost" id="more">비슷한 문제 더 만들기</button></div><div id="m" class="muted"></div>`;
+  $("qz").onclick=()=>runQuiz(unitItems(u,src),{title:u.title,unit:u.id,onDone:()=>{location.hash="#"+key+"/"+u.id;route()}});
+  $("more").onclick=async()=>{$("m").textContent="Claude가 문제를 만드는 중이에요…";
+    try{const r=await ask(`${src} 학습용 5지선다 문제 4개를 새로 만들어. 단원: "${u.title}". 핵심: ${u.sum} / ${u.pts.join(" / ")}.
+LEET 추리논증·대학 교양 수준. 한국어. 보기 5개, 정답은 하나, 오답도 그럴듯하게. 해설은 왜 정답인지와 가장 헷갈리는 오답이 왜 틀렸는지 두세 문장.
+정답 위치를 고르게 섞어.
+JSON: {"questions":[{"q":"문제","o":["보기1","보기2","보기3","보기4","보기5"],"a":정답번호0부터,"ex":"해설"}]}`,"default");
+      const it=cleanItems(r,src,u.title).map(x=>(x.gen=1,x));if(!it.length)throw {code:"empty"};runQuiz(it,{title:u.title+" · 추가"})}
+    catch(e){$("m").textContent=genError(e)}};
+}
+
+// ================= LEET =================
+const FIELDS=["인문(철학·역사)","사회(정치·법·경제)","과학·기술","예술·문학 이론","법학"];
+const RTYPES=[["원리 적용","규정이나 원리를 제시하고 사례에 적용하는 문제. <보기>의 사례 ㄱ,ㄴ,ㄷ 판단형이면 보기 5개를 'ㄱ', 'ㄴ', 'ㄱ, ㄷ' 같은 조합으로"],["논증 분석","논증의 결론·전제·숨은 전제·구조를 묻는 문제"],["강화·약화","주장이나 가설을 강화 또는 약화하는 정보를 고르는 문제"],["논쟁 비교","두세 사람(갑·을·병)의 견해를 비교·평가하는 문제"],["수리 추론","간단한 수와 비율·경우의 수로 추론하는 문제(복잡한 계산은 없이)"],["논리 퀴즈","조건 여러 개로 배치·순서·참거짓을 확정하는 문제"]];
+function viewLeet(){
+  $app.innerHTML=`<h2>LEET · 법학적성시험</h2>
+   ${LEET.parts.map(p=>`<details><summary>${esc(p.k)} <span class="muted">${esc(p.n)}</span></summary><p>${esc(p.d)}</p><ul class="pts">${p.how.map(h=>`<li>${esc(h)}</li>`).join("")}</ul></details>`).join("")}
+   <p class="muted">${esc(LEET.books)}</p>
+   <div class="card" style="margin-top:12px"><h3>언어이해 연습 세트</h3><p class="muted">1,600~2,000자 지문 하나와 4문항. 문단마다 한 줄 요약을 쓰고 나서 문제로 넘어가요.</p>
+   <div class="seg" id="fd">${FIELDS.map((f,k)=>`<button data-k="${k}"${k===0?" class=on":""}>${f}</button>`).join("")}</div>
+   <div class="row" style="margin-top:12px"><button class="btn" id="rd">지문 만들기</button></div><div id="rm" class="muted"></div></div>
+   <div class="card" style="margin-top:12px"><h3>추리논증 유형 연습</h3><p class="muted">유형마다 3문항. 약한 유형은 기록 화면에서 보여요.</p>
+   <div class="seg" id="ty">${RTYPES.map((t,k)=>`<button data-k="${k}"${k===0?" class=on":""}>${t[0]}</button>`).join("")}</div>
+   <div class="row" style="margin-top:12px"><button class="btn" id="rs">문제 만들기</button></div><div id="sm" class="muted"></div></div>
+   <div class="card" style="margin-top:12px"><h3>LEET 논술</h3><p>제시문 비교·적용 과제는 <a href="#write">글쓰기</a>의 'LEET 논술'에서 쓰고 첨삭받아요.</p></div>
+   ${S.sets.length?`<div class="card" style="margin-top:12px"><h3>지난 지문 다시 풀기</h3><div class="list">${S.sets.slice(-8).reverse().map((s,n)=>`<button class="item" data-s="${S.sets.length-1-n}"><span>${esc(s.title)}</span><span class="muted">${dayStr(s.d)}</span></button>`).join("")}</div></div>`:""}`;
+  let fk=0,tk=0;
+  $("fd").querySelectorAll("button").forEach(b=>b.onclick=()=>{fk=+b.dataset.k;$("fd").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))});
+  $("ty").querySelectorAll("button").forEach(b=>b.onclick=()=>{tk=+b.dataset.k;$("ty").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))});
+  $app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>readingSet(S.sets[+b.dataset.s]));
+  $("rd").onclick=async()=>{$("rm").textContent="Claude가 지문을 쓰는 중이에요… (30초쯤)";
+    try{const r=await ask(`LEET 언어이해 형식의 연습 세트를 새로 만들어. 실제 기출 지문을 베끼거나 흉내 내지 말고 새 글로. 분야: ${FIELDS[fk]}.
+지문: 1,600~2,000자, 5~7문단, 대학 교양서 수준의 논증적 글. 둘 이상의 견해나 개념이 대립·발전하는 구조, 문단은 빈 줄로 구분.
+문항 4개(5지선다): ① 내용 일치 ② 글의 구조·견해 비교 ③ 추론(지문에서 반드시 따라 나오는 것) ④ <보기> 사례 적용이나 비판.
+오답은 지문 단어를 쓰되 관계를 뒤집거나 범위를 넓힌 것처럼 정교하게. 정답 위치를 섞어. 해설엔 근거가 되는 문단 번호와 가장 매력적인 오답이 틀린 이유.
+JSON: {"title":"지문 제목","passage":"지문","questions":[{"type":"내용 일치","q":"","o":["","","","",""],"a":0,"ex":""}]}`,"complex");
+      if(!r||!r.passage||String(r.passage).length<600)throw {code:"empty"};
+      const it=cleanItems(r,"언어이해");if(it.length<2)throw {code:"empty"};
+      const set={title:(r.title||FIELDS[fk])+" · "+FIELDS[fk],passage:String(r.passage),items:it,d:TODAY()};
+      S.sets.push(set);if(S.sets.length>20)S.sets.shift();save();readingSet(set)}
+    catch(e){$("rm").textContent=genError(e)}};
+  $("rs").onclick=async()=>{$("sm").textContent="Claude가 문제를 만드는 중이에요…";const t=RTYPES[tk];
+    try{const r=await ask(`LEET 추리논증 형식의 연습 문제 3개를 새로 만들어. 실제 기출을 베끼지 말 것. 유형: ${t[0]} — ${t[1]}.
+소재는 법학, 윤리학, 과학 실험, 경제, 사회 제도 등에서 문제마다 다르게. 각 문제는 제시문(300~600자)과 발문을 q에 함께 넣어(제시문 다음 줄바꿈 두 번 후 발문).
+5지선다, 정답 하나, 오답은 매력적으로. 해설은 풀이 순서대로 3~5문장, 가장 헷갈리는 오답이 틀린 이유 포함. 정답 위치를 섞어.
+JSON: {"questions":[{"type":"${t[0]}","q":"제시문\\n\\n발문","o":["","","","",""],"a":0,"ex":""}]}`,"complex");
+      const it=cleanItems(r,"추리논증",t[0]).map(x=>(x.gen=1,x));if(!it.length)throw {code:"empty"};runQuiz(it,{title:"추리논증 · "+t[0]})}
+    catch(e){$("sm").textContent=genError(e)}};
+}
+function readingSet(set){
+  busy=true;const paras=set.passage.split(/\n\s*\n/).filter(x=>x.trim());
+  $app.innerHTML=`<p><a href="#leet">← LEET</a></p><h2>${esc(set.title)}</h2>
+   <p class="muted">문단마다 한 줄로 요약하며 읽어요. 다 쓰면 문제로 넘어가요. (요약은 비워도 넘어갈 수 있어요)</p>
+   ${paras.map((p,n)=>`<div class="card" style="margin:10px 0"><div class="muted">${n+1}문단</div><p style="white-space:pre-wrap">${esc(p)}</p><input data-p="${n}" placeholder="이 문단을 한 줄로" style="width:100%"></div>`).join("")}
+   <div class="row"><button class="btn" id="go">문제 풀기 (${set.items.length})</button><button class="btn ghost" id="ck">내 요약 봐 달라기</button></div><div id="fb"></div>`;
+  $("ck").onclick=async()=>{const sums=[...$app.querySelectorAll("[data-p]")].map(x=>x.value.trim());if(!sums.some(Boolean))return;
+    $("fb").innerHTML=`<p class="muted">읽는 중…</p>`;
+    try{const r=await askText(`다음 지문의 문단별 한 줄 요약을 학생이 썼어. 문단마다 핵심을 맞게 잡았는지, 놓친 관계(대립·원인·조건·예외)가 있는지 짧게 짚고, 모범 요약을 한 줄씩. 마지막에 글 전체 구조를 한 줄로. 해요체, 마크다운 기호 없이.
+지문:\n${set.passage}\n\n학생 요약:\n${sums.map((s,n)=>(n+1)+"문단: "+(s||"(비움)")).join("\n")}`,"default");
+      $("fb").innerHTML=`<div class="ex fb">${esc(r)}</div>`}catch(e){$("fb").innerHTML=`<p class="muted">${esc(genError(e))}</p>`}};
+  $("go").onclick=()=>runQuiz(set.items.map(x=>Object.assign({},x,{passage:set.passage,gen:1})),{title:"언어이해"});
+}
+
+// ================= 글쓰기 =================
+const KINDS={logic:["논리적 글",WRITE_LOGIC],lit:["문학적 글",WRITE_LIT],leet:["LEET 논술",WRITE_LOGIC]};
+function viewWrite(){
+  $app.innerHTML=`<h2>글쓰기</h2>
+   <div class="grid">${Object.entries(KINDS).map(([k,v])=>`<a class="item" href="#write/${k}"><span>${v[0]}</span><span class="pill">쓰기</span></a>`).join("")}</div>
+   <details open><summary>논리적 글 — 기법 8</summary>${WRITE_LOGIC.map(t=>`<div class="tech"><b>${esc(t[0])}</b>${esc(t[1])}</div>`).join("")}</details>
+   <details><summary>문학적 글 — 기법 8</summary>${WRITE_LIT.map(t=>`<div class="tech"><b>${esc(t[0])}</b>${esc(t[1])}</div>`).join("")}</details>
+   <h3 style="margin-top:20px">내 글 ${S.drafts.length}편</h3><div class="list">${S.drafts.slice().reverse().map(d=>`<a class="item" href="#write/${d.k}/${d.id}"><span>${esc(d.p.slice(0,40))}${d.p.length>40?"…":""}</span><span class="muted">${KINDS[d.k][0]} · ${d.t.length}자${d.fb?" · 첨삭":""}</span></a>`).join("")||`<p class="muted">아직 쓴 글이 없어요.</p>`}</div>`;
+}
+function editor(kind,id){
+  busy=true;let d=S.drafts.find(x=>x.id===id);
+  if(!d){const ps=PROMPTS[kind];d={id:uid(),k:kind,p:ps[Math.floor(Math.random()*ps.length)],t:"",fb:"",d:TODAY()}}
+  const tips=KINDS[kind][1];
+  $app.innerHTML=`<p><a href="#write">← 글쓰기</a></p><h2>${KINDS[kind][0]}</h2>
+   <div class="card"><div class="muted">과제</div><p id="pp">${esc(d.p)}</p><div class="row"><button class="btn ghost sm" id="np">다른 과제</button><button class="btn ghost sm" id="mp">내가 정하기</button></div></div>
+   <details><summary>쓰기 전 체크</summary>${tips.map(t=>`<div class="tech"><b>${esc(t[0])}</b>${esc(t[1])}</div>`).join("")}</details>
+   ${kind!=="lit"?`<div class="card" style="margin:10px 0"><div class="muted">한 줄 주장 (먼저)</div><input id="cl" style="width:100%" placeholder="나는 ~라고 생각한다. 왜냐하면 ~" value="${esc(d.cl||"")}"></div>`:""}
+   <textarea id="t" placeholder="여기에 써요. 자동 저장돼요.">${esc(d.t)}</textarea>
+   <div class="row" style="justify-content:space-between;margin-top:8px"><span class="muted" id="cnt"></span><span class="row"><button class="btn ghost" id="pdf">PDF로 저장</button><button class="btn" id="fbb">첨삭 받기</button></span></div>
+   <div id="fb">${d.fb?`<div class="ex fb">${esc(d.fb)}</div>`:""}</div>`;
+  const ta=$("t");
+  function keep(){d.t=ta.value;if($("cl"))d.cl=$("cl").value;if(!S.drafts.includes(d)&&(d.t.trim()||d.cl))S.drafts.push(d);if(S.drafts.length>60)S.drafts.shift();save()}
+  function cnt(){const n=ta.value.replace(/\s/g,"").length;$("cnt").textContent=`${ta.value.length}자 (공백 빼고 ${n}자)`}
+  ta.oninput=()=>{cnt();clearTimeout(ta._t);ta._t=setTimeout(keep,800)};if($("cl"))$("cl").oninput=()=>{clearTimeout(ta._t);ta._t=setTimeout(keep,800)};cnt();
+  $("np").onclick=()=>{const ps=PROMPTS[kind];d.p=ps[(ps.indexOf(d.p)+1)%ps.length];$("pp").textContent=d.p;keep()};
+  $("mp").onclick=()=>{const v=prompt("과제를 적어 주세요",d.p);if(v&&v.trim()){d.p=v.trim();$("pp").textContent=d.p;keep()}};
+  $("pdf").onclick=async()=>{keep();const box=document.createElement("div");box.innerHTML=`<h1>${esc(KINDS[kind][0])}</h1><p>${esc(d.p)}</p>${d.cl?`<h2>한 줄 주장</h2><p>${esc(d.cl)}</p>`:""}<h2>본문</h2>${d.t.split(/\n+/).map(x=>`<p>${esc(x)}</p>`).join("")}${d.fb?`<h2>첨삭</h2>${d.fb.split(/\n+/).map(x=>`<p>${esc(x)}</p>`).join("")}`:""}`;
+    $("pdf").textContent="만드는 중…";try{const blob=await makePdf(box);await deliver(blob,"글_"+dayStr(TODAY()).replace("/","-")+".pdf",$("pdf").parentNode)}catch(e){}$("pdf").textContent="PDF로 저장"};
+  $("fbb").onclick=async()=>{keep();if(ta.value.trim().length<80){$("fb").innerHTML=`<p class="muted">80자 넘게 쓰면 첨삭할 수 있어요.</p>`;return}
+    $("fb").innerHTML=`<p class="muted">Claude가 읽고 있어요… (20~40초)</p>`;
+    try{const r=await askText(feedbackPrompt(kind,d),"complex");d.fb=r.trim();log().ch++;keep();$("fb").innerHTML=`<div class="ex fb">${esc(d.fb)}</div>`}
+    catch(e){$("fb").innerHTML=`<p class="muted">${esc(genError(e))}</p>`}};
+}
+function feedbackPrompt(kind,d){
+  const voice=`이 학생의 문체 원칙(지켜야 할 것): 끊지 않고 길게 이어지는 흐르는 문장, 일상의 쉬운 말, '명제 → 반문 → 하지만 → 바람'의 흐름, "~이지 않을까", "~라고 생각한다" 같은 낮게 가라앉은 확신, 감정은 직접 설명하지 않고 행간으로, 명령문·당위·과장된 긍정·상투적 교훈 피하기, '바라본다/둔다/남겨둔다' 반복 금지, 장면에서 시작해 여운으로 맺기. 이 문체를 바꾸라고 하지 말고 이 문체 안에서 더 좋아지게 짚어.`;
+  const head=`대학 신입생의 ${KINDS[kind][0]}을 첨삭해. 냉정하고 정확하게, 칭찬은 한 줄만. 해요체, 마크다운 기호(#, *, -) 없이 소제목은 【 】로.
+과제: ${d.p}
+${d.cl?"학생의 한 줄 주장: "+d.cl+"\n":""}글:
+"""${d.t}"""
+`;
+  if(kind==="lit")return head+voice+`
+【한 줄 평】
+【장면과 행간】 감정을 직접 말한 문장을 찾아 사물·동작으로 바꾼 예를 하나씩.
+【상투 표현】 닳은 비유·표현을 짚고 이 글에만 있을 법한 구체로 바꾼 예.
+【반복과 어휘】 반복되는 낱말과 더 정확한 낱말.
+【흐름】 문단 순서, 처음과 끝이 서로 답하는지, 여운이 남는지.
+【고쳐 쓴 한 문단】 가장 약한 문단 하나를 학생의 문체를 지키며 고쳐 쓴 예.`;
+  return head+(kind==="leet"?"LEET 논술 채점 기준(요구한 동사 이행, 제시문 재진술의 정확성, 적용의 정확성, 견해의 논증)으로 봐.\n":"")+voice+`
+【한 줄 평】
+【주장】 주장이 한 문장으로 분명한지, 과제가 묻는 것에 답했는지.
+【근거와 논리】 근거의 종류(사실·원리·사례), 빠진 숨은 전제, 논리 오류(이름을 붙여서).
+【반론 처리】 예상 반론을 공정하게 다루고 넘어섰는지, 없다면 넣을 반론 하나.
+【문단 구성】 문단마다 소주제문, 접속어가 논리 관계와 맞는지.
+【반복과 어휘】 반복되는 낱말과 더 정확한 개념어.
+【고쳐 쓴 한 문단】 가장 약한 문단 하나를 학생의 문체를 지키며 고쳐 쓴 예.`;
+}
+
+/*PDF*/
+function offerLink(blob,fn,m){try{const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=fn;a.textContent="PDF 열기: "+fn;a.className="btn ghost";a.style.marginLeft="8px";m.appendChild(a)}catch(e){}}
+async function deliver(blob,fn,m){
+  const dl=await claudeUse("downloads");
+  if(dl&&dl.save){try{await dl.save({filename:fn,data:blob});return}catch(e){}}
+  offerLink(blob,fn,m)}
+
+// ================= 오답 =================
+function viewReview(){
+  const ws=Object.values(S.wrong).sort((a,b)=>b.t-a.t);
+  $app.innerHTML=`<h2>오답 ${ws.length}</h2><p class="muted">LEET 오답은 '정답 근거 문장'과 '내가 끌린 이유'를 함께 봐야 같은 함정에 다시 안 빠져요.</p>
+   <div class="row" style="margin:12px 0"><button class="btn" id="go"${ws.length?"":" disabled"}>오답 다시 풀기 (최대 10)</button><button class="btn ghost" id="pdf"${ws.length?"":" disabled"}>오답노트 PDF</button></div>
+   <div class="list">${ws.slice(0,40).map(w=>`<details><summary>${esc(w.item.src)} · ${esc(w.item.tag||"")} <span class="muted">${w.n}번 틀림</span></summary><p>${esc(w.item.q.slice(0,300))}</p><div class="ex">정답 ${N5[w.item.a]} ${esc(w.item.o[w.item.a])}\n${esc(w.item.ex)}${w.why?"\n\n내가 끌린 이유: "+esc(w.why):""}</div></details>`).join("")}</div>`;
+  $("go").onclick=()=>runQuiz(shuffle(ws).slice(0,10).map(w=>Object.assign({},w.item)),{title:"오답 다시",mode:"review"});
+  $("pdf").onclick=async()=>{const box=document.createElement("div");box.innerHTML=`<h1>오답노트</h1>${ws.slice(0,40).map((w,n)=>`<h2>${n+1}. ${esc(w.item.src)} · ${esc(w.item.tag||"")}</h2><p>${esc(w.item.q)}</p><ul>${w.item.o.map((o,k)=>`<li>${N5[k]} ${esc(o)}</li>`).join("")}</ul><p>정답 ${N5[w.item.a]} — ${esc(w.item.ex)}</p>${w.why?`<p>내가 끌린 이유: ${esc(w.why)}</p>`:""}`).join("")}`;
+    $("pdf").textContent="만드는 중…";try{await deliver(await makePdf(box),"오답노트.pdf",$("pdf").parentNode)}catch(e){}$("pdf").textContent="오답노트 PDF"};
+}
+
+// ================= 플랜 =================
+function viewPlan(){
+  $app.innerHTML=`<h2>플랜</h2><p class="muted">지금 단계를 눌러 두면 '오늘' 화면이 그 단계에 맞춰져요.</p>
+   ${STAGES_G.map((s,n)=>`<div class="card stage${n===S.stage?" now":n<S.stage?" done":""}" style="margin:12px 0"><div class="row" style="justify-content:space-between"><h3>${esc(s.name)} <span class="muted">${esc(s.weeks)}</span></h3>${n===S.stage?`<span class="pill">지금</span>`:`<button class="btn ghost sm" data-s="${n}">이 단계로</button>`}</div>
+   <b>할 것</b><ul class="pts">${s.todo.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><b>지금은 안 해도 되는 것</b><ul class="pts">${s.skip.map(x=>`<li class="muted">${esc(x)}</li>`).join("")}</ul></div>`).join("")}
+   <div class="card"><h3>공부 원리 세 가지</h3><ul class="pts"><li>읽기보다 꺼내기 — 개념어 카드와 확인 문제가 다시 읽기보다 오래 남아요.</li><li>나눠서 자주 — 하루 몰아서보다 매일 30분이 나아요(간격 반복).</li><li>섞어서 — 추리논증은 유형을 섞어 풀어야 실전에서 유형을 알아봐요.</li></ul></div>`;
+  $app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{S.stage=+b.dataset.s;save();viewPlan()});
+}
+
+// ================= 오늘 =================
+function nextUnit(list){return list.find(u=>!(S.done[u.id]>=80))}
+function viewHome(){
+  const q=wq(),lg=S.logs[TODAY()]||{w:0,q:0,c:0,m:0,ch:0},st=STAGES_G[S.stage];
+  const lu=nextUnit(LOGIC),pu=nextUnit(PSY),wk=Object.values(S.drafts).filter(d=>d.d>TODAY()-7).length;
+  const tasks=[];
+  tasks.push([`개념어 카드 ${q.due.length+q.fresh.length}장`,"#words",q.due.length+q.fresh.length===0]);
+  if(S.stage===0){if(lu)tasks.push([`논리학 · ${lu.title}`,"#logic/"+lu.id,false]);if(pu)tasks.push([`심리학 · ${pu.title}`,"#psy/"+pu.id,false])}
+  if(S.stage>=1)tasks.push(["언어이해 지문 1세트(문단 요약 쓰며)","#leet",false],["추리논증 유형 3문제","#leet",false]);
+  if(S.stage===2)tasks.push(["LEET 논술 한 편","#write/leet",false]);
+  tasks.push([wk>=2?"이번 주 글 "+wk+"편 썼어요":"이번 주 글 "+wk+"편 — 한 편 더",wk%2?"#write/lit":"#write/logic",wk>=2]);
+  $app.innerHTML=`<h2>오늘</h2><p class="muted">${esc(st.name)} · ${streak()}일째 이어서 공부 중</p>
+   <div class="grid"><div class="card"><div class="muted">오늘 카드</div><div class="big">${lg.w}</div></div><div class="card"><div class="muted">오늘 문제</div><div class="big">${lg.c}/${lg.q}</div></div><div class="card"><div class="muted">오늘 공부 시간</div><div class="big">${lg.m}분</div></div></div>
+   <h3 style="margin-top:20px">오늘 할 것</h3><div class="list">${tasks.map(t=>`<a class="item" href="${t[1]}"><span>${esc(t[0])}</span>${t[2]?`<span class="pill g">됨</span>`:`<span class="pill">하기</span>`}</a>`).join("")}</div>
+   ${sampleState==="none"?`<p class="muted" style="margin-top:14px">지금은 Claude 기능(문제 생성·첨삭)을 쓸 수 없는 화면이에요. claude.ai에서 열면 돼요.</p>`:""}`;
+}
+
+// ================= 기록 =================
+function viewStats(){
+  const days=[];for(let k=13;k>=0;k--){const d=TODAY()-k;days.push([dayStr(d),S.logs[d]||{w:0,q:0,c:0,m:0,ch:0}])}
+  const mx=Math.max(1,...days.map(d=>d[1].m));
+  const tags=Object.entries(S.tags).filter(([t,v])=>v.c+v.w>=3).map(([t,v])=>[t,Math.round(v.c/(v.c+v.w)*100),v.c+v.w]).sort((a,b)=>a[1]-b[1]);
+  $app.innerHTML=`<h2>기록</h2><div class="card"><h3>최근 2주 공부 시간</h3>
+   <svg viewBox="0 0 700 180" role="img" aria-label="최근 2주 공부 시간">${days.map((d,k)=>{const h=Math.round(d[1].m/mx*120);return `<rect x="${k*50+8}" y="${140-h}" width="34" height="${h}" fill="#1d5a66"><link rel="apple-touch-icon" href="icon.png"><link rel="icon" type="image/png" href="icon.png">
+<title>${d[0]} ${d[1].m}분</title></rect><text x="${k*50+25}" y="160" text-anchor="middle">${d[0]}</text>${d[1].m?`<text x="${k*50+25}" y="${134-h}" text-anchor="middle">${d[1].m}</text>`:""}`}).join("")}</svg></div>
+   <div class="card" style="margin-top:12px"><h3>유형별 정답률 (낮은 순)</h3>${tags.length?`<table><tr><th>유형</th><th>정답률</th><th>푼 수</th></tr>${tags.map(t=>`<tr><td>${esc(t[0])}</td><td>${t[1]}%</td><td>${t[2]}</td></tr>`).join("")}</table>`:`<p class="muted">한 유형을 3문제 넘게 풀면 보여요.</p>`}</div>
+   <div class="grid" style="margin-top:12px"><div class="card"><div class="muted">익힌 개념어</div><div class="big">${wq().known}</div></div><div class="card"><div class="muted">쓴 글</div><div class="big">${S.drafts.length}</div></div><div class="card"><div class="muted">논리학 통과</div><div class="big">${LOGIC.filter(u=>S.done[u.id]>=80).length}/${LOGIC.length}</div></div><div class="card"><div class="muted">심리학 통과</div><div class="big">${PSY.filter(u=>S.done[u.id]>=80).length}/${PSY.length}</div></div></div>`;
+}
+
+// ================= 화면 전환 =================
+function route(){busy=false;const h=(location.hash||"#home").slice(1),[v,a,b]=h.split("/");
+  document.querySelectorAll("#nav a").forEach(x=>x.classList.toggle("on",x.getAttribute("href")==="#"+v));
+  if(v==="logic")a?viewUnit(LOGIC,"logic",a,"논리학"):viewUnits(LOGIC,"logic","논리학","LEET 추리논증과 논리적 글쓰기의 뼈대. 단원마다 확인 문제 80점이 넘으면 통과예요.");
+  else if(v==="psy")a?viewUnit(PSY,"psy",a,"심리학"):viewUnits(PSY,"psy","심리학 · 융을 중심으로","융의 분석심리학 아홉 단원과 다른 심리학 비교 한 단원. 단원마다 '글쓰기에 쓰는 법'이 붙어 있어요.");
+  else if(v==="write")a&&KINDS[a]?editor(a,b):viewWrite();
+  else ({home:viewHome,plan:viewPlan,words:viewWords,leet:viewLeet,review:viewReview,stats:viewStats}[v]||viewHome)();
+  window.scrollTo(0,0)}
+window.addEventListener("hashchange",route);
+document.getElementById("nav").addEventListener("click",e=>{const x=e.target.closest("a");if(x&&x.getAttribute("href")===location.hash){e.preventDefault();route()}});
+$app.addEventListener("click",e=>{const x=e.target.closest("a[href^='#']");if(x&&x.getAttribute("href")===location.hash){e.preventDefault();route()}});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)flush()});
+initStore();
+})();
+</script>
+</body>
+</html>

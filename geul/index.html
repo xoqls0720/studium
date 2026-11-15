@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="생각과 글">
+<link rel="apple-touch-icon" href="icon.png"><link rel="icon" type="image/png" href="icon.png">
+<title>생각과 글 · LEET·논리·심리·글쓰기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  /* 한 권의 학습 노트: 흰 종이, 검정 글씨, 진한 청록은 '눌러야 할 것'에만 */
+  --paper:#fcfcfa; --card:#ffffff; --ink:#000000; --sub:#4a4f52; --line:#d8dcdc;
+  --accent:#1d5a66; --accent-soft:#e3eff1; --good:#2d7a4b; --good-soft:#e5f3ea; --bad:#b0281c; --bad-soft:#fbe9e7; --warn:#8a5a00; --warn-soft:#fbf1dc;
+  --font:"Gowun Batang","MaruBuri","Nanum Myeongjo","AppleMyungjo",serif;
+  --en:Georgia,"Times New Roman",serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:18px;line-height:1.6}
+button{font-family:inherit;font-size:1rem;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+header{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px 6px;max-width:960px;margin:0 auto}
+.top h1{font-size:1.25rem;margin:0}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:2px 12px;font-size:.8rem;color:var(--sub);white-space:nowrap}
+nav{display:flex;gap:4px;overflow-x:auto;padding:4px 16px 8px;max-width:960px;margin:0 auto}
+nav a{flex:0 0 auto;text-decoration:none;color:var(--ink);padding:8px 14px;border-radius:10px;font-size:.95rem}
+nav a.on{background:var(--accent);color:#fff}
+main{max-width:960px;margin:0 auto;padding:20px}
+h2{font-size:1.4rem;margin:.2rem 0 1rem;text-wrap:balance}
+h3{font-size:1.1rem;margin:0 0 .5rem;text-wrap:balance}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.big{font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.muted{color:var(--sub);font-size:.9rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:12px;padding:12px 18px;min-height:48px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.bad{background:var(--bad);border-color:var(--bad)} .btn.good{background:var(--good);border-color:var(--good)}
+.btn.sm{min-height:36px;padding:4px 12px;font-size:.9rem}
+.btn:disabled{opacity:.4;cursor:default}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;text-align:left;width:100%;text-decoration:none;color:inherit}
+.pill{font-size:.8rem;border-radius:999px;padding:2px 10px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.pill.g{background:var(--good-soft);color:var(--good)} .pill.b{background:var(--bad-soft);color:var(--bad)} .pill.w{background:var(--warn-soft);color:var(--warn)}
+.flash{min-height:300px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:10px}
+.flash .w{font-size:2.6rem;font-weight:700;font-family:var(--en)}
+.q{font-size:1.15rem;font-family:var(--en);margin:12px 0 14px}
+.passage{font-family:var(--en);white-space:pre-wrap;background:#fafafa;border:1px solid var(--line);border-radius:12px;padding:14px 16px;max-height:46vh;overflow:auto;margin:12px 0;font-size:1rem;line-height:1.65}
+.opts{display:grid;gap:10px}
+.opt{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:14px 16px;text-align:left;min-height:52px;cursor:pointer;font-family:var(--en)}
+.opt.ok{border-color:var(--good);background:var(--good-soft)} .opt.no{border-color:var(--bad);background:var(--bad-soft)}
+.pic{border:1px solid var(--line);border-radius:12px;background:#fff;margin:14px 0;padding:6px}
+.pic svg{display:block;width:100%;height:auto;max-height:340px}
+.ex{margin-top:14px;padding:14px 16px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 12px 12px 0;white-space:pre-wrap}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden} .bar i{display:block;height:100%;background:var(--accent)}
+ul.pts{padding-left:1.2rem;margin:.4rem 0 1rem} ul.pts li{margin:.3rem 0}
+input,select{font-family:inherit;font-size:1rem;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);min-height:44px}
+svg text{font-family:var(--font);fill:var(--sub);font-size:12px}
+.en{font-family:var(--en)}
+.sep{height:1px;background:var(--line);margin:18px 0}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;min-height:40px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.timer{font-variant-numeric:tabular-nums;font-weight:700}
+.timer.low{color:var(--bad)}
+table{border-collapse:collapse;width:100%} td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+.stage{border-left:4px solid var(--line);padding-left:14px} .stage.now{border-left-color:var(--accent)} .stage.done{border-left-color:var(--good)}
+@media (prefers-reduced-motion:no-preference){.opt,.btn,.item{transition:background .15s,border-color .15s}}
+.pr{color:var(--sub);font-size:.88em;letter-spacing:.01em}
+.pr b{color:#000}
+.ipa{font-family:"Times New Roman","Noto Serif","Charis SIL",serif;color:var(--sub)}
+.prlist{margin:10px 0 0;padding:10px 14px;border:1px dashed var(--line);border-radius:10px;background:#fff}
+.prlist div{margin:4px 0}
+.prdoc{background:#fff}
+.prdoc h1{font-size:1.5em;margin:0 0 4px}
+.prdoc h2{font-size:1.15em;margin:22px 0 6px;border-bottom:2px solid #000;padding-bottom:4px}
+.prdoc table{width:100%;border-collapse:collapse;margin:8px 0}
+.prdoc th,.prdoc td{border:1px solid #777;padding:5px 8px;text-align:left;font-size:.92em}
+.prdoc ul{margin:6px 0;padding-left:20px}
+.prdoc .wq{border:1px solid #777;border-radius:8px;padding:10px 12px;margin:10px 0;page-break-inside:avoid}
+.prdoc .blank{color:#555;border-bottom:1px solid #999;display:inline-block;min-width:78%}
+@media print{header,.noprint{display:none!important}body{background:#fff;color:#000;font-size:11.5pt}main{max-width:none;padding:0;margin:0}}
+
+.flash .w{font-family:var(--font);font-size:2.2rem}
+.hanja{color:var(--sub);font-size:1rem}
+textarea{width:100%;min-height:42vh;font-family:var(--font);font-size:1.05rem;line-height:1.8;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;color:#000;resize:vertical}
+textarea.short{min-height:110px}
+.passage{font-family:var(--font)} .q,.opt{font-family:var(--font)}
+.tech{border-left:4px solid var(--line);padding:4px 0 4px 14px;margin:12px 0}
+.tech b{display:block}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:8px 0}
+details summary{cursor:pointer;font-weight:700}
+.fb{white-space:pre-wrap}
+.fb h4{margin:14px 0 4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="top"><h1>생각과 글</h1><span class="chip" id="sync">저장 준비 중</span></div>
+  <nav id="nav">
+    <a href="#home">오늘</a><a href="#plan">플랜</a><a href="#words">개념어</a><a href="#logic">논리학</a><a href="#leet">LEET</a><a href="#psy">심리학</a><a href="#write">글쓰기</a><a href="#review">오답</a><a href="#stats">기록</a>
+  </nav>
+</header>
+<main id="app"></main>
+<script>
+// ── 생각과 글: 기본 자료 ──────────────────────────────────────────
+// 전부 이 앱을 위해 새로 쓴 설명·예문·문제. 실제 LEET 기출 지문은 저작권 때문에 넣지 않는다.
+
+// 개념어·논리어 [단어, 한자·원어, 뜻, 예문, 헷갈리는 짝·쓰임]
+const WORDS = [
+ // 논리 연결 — 글의 뼈대를 만드는 말
+ ["그러므로","—","앞의 내용이 근거가 되어 뒤의 결론이 나옴","모든 사람은 죽는다. 그러므로 소크라테스도 죽는다.","'그래서'보다 논리적 귀결이 강하다. 근거가 충분할 때만 쓴다.","논리 연결"],
+ ["그럼에도","—","앞의 사실을 인정하면서도 반대되는 내용을 이어 감","근거는 약하다. 그럼에도 그 주장에는 귀 기울일 만한 데가 있다.","'그러나'는 단순 대립, '그럼에도'는 앞을 인정한 뒤의 대립(양보).","논리 연결"],
+ ["요컨대","要―","앞의 내용을 간추려 핵심만 말하면","요컨대 문제는 제도가 아니라 사람이다.","결론·요약 신호. 언어이해에서 필자 견해가 나오는 자리.","논리 연결"],
+ ["물론 ~ 그러나","—","예상되는 반론을 먼저 인정하고 내 주장으로 돌아옴","물론 효율도 중요하다. 그러나 효율만으로 정의를 말할 수는 없다.","반론 처리의 기본 틀. 논술 고득점 구조.","논리 연결"],
+ ["가령","假令","예를 들어 가정하자면","가령 모든 거짓말이 금지된다면, 숨겨 준 사람의 행방을 묻는 살인자에게도 진실을 말해야 한다.","'예컨대'는 실제 예, '가령'은 가정한 예.","논리 연결"],
+ ["즉","卽","앞말을 다른 말로 바꾸어 정확히 함","타당한 논증, 즉 전제가 참이면 결론이 반드시 참인 논증.","재진술(패러프레이즈) 신호 — 핵심 정의가 나오는 자리.","논리 연결"],
+ ["오히려","—","예상과 반대로 / 앞보다 차라리","규제가 시장을 망친다고 했지만, 오히려 신뢰를 만들어 거래를 늘렸다.","통념 뒤집기 신호. 필자의 진짜 주장이 오는 자리.","논리 연결"],
+ ["반면","反面","앞과 대조되는 다른 면에서는","귀납은 지식을 넓힌다. 반면 확실성은 잃는다.","두 대상의 대비. 비교·대조 문단의 핵심 접속어.","논리 연결"],
+ // 추론·논증
+ ["전제","前提","결론을 끌어내는 근거가 되는 명제","이 논증의 숨은 전제는 '경제성장은 곧 행복'이라는 생각이다.","결론 ↔ 전제. '숨은 전제' 찾기가 추리논증의 단골.","추론·논증"],
+ ["결론","結論","전제들로부터 이끌어 낸 주장","결론이 전제에 이미 들어 있으면 순환논증이다.","주장(claim)과 같은 자리.","추론·논증"],
+ ["논증","論證","전제를 들어 결론이 옳음을 보이는 글·말의 짜임","좋은 논증은 전제가 참이고 짜임이 타당하다.","'설명'은 왜 그런지를 밝힘, '논증'은 그렇다고 믿을 이유를 댐.","추론·논증"],
+ ["타당성","妥當性","전제가 모두 참이면 결론이 반드시 참이 되는 논증의 형식적 성질","전제가 거짓이어도 논증은 타당할 수 있다.","타당성(형식) ≠ 건전성(타당 + 전제가 실제로 참).","추론·논증"],
+ ["건전성","健全性","타당하면서 전제가 실제로 모두 참인 성질","건전한 논증의 결론은 반드시 참이다.","타당성과 짝으로 외운다.","추론·논증"],
+ ["연역","演繹","일반 원리에서 개별 결론을 필연적으로 끌어냄","연역은 새 지식을 주지 않지만 확실하다.","↔ 귀납: 개별 사례에서 일반 결론을 개연적으로 끌어냄.","추론·논증"],
+ ["귀납","歸納","여러 사례에서 일반 원리를 개연적으로 끌어냄","백 마리 백조가 희다고 모든 백조가 흰 것은 아니다 — 귀납의 한계.","결론이 '그럴듯함'에 그친다(개연성).","추론·논증"],
+ ["유비 추론","類比推論","비슷한 점을 근거로 다른 점도 비슷하리라 추론함","쥐에게 효과가 있었으니 사람에게도 있으리라는 추론은 유비다.","약점: 비교 대상 사이의 '중요한 차이'.","추론·논증"],
+ ["필요조건","必要條件","그것이 없으면 결과도 없는 조건(B 없으면 A 없음)","산소는 불이 타기 위한 필요조건이지만 충분조건은 아니다.","'A이면 B'에서 B는 A의 필요조건, A는 B의 충분조건.","추론·논증"],
+ ["충분조건","充分條件","그것만 있으면 결과가 반드시 따르는 조건","비가 오는 것은 땅이 젖기 위한 충분조건이다.","필요조건과 반드시 짝으로.","추론·논증"],
+ ["대우","對偶","'A이면 B'를 'B가 아니면 A가 아니다'로 바꾼 명제. 원명제와 참·거짓이 같다","'사람이면 죽는다'의 대우는 '죽지 않으면 사람이 아니다'.","역(B이면 A)·이(A가 아니면 B가 아니다)는 원명제와 참·거짓이 같지 않다.","추론·논증"],
+ ["모순","矛盾","둘 중 하나는 반드시 참, 하나는 반드시 거짓인 관계","'모든 학생이 왔다'와 '어떤 학생은 오지 않았다'는 모순이다.","반대(contrary)는 둘 다 거짓일 수 있다 — '모두 왔다' vs '아무도 안 왔다'.","추론·논증"],
+ ["반례","反例","일반 주장이 틀렸음을 보여 주는 하나의 사례","검은 백조 한 마리가 '모든 백조는 희다'의 반례다.","전칭 명제를 깨는 가장 강한 무기.","추론·논증"],
+ ["함의","含意","겉으로 말하지 않았지만 논리적으로 따라 나오는 뜻","'그는 이번엔 지각하지 않았다'는 전에 지각했음을 함의한다.","'함축'과 비슷. 선택지 '~를 전제한다/함축한다' 판단의 핵심.","추론·논증"],
+ ["개연성","蓋然性","그럴 가능성이 높은 정도(확실하지는 않음)","목격자 진술은 개연성을 높일 뿐 증명하지는 않는다.","필연성 ↔ 개연성.","추론·논증"],
+ ["강화 · 약화","强化·弱化","새 정보가 주장(가설)을 더 그럴듯하게 / 덜 그럴듯하게 만듦","대조군에서도 같은 효과가 나타났다면 그 가설은 약화된다.","추리논증 '논증 평가' 유형의 기본 동사.","추론·논증"],
+ ["상관관계 · 인과관계","相關·因果","함께 변함 / 하나가 다른 하나를 일으킴","아이스크림 판매와 익사 사고는 상관있지만 인과는 아니다 — 둘 다 더위 때문.","제3의 원인(교란 변수)을 먼저 의심한다.","추론·논증"],
+ ["오류","誤謬","그럴듯하지만 잘못된 추론","상대의 주장을 비틀어 공격하는 것은 허수아비 오류다.","형식적 오류(구조) / 비형식적 오류(내용·말).","추론·논증"],
+ // 인식·철학
+ ["실존","實存","미리 정해진 본질보다 먼저, 지금 여기 존재하며 선택하는 인간의 있음","사르트르는 실존이 본질에 앞선다고 했다.","본질(그것을 그것이게 하는 성질)과 짝.","인식·철학"],
+ ["본질","本質","어떤 것을 바로 그것이게 하는 변하지 않는 성질","삼각형의 본질은 세 변으로 둘러싸인 도형이라는 것이다.","↔ 현상(겉으로 드러난 모습).","인식·철학"],
+ ["주체 · 대상","主體·對象","인식하고 행하는 쪽 / 인식되고 다루어지는 쪽","사람을 대상으로만 대할 때 그는 주체로 존중받지 못한다.","칸트: 사람을 수단으로만 대하지 말고 목적으로 대하라.","인식·철학"],
+ ["타자","他者","나와 다른, 나로 환원되지 않는 존재","레비나스는 타자의 얼굴에서 윤리가 시작된다고 보았다.","단순한 '남'보다 철학적 무게가 있다.","인식·철학"],
+ ["소외","疏外","인간이 자기가 만든 것(노동·제도)에서 멀어지고 오히려 지배받는 상태","분업이 심해질수록 노동자는 자기 노동에서 소외된다.","마르크스·실존주의 글의 핵심어.","인식·철학"],
+ ["환원","還元","복잡한 것을 더 단순한 요소로 바꾸어 설명함","마음을 뇌의 화학 작용으로만 설명하는 것은 환원주의다.","'환원할 수 없다' = 그 무엇으로도 바꾸어 설명할 수 없다.","인식·철학"],
+ ["선험적 · 경험적","先驗的·經驗的","경험에 앞서 알 수 있는 / 경험을 통해 아는","2+2=4는 선험적으로, 오늘 비가 온다는 것은 경험적으로 안다.","아 프리오리 ↔ 아 포스테리오리.","인식·철학"],
+ ["상대주의","相對主義","옳고 그름·참과 거짓이 관점이나 문화에 따라 달라진다는 입장","'모든 것은 상대적이다'라는 말도 상대적이라면 자기모순에 빠진다.","절대주의와 짝. 자기 지시 모순이 단골 비판.","인식·철학"],
+ ["공리주의","功利主義","최대 다수의 최대 행복을 낳는 행위가 옳다는 윤리 이론","공리주의는 소수의 희생을 정당화할 위험이 있다.","↔ 의무론(결과가 아니라 의무·원칙이 옳음을 정함).","인식·철학"],
+ ["의무론","義務論","결과와 상관없이 지켜야 할 도덕 원칙이 있다는 입장","의무론자는 좋은 결과를 위해서라도 거짓말은 안 된다고 본다.","칸트가 대표. 공리주의와 대립 구도로 자주 출제.","인식·철학"],
+ ["패러다임","paradigm","한 시대 과학자 공동체가 공유하는 문제·방법의 틀","쿤은 과학이 패러다임의 전환으로 발전한다고 보았다.","혁명적 전환 ↔ 정상과학.","인식·철학"],
+ ["반증 가능성","反證可能性","경험으로 틀렸음이 드러날 수 있는 성질 — 포퍼의 과학 기준","어떤 결과로도 반박할 수 없는 이론은 과학이 아니라고 포퍼는 말했다.","검증보다 반증. 추리논증 과학철학 지문 단골.","인식·철학"],
+ // 사회·인문
+ ["정당성","正當性","이치에 맞고 옳다고 인정되는 성질(특히 권력·제도)","선거로 뽑혔다는 것만으로 모든 정책의 정당성이 생기지는 않는다.","합법성(법에 맞음) ≠ 정당성(옳다고 인정됨).","사회·인문"],
+ ["공공성","公共性","특정인이 아니라 사회 구성원 모두와 관련되는 성질","공원의 공공성은 누구나 들어올 수 있다는 데 있다.","사적 이익과 대비.","사회·인문"],
+ ["담론","談論","어떤 주제에 대해 사회적으로 형성된 말과 생각의 체계","미의 기준은 시대의 담론이 만든다.","푸코식 글에서 '지식-권력'과 함께.","사회·인문"],
+ ["이데올로기","ideology","한 집단의 이해를 자연스러운 진리처럼 보이게 하는 생각의 체계","노력하면 누구나 성공한다는 믿음도 이데올로기일 수 있다.","중립적으로는 '관념 체계', 비판적으로는 '허위의식'.","사회·인문"],
+ ["외부효과","外部效果","거래 당사자가 아닌 제3자에게 대가 없이 미치는 이익·손해","공장 매연은 부정적 외부효과다.","시장 실패의 대표 원인 — 경제 지문 단골.","사회·인문"],
+ ["기회비용","機會費用","어떤 선택 때문에 포기한 다른 선택 중 가장 큰 가치","공부한 세 시간의 기회비용은 그 시간에 벌 수 있었던 돈이다.","매몰비용(이미 써서 돌이킬 수 없는 비용)과 구별.","사회·인문"],
+ ["죄형법정주의","罪刑法定主義","무엇이 범죄이고 어떤 벌을 받는지 미리 법률로 정해야 한다는 원칙","소급 처벌 금지는 죄형법정주의에서 나온다.","추리논증 법학 지문의 기본 원리.","사회·인문"],
+ ["비례의 원칙","比例의 原則","국가가 기본권을 제한할 때 목적에 비해 지나치지 않아야 한다는 원칙","목적의 정당성·수단의 적합성·피해의 최소성·법익의 균형.","헌법 판단의 뼈대 4단계.","사회·인문"],
+ // 문학·수사
+ ["은유","隱喩","'~같이' 없이 A를 B라고 바로 말해 겹쳐 보이게 하는 비유","내 마음은 호수다.","직유(~처럼)보다 압축이 강하다. 상투 은유는 피한다.","문학·수사"],
+ ["환유","換喩","관련 있는 다른 것으로 대신 가리킴","'청와대가 발표했다'는 장소로 기관을 가리킨 환유다.","은유는 닮음, 환유는 인접.","문학·수사"],
+ ["상징","象徵","구체적 사물이 추상적 의미를 넓게 품게 하는 표현","끝에 다시 나오는 낡은 시계는 멈춘 관계를 상징한다.","은유보다 의미가 열려 있다 — 해석의 여지.","문학·수사"],
+ ["아이러니","irony","겉으로 말한 것과 속뜻, 기대와 결과가 어긋나는 데서 생기는 효과","구조대가 가장 늦게 도착한 사람이었다.","반어(말의 아이러니)·상황의 아이러니.","문학·수사"],
+ ["역설","逆說","모순처럼 보이지만 그 속에 진실을 담은 표현","가장 큰 소리는 침묵이었다.","↔ 모순: 역설은 깊은 뜻이 있다.","문학·수사"],
+ ["객관적 상관물","客觀的 相關物","감정을 직접 말하지 않고 그 감정을 불러일으키는 사물·장면으로 전함","그는 식은 국을 오래 저었다. — 슬픔이라는 말 없이 슬픔을 전한다.","엘리엇의 개념. '보여 주기'의 핵심 기법.","문학·수사"],
+ ["시점","視點","이야기를 누가, 어느 거리에서 전하는가","1인칭 관찰자 시점은 주인공의 속을 끝내 알 수 없게 둔다.","전지적·3인칭 관찰자·1인칭 주인공·1인칭 관찰자.","문학·수사"],
+ ["여운","餘韻","글이 끝난 뒤에도 남아 울리는 느낌","결론을 말하지 않고 사물 하나로 끝내 여운을 남겼다.","봉합(다 설명해 닫음)과 반대.","문학·수사"],
+ ["행간","行間","직접 쓰지 않았지만 글 사이에서 읽히는 뜻","행간에 그리움이 배어 있다.","'행간을 읽다' — 언어이해의 추론 문항과 같은 능력.","문학·수사"],
+ ["낯설게 하기","defamiliarization","익숙한 것을 낯설게 그려 새로 보게 하는 기법","매일 타던 버스를 처음 타는 사람처럼 묘사한다.","러시아 형식주의의 핵심 개념.","문학·수사"],
+ // 심리
+ ["무의식","無意識","의식하지 못하지만 생각·행동에 영향을 주는 마음의 영역","그는 무의식적으로 아버지의 말투를 따라 한다.","프로이트: 억압된 것의 창고 / 융: 창조의 원천이기도.","심리"],
+ ["투사","投射","자기 안의 받아들이기 힘든 면을 남에게 있는 것으로 봄","그는 자기 질투를 남이 자신을 질투한다고 투사했다.","융: 그림자는 대개 투사로 먼저 만난다.","심리"],
+ ["승화","昇華","받아들여지기 어려운 충동을 예술·일 같은 가치 있는 활동으로 바꿈","그는 슬픔을 노래로 승화시켰다.","방어기제 가운데 가장 성숙한 것으로 본다.","심리"],
+ ["원형","原型 · archetype","인류에게 공통으로 물려받은 마음의 기본 틀(어머니·영웅·그림자 등)","영웅 신화가 문화마다 비슷한 것은 원형 때문이라고 융은 보았다.","원형 자체는 볼 수 없고 원형적 이미지로 드러난다.","심리"],
+ ["페르소나","persona","사회에 보여 주는 가면 같은 인격","직장에서의 친절은 그의 페르소나다.","페르소나와 자신을 동일시하면 내면이 메마른다.","심리"],
+ ["그림자","shadow","의식이 인정하지 않는 자기 안의 어두운(또는 미발달한) 면","남에게 유난히 화가 나는 지점에 내 그림자가 있다.","무조건 악이 아니라 통합해야 할 미발달한 가능성.","심리"],
+ ["개성화","個性化 · individuation","의식과 무의식을 통합해 온전한 자기(Self)가 되어 가는 평생의 과정","융은 중년의 위기를 개성화의 계기로 보았다.","남과 달라지는 '개성 추구'와 다르다.","심리"],
+ ["양가감정","兩價感情","같은 대상에 사랑과 미움처럼 반대되는 감정을 함께 품음","떠나고 싶으면서 붙잡히고 싶은 양가감정.","문학적 글에서 인물을 깊게 만드는 재료.","심리"],
+];
+
+// 논리학 10단원 {id, title, sum, pts, q:[[문제, 보기, 정답 번호, 해설]]}
+const LOGIC = [
+ {id:"l1",title:"논증이란 무엇인가",sum:"논증은 '이것을 믿어야 하는 이유'를 대는 짜임이다. 결론을 먼저 찾고, 그 결론을 받치는 문장(전제)을 찾는다.",
+  pts:["결론 신호: 그러므로, 따라서, 요컨대, ~해야 한다, ~라고 할 수 있다","전제 신호: 왜냐하면, ~이므로, ~이기 때문에, 그 근거로","설명은 이미 받아들인 사실의 이유를 밝히고, 논증은 아직 받아들이지 않은 주장을 믿게 하려 한다","숨은 전제: 말하지 않았지만 결론에 이르려면 꼭 필요한 전제 — 추리논증 단골"],
+  q:[["다음 중 논증인 것은?",["창밖이 젖어 있다.","길이 미끄러운 것은 밤새 눈이 왔기 때문이다.","그는 성실하므로 이 일을 맡길 만하다.","나는 커피를 좋아한다.","내일은 월요일이다."],2,"③은 '성실하다'를 근거로 '맡길 만하다'는 주장을 믿게 하려 한다. ②는 이미 일어난 일(미끄러움)의 원인을 밝히는 설명이다."],
+     ["'담배는 해롭다. 그러므로 금지해야 한다.' 이 논증의 숨은 전제로 가장 알맞은 것은?",["담배는 비싸다.","해로운 것은 금지해야 한다.","모든 사람이 담배를 피운다.","금지는 효과가 없다.","담배는 중독성이 있다."],1,"'해롭다' → '금지해야 한다' 사이를 잇는 일반 원칙이 빠져 있다. 그 원칙(해로우면 금지)이 숨은 전제다. 이 전제를 공격하면 논증이 무너진다(술도 해로운데?)."]]},
+ {id:"l2",title:"연역과 귀납",sum:"연역은 확실하지만 새 정보가 없고, 귀납은 정보를 넓히지만 확실하지 않다. 추리논증의 '원리 적용'은 연역, '가설-실험'은 귀납이다.",
+  pts:["연역: 전제가 참이면 결론이 반드시 참 — 일반에서 개별로","귀납: 전제가 참이어도 결론은 개연적 — 개별에서 일반으로","귀납의 강도는 표본의 크기·대표성, 반례의 유무로 정해진다","가추(최선의 설명 추론): 관찰을 가장 잘 설명하는 가설을 고름 — 과학 지문"],
+  q:[["다음 중 연역 추론은?",["까마귀 천 마리가 모두 검었으니 모든 까마귀는 검다.","모든 포유류는 폐로 숨 쉰다. 고래는 포유류다. 그러므로 고래는 폐로 숨 쉰다.","어제도 오늘도 해가 떴으니 내일도 뜰 것이다.","이 약을 먹은 쥐가 나았으니 사람도 나을 것이다.","발자국이 크니 범인은 키가 클 것이다."],1,"②는 전제가 참이면 결론이 반드시 참이다. ①③은 귀납, ④는 유비, ⑤는 가추(최선의 설명)."],
+     ["귀납 논증을 가장 크게 약화시키는 것은?",["표본의 수를 늘린다.","조사 대상이 한 지역에만 몰려 있었다는 사실이 밝혀진다.","같은 결과가 다른 연구에서도 나온다.","결론을 더 조심스럽게 표현한다.","조사 기간을 늘린다."],1,"표본이 대표성을 잃으면(한 지역 편중) 일반화가 무너진다. ①③⑤는 강화, ④는 결론을 약하게 만들어 논증을 오히려 버티게 한다."]]},
+ {id:"l3",title:"타당성과 건전성",sum:"타당성은 형식의 문제다. 전제가 거짓이어도 타당할 수 있고, 결론이 참이어도 부당할 수 있다.",
+  pts:["타당: 전제가 모두 참인데 결론이 거짓인 경우가 '불가능'","건전: 타당 + 전제가 실제로 모두 참","부당한 논증의 결론도 우연히 참일 수 있다","판단 요령: 내용을 지우고 A·B 같은 기호로 바꿔 형식만 본다"],
+  q:[["'모든 고양이는 날 수 있다. 나비는 고양이다. 그러므로 나비는 날 수 있다.'에 대한 설명으로 옳은 것은?",["타당하고 건전하다.","타당하지만 건전하지 않다.","부당하지만 건전하다.","부당하고 결론도 거짓이다.","결론이 참이므로 타당하다."],1,"형식(모든 A는 B, C는 A, 그러므로 C는 B)은 타당하다. 하지만 전제가 거짓이므로 건전하지 않다. 결론이 우연히 참인 것은 타당성과 무관하다(⑤ 오답)."]]},
+ {id:"l4",title:"조건문: 필요조건·충분조건·대우",sum:"'A이면 B'는 A가 B의 충분조건, B가 A의 필요조건이라는 뜻이다. 원명제와 언제나 같은 것은 대우뿐이다.",
+  pts:["A이면 B = A는 B의 충분조건 = B는 A의 필요조건","대우(B가 아니면 A가 아니다)는 항상 원명제와 같다","역(B이면 A)과 이(A가 아니면 B가 아니다)는 같지 않다 — 후건 긍정·전건 부정의 오류","'A일 때만 B' = 'B이면 A' (only if는 필요조건을 이끈다)","'A가 아니면 B' = 'A 또는 B'"],
+  q:[["'시험에 합격하려면 기출을 풀어야 한다.'와 같은 뜻은?",["기출을 풀면 시험에 합격한다.","시험에 합격하지 않으면 기출을 풀지 않은 것이다.","기출을 풀지 않으면 시험에 합격하지 못한다.","기출을 풀어도 합격하지 못할 수 없다.","합격과 기출은 상관없다."],2,"'합격하려면 기출'은 '합격 → 기출'(기출은 필요조건). 그 대우가 '기출 X → 합격 X'인 ③이다. ①은 역으로 오류."],
+     ["'비가 오면 길이 젖는다. 길이 젖었다. 그러므로 비가 왔다.'의 문제는?",["전건 긍정","후건 긍정의 오류","대우를 쓴 타당한 추론","전건 부정의 오류","문제없음"],1,"결과(후건)가 참이라고 원인(전건)이 참인 것은 아니다 — 물을 뿌려도 길은 젖는다. 후건 긍정의 오류."]]},
+ {id:"l5",title:"'모든'과 '어떤' — 양화 명제",sum:"'모든 A는 B'의 부정은 '어떤 A는 B가 아니다'다. '모든 A는 B가 아니다'가 아니다.",
+  pts:["전칭 긍정(모든 A는 B) ↔ 특칭 부정(어떤 A는 B가 아니다): 모순","전칭 부정(어떤 A도 B가 아니다) ↔ 특칭 긍정(어떤 A는 B다): 모순","'모든'과 '어떤도 아니다'는 반대 — 둘 다 거짓일 수 있다","벤 다이어그램으로 그려 보면 헷갈리지 않는다"],
+  q:[["'모든 학생이 그 책을 읽었다'가 거짓일 때 반드시 참인 것은?",["어떤 학생도 그 책을 읽지 않았다.","적어도 한 학생은 그 책을 읽지 않았다.","대부분의 학생이 읽지 않았다.","읽은 학생은 한 명도 없다.","모든 학생이 그 책을 싫어한다."],1,"전칭 긍정의 모순은 특칭 부정 — '적어도 하나는 아니다'. ①④는 반대 관계라 반드시 참은 아니다."]]},
+ {id:"l6",title:"형식적 오류",sum:"내용이 아니라 짜임 자체가 잘못된 추론. 기호로 바꾸면 드러난다.",
+  pts:["후건 긍정: A→B, B, 그러므로 A (×)","전건 부정: A→B, ~A, 그러므로 ~B (×)","선언지 긍정: A 또는 B, A, 그러므로 ~B (× — '또는'은 둘 다일 수 있다)","매개념 부주연: 모든 A는 C, 모든 B는 C, 그러므로 모든 A는 B (×)"],
+  q:[["'모든 시인은 감성적이다. 그도 감성적이다. 그러므로 그는 시인이다.'의 오류는?",["순환논증","매개념 부주연(후건 긍정과 같은 구조)","인신공격","성급한 일반화","오류 없음"],1,"감성적인 사람이 모두 시인인 것은 아니다. '감성적'이라는 중간 개념이 둘을 이어 주지 못한다."]]},
+ {id:"l7",title:"비형식적 오류 — 말과 내용의 함정",sum:"짜임은 멀쩡해 보여도 근거가 엉뚱하거나 말이 미끄러지는 오류. 글쓰기에서 내가 저지르기 쉬운 것들이다.",
+  pts:["허수아비: 상대 주장을 약하게 비틀어 공격","인신공격: 주장 대신 사람을 공격","성급한 일반화: 적은 사례로 전체를 판단","순환논증: 결론을 전제에 몰래 넣음","미끄러운 비탈길: 근거 없이 연쇄 파국을 예언","거짓 딜레마: 선택지가 둘뿐인 척","권위·다수에 호소: 누가 말했는지·얼마나 많이 믿는지로 참을 정함","애매어: 한 낱말을 두 뜻으로 섞어 씀"],
+  q:[["'그 경제학자는 이혼을 두 번 했으니 그의 경제 정책도 믿을 수 없다.'의 오류는?",["허수아비","인신공격","순환논증","거짓 딜레마","애매어"],1,"정책의 옳고 그름이 아니라 사람의 사생활을 공격했다."],
+     ["'규제를 조금이라도 풀면 결국 모든 안전장치가 무너진다.'의 오류는?",["미끄러운 비탈길","권위에 호소","성급한 일반화","인신공격","애매어"],0,"한 단계에서 파국까지의 연쇄를 근거 없이 단정했다."]]},
+ {id:"l8",title:"강화와 약화 — 논증 평가",sum:"주장과 근거 사이의 '연결 고리'를 찾고, 새 정보가 그 고리를 튼튼하게 하는지 끊는지 본다.",
+  pts:["먼저 주장(가설)을 한 문장으로 잡는다","약화: 다른 원인 제시, 반례, 표본 문제, 숨은 전제 부정","강화: 다른 원인 배제, 같은 조건에서 반복 확인, 메커니즘 제시","'무관' 선택지 함정: 주제는 같아도 주장의 참·거짓에 영향이 없는 정보"],
+  q:[["'커피를 많이 마시는 사람이 오래 산다. 그러므로 커피는 수명을 늘린다.' 이 주장을 가장 약화하는 것은?",["커피에는 항산화 물질이 있다.","커피를 많이 마시는 사람은 대체로 소득이 높아 의료 접근성이 좋았다.","커피 소비량은 해마다 늘고 있다.","커피를 싫어하는 사람도 있다.","녹차도 수명과 관련이 있다."],1,"소득이라는 제3의 원인이 두 현상을 함께 설명하면 '커피 → 수명'의 인과가 약해진다. ①은 강화, 나머지는 무관."]]},
+ {id:"l9",title:"인과 추론 — 밀의 방법",sum:"원인을 찾는 다섯 방법. 실험 설계 지문은 대부분 일치법·차이법·공변법으로 풀린다.",
+  pts:["일치법: 결과가 나타난 여러 경우에 공통된 요인","차이법: 결과가 나타난 경우와 안 나타난 경우의 유일한 차이","일치차이 병용법","공변법: 요인이 변하면 결과도 함께 변함","잉여법: 알려진 원인을 빼고 남은 결과는 남은 요인 탓","대조군이 없으면 차이법을 쓸 수 없다 — 실험 지문의 단골 함정"],
+  q:[["같은 조건의 두 화분 중 하나에만 비료를 주었더니 그것만 잘 자랐다. 이 추론 방법은?",["일치법","차이법","공변법","잉여법","유비 추론"],1,"다른 조건은 같고 비료 하나만 달랐다 — 유일한 차이가 원인이라는 차이법이다."]]},
+ {id:"l10",title:"원리 적용 — 규정을 사례에 대기",sum:"추리논증에서 가장 많은 유형. 제시된 규정(원리)의 요건을 쪼개고, 사례가 요건을 하나씩 채우는지 기계적으로 확인한다.",
+  pts:["규정을 '요건 → 효과'로 쪼갠다(요건이 여러 개면 '그리고'인지 '또는'인지)","예외 조항('다만')을 먼저 표시한다","사례의 사실관계를 요건에 하나씩 대응시킨다 — 상식으로 판단하지 않는다","용어의 정의가 지문에 있으면 그 정의가 이긴다"],
+  q:[["규정: '도서관 책을 30일 넘게 반납하지 않은 사람은 대출이 정지된다. 다만 입원한 경우는 그렇지 않다.' 대출이 정지되는 사람은?",["25일 늦은 갑","40일 늦었고 그동안 입원한 을","35일 늦었고 여행을 다녀온 병","반납일을 하루 남긴 정","10일 늦고 책을 잃어버린 무"],2,"요건: 30일 초과 + 예외(입원) 아님. 병만 둘 다 채운다. 을은 예외에 걸린다."]]},
+];
+
+// 심리 — 융의 분석심리학 중심 {id, title, sum, pts, use(글쓰기·삶에 쓰는 법), q}
+const PSY = [
+ {id:"p1",title:"융과 분석심리학의 출발",sum:"카를 구스타프 융(1875~1961)은 프로이트와 함께 정신분석을 열었지만, 무의식을 '억압된 성적 욕망의 창고'로만 보는 데 반대해 갈라섰다. 그에게 무의식은 상처의 자리이자 창조와 치유의 원천이었다.",
+  pts:["프로이트: 무의식 = 억압된 개인적 욕망, 리비도 = 성적 에너지","융: 무의식 = 개인무의식 + 집단무의식, 리비도 = 삶 전체의 정신 에너지","마음의 목표: 증상 제거보다 온전함(전체성)","방법: 꿈·상징·신화·그림을 통한 무의식과의 대화"],
+  use:"인물을 만들 때 '무엇을 원하는가'(프로이트)와 '무엇이 되어 가는가'(융)를 함께 묻는다.",
+  q:[["융이 프로이트와 달랐던 점으로 알맞은 것은?",["무의식의 존재를 부정했다.","리비도를 성적 에너지로만 보았다.","무의식에 개인을 넘어선 집단적 층이 있다고 보았다.","꿈을 전혀 중요하게 여기지 않았다.","의식만이 성장의 원천이라고 보았다."],2,"융은 개인무의식 아래 인류 공통의 집단무의식을 상정했다."]]},
+ {id:"p2",title:"의식과 자아, 개인무의식과 콤플렉스",sum:"자아(ego)는 의식의 중심이다. 개인무의식에는 잊히거나 밀려난 경험이 감정의 덩어리, 곧 콤플렉스로 뭉쳐 있다.",
+  pts:["자아: 내가 '나'라고 느끼는 의식의 중심","콤플렉스: 감정이 실린 기억·생각의 덩어리 — 건드려지면 과민해진다","콤플렉스는 병이 아니라 누구에게나 있는 마음의 '마디'","단어 연상 실험: 반응이 늦어지는 낱말에 콤플렉스가 있다"],
+  use:"인물이 이상하게 크게 반응하는 지점 하나를 설계하면, 설명 없이도 과거가 비친다.",
+  q:[["융의 '콤플렉스'에 대한 설명으로 옳은 것은?",["열등감만을 뜻한다.","감정이 실린 심리적 내용의 덩어리다.","의식의 중심이다.","집단무의식의 다른 이름이다.","건강한 사람에게는 없다."],1,"열등감은 콤플렉스의 한 예(아들러가 강조)일 뿐이다."]]},
+ {id:"p3",title:"집단무의식과 원형",sum:"집단무의식은 개인이 겪지 않았어도 인류가 공통으로 물려받은 마음의 층이다. 그 형식이 원형(archetype)이다.",
+  pts:["원형 자체는 볼 수 없고 꿈·신화·이야기의 원형적 이미지로 드러난다","대표 원형: 어머니, 아버지, 영웅, 현자, 아이, 트릭스터, 그림자, 아니마/아니무스, 자기","문화가 달라도 비슷한 신화 구조가 나오는 까닭","캠벨의 '영웅의 여정'(출발-입문-귀환)이 이 생각을 이야기 구조로 옮겼다"],
+  use:"원형을 그대로 쓰면 상투가 되고, 비틀면 깊어진다 — 실패하는 현자, 상처 입은 치유자.",
+  q:[["원형에 대한 설명으로 옳지 않은 것은?",["인류에게 공통적인 마음의 틀이다.","신화와 꿈에서 이미지로 드러난다.","개인이 직접 겪은 경험에서만 생긴다.","영웅·어머니 같은 형태가 있다.","문화마다 다른 옷을 입고 나타난다."],2,"원형은 개인 경험 이전에 물려받은 형식이다. 개인 경험에서 생기는 것은 콤플렉스."]]},
+ {id:"p4",title:"페르소나 — 사회의 얼굴",sum:"페르소나는 고대 연극의 가면에서 온 말이다. 사회에 적응하려고 쓰는 얼굴이며, 그 자체로 나쁘지 않다. 문제는 가면을 자기 얼굴로 믿을 때다.",
+  pts:["역할에 맞는 태도 — 학생, 아들, 직원으로서의 나","페르소나와 동일시(팽창): 직함이 곧 나라고 믿음 → 내면이 메마름","페르소나가 너무 약하면 사회에 다치기 쉽다","중년에 페르소나가 무너지며 개성화가 시작되기도 한다"],
+  use:"인물이 혼자 있을 때와 남 앞에 있을 때의 차이 한 장면이 페르소나를 보여 준다.",
+  q:[["'그는 회사를 그만두자 자신이 아무것도 아닌 것처럼 느꼈다.' 융의 개념으로 가장 알맞은 것은?",["그림자의 투사","페르소나와의 동일시","아니마의 출현","집단무의식","개성화의 완성"],1,"직함(페르소나)을 자기 전체로 여겼기에 그것을 잃자 자기가 사라진 듯했다."]]},
+ {id:"p5",title:"그림자 — 내가 아니라고 믿는 나",sum:"그림자는 자아가 받아들이지 않은 자기 안의 면이다. 대개 남에게 투사된 채로 먼저 만난다 — 유난히 미운 사람 안에.",
+  pts:["그림자 = 악이 아니라 '인정받지 못한 나'(분노, 질투, 때로는 재능과 다정함)","투사: 내 그림자를 남에게서 본다 — 과도한 혐오가 신호","그림자를 통합하면 덜 판단하고 더 이해하게 된다","개인의 그림자 / 집단의 그림자(희생양, 혐오)"],
+  use:"악역에게 주인공의 그림자를 맡기면 대립이 곧 내면의 싸움이 된다. 에세이에서는 '내가 미워한 것이 사실 나였다'는 깨달음의 구조.",
+  q:[["그림자에 대한 융의 관점으로 알맞은 것은?",["완전히 없애야 할 악이다.","의식이 받아들이지 않은 자기 안의 면으로, 통합할 대상이다.","타인에게만 있다.","페르소나와 같은 것이다.","어린이에게만 나타난다."],1,"융은 그림자를 없애는 것이 아니라 인식하고 통합하는 것을 성장으로 보았다."]]},
+ {id:"p6",title:"아니마와 아니무스 — 내 안의 다른 성",sum:"융은 남성 무의식의 여성적 면을 아니마, 여성 무의식의 남성적 면을 아니무스라 했다. 사랑에 빠질 때 상대에게 투사되기 쉽다. 오늘날에는 성별 고정관념을 넘어 '내 안의 반대 성향'으로 넓게 읽는다.",
+  pts:["아니마: 감정·관계·영감의 면 / 아니무스: 판단·의지·논리의 면(융의 원래 구도)","첫눈에 반함 = 내 안의 상(像)을 상대에게 투사","통합되면 의식과 무의식을 잇는 다리 역할","융의 제자이자 동료 토니 볼프는 여성 유형을 네 가지로 나눠 이 논의를 넓혔다","비판: 융의 구분은 시대의 성 역할 관념에 묶여 있다"],
+  use:"사랑을 쓰는 글에서 '그 사람'이 아니라 '그 사람에게 내가 비춘 무엇'을 쓰면 깊어진다.",
+  q:[["아니마·아니무스 개념에 대한 설명으로 가장 알맞은 것은?",["실제 이성 친구를 가리킨다.","무의식에 있는 반대 성향의 이미지로, 이성에게 투사되기 쉽다.","의식의 중심이다.","사회적 가면이다.","현대 심리학에서 비판 없이 받아들여진다."],1,"투사와 통합이 핵심. 성 고정관념이라는 비판도 함께 알아 둔다."]]},
+ {id:"p7",title:"자기와 개성화",sum:"자기(Self)는 의식과 무의식 전체의 중심이자 온전함의 원형이다. 개성화는 자아가 자기와 대화하며 온전해져 가는 평생의 과정이다.",
+  pts:["자아(ego) ⊂ 자기(Self): 자아는 의식의 중심, 자기는 전체의 중심","개성화 ≠ 개인주의: 남과 달라지는 것이 아니라 온전한 나가 되는 것","단계(대략): 페르소나 벗기 → 그림자 만나기 → 아니마/아니무스 → 자기","만다라: 자기의 상징 — 원과 사각의 조화"],
+  use:"성장 서사의 뼈대 — 인물이 잃는 것(페르소나)과 마주하는 것(그림자)을 순서대로 놓는다.",
+  q:[["개성화에 대한 설명으로 옳은 것은?",["남들과 최대한 다르게 사는 것이다.","의식과 무의식을 통합해 온전한 자기가 되어 가는 과정이다.","어린 시절에 끝나는 과정이다.","페르소나를 더 강하게 만드는 것이다.","무의식을 없애는 것이다."],1,"개성화는 평생에 걸친 통합의 과정이다."]]},
+ {id:"p8",title:"심리 유형 — 내향·외향과 네 기능",sum:"융은 에너지의 방향(내향·외향)과 네 기능(사고·감정·감각·직관)으로 사람의 유형을 나누었다. MBTI는 이를 바탕으로 나중에 만들어진 검사다.",
+  pts:["내향: 에너지가 안으로 / 외향: 밖으로 — 수줍음과 다르다","판단 기능: 사고(논리) ↔ 감정(가치)","인식 기능: 감각(사실) ↔ 직관(가능성)","주기능의 반대편은 열등 기능 — 무의식에 가깝고 그림자와 얽힌다","MBTI는 융의 이론을 쓴 검사일 뿐, 융 자신이 만든 것은 아니다. 과학적 신뢰도 논쟁이 있다"],
+  use:"인물마다 주기능을 하나 정하면 같은 사건에 대한 반응이 저절로 갈린다.",
+  q:[["융의 심리 유형론에 대한 설명으로 옳은 것은?",["융이 MBTI 검사지를 직접 만들었다.","사고와 감정은 판단 기능, 감각과 직관은 인식 기능이다.","내향은 수줍음과 같은 말이다.","유형은 평생 한 번도 변하지 않는다고 단정했다.","기능은 두 가지뿐이다."],1,"MBTI는 브릭스와 마이어스가 만든 검사다."]]},
+ {id:"p9",title:"동시성과 상징",sum:"동시성(synchronicity)은 인과로 묶이지 않은 마음속 사건과 바깥 사건이 의미 있게 겹치는 경험이다. 융은 상징을 '아직 다 알 수 없는 것의 가장 좋은 표현'이라 했다.",
+  pts:["동시성: 의미 있는 우연 — 과학적 증명 대상이 아니라는 비판이 있다","기호(sign)는 뜻이 정해진 표시, 상징(symbol)은 뜻이 열려 있음","꿈 해석: 공식 사전이 아니라 꿈꾼 사람의 삶과 연결해 읽는다(확충법)"],
+  use:"글에 상징을 쓸 때 뜻을 설명하지 않는다. 설명되는 순간 상징은 기호가 된다.",
+  q:[["융이 말한 상징의 성격으로 알맞은 것은?",["뜻이 하나로 정해진 표시다.","아직 다 알 수 없는 것을 가장 잘 드러내는 열린 표현이다.","교통 표지판 같은 것이다.","설명할수록 힘이 세진다.","의식이 만든 약속이다."],1,"정해진 뜻의 표시는 기호다."]]},
+ {id:"p10",title:"다른 심리학과 견주기",sum:"융만 알면 치우친다. 시험과 글쓰기에서 자주 맞붙는 이론을 함께 둔다.",
+  pts:["프로이트: 이드·자아·초자아, 억압, 방어기제(투사·승화·합리화·부인)","아들러: 열등감과 우월성 추구, 사회적 관심, 출생 순서","에릭슨: 평생 8단계 발달 과제(청년기 = 정체성 대 역할 혼미)","인지행동: 사건이 아니라 해석(자동적 사고)이 감정을 만든다","인본주의(매슬로·로저스): 자기실현, 무조건적 존중"],
+  use:"한 인물의 행동을 세 이론으로 각각 설명해 보면 해석의 폭이 넓어진다 — 논술 '관점 비교' 연습으로도 좋다.",
+  q:[["'시험에 떨어진 것이 아니라 내가 쓸모없다는 생각이 나를 괴롭혔다.' 이를 가장 잘 설명하는 이론은?",["융의 원형론","인지행동 이론의 자동적 사고","에릭슨의 발달 단계","아들러의 출생 순서","프로이트의 이드"],1,"사건에 대한 해석(쓸모없다)이 감정을 만든다는 것이 인지행동의 핵심."]]},
+];
+
+// 글쓰기 기법 카드
+const WRITE_LOGIC = [
+ ["한 문장 주장부터","쓰기 전에 '나는 ~라고 생각한다. 왜냐하면 ~이기 때문이다'를 한 줄로 쓴다. 이 줄이 안 써지면 아직 쓸 준비가 안 된 것이다."],
+ ["주장 – 근거 – 예시 – 반론 – 재반박 – 결론","논리적 글의 기본 뼈대. 반론을 먼저 꺼내 인정한 뒤 넘어서면 글이 단단해진다('물론 ~ 그러나 ~')."],
+ ["문단 하나에 생각 하나","문단 첫 문장(소주제문)이 그 문단의 주장이다. 나머지 문장은 모두 그 문장을 받친다. 소주제문만 이어 읽어도 글 전체가 이해되어야 한다."],
+ ["정의부터 맞추기","논쟁적인 낱말(자유, 정의, 행복)은 글 초반에 '이 글에서 ~는 ~를 뜻한다'로 범위를 정한다. 애매어 오류를 막는다."],
+ ["근거는 셋 중 하나","사실·통계(검증 가능), 원리·이론(일반화된 이유), 사례(구체적 장면). 한 글에 두 종류 이상을 섞으면 설득력이 커진다."],
+ ["양보는 진짜로","허수아비를 세우지 않는다. 반대편이 들으면 '맞아, 그게 우리 주장이야'라고 할 만큼 공정하게 요약한 뒤 반박한다."],
+ ["접속어는 논리의 길표지","그러나·따라서·즉·반면·요컨대를 정확히 쓰면 읽는 사람이 길을 잃지 않는다. 뜻 없이 '그리고'만 이어 쓰지 않는다."],
+ ["결론은 요약 + 한 걸음","본론을 반복하지 말고, 주장이 받아들여지면 무엇이 달라지는지 한 걸음 더 나아가 닫는다."],
+];
+const WRITE_LIT = [
+ ["장면으로 시작","생각이나 설명이 아니라 한 장면(시간·장소·동작)으로 연다. '그날 새벽, 그는 식은 국을 오래 저었다.'"],
+ ["감정 대신 사물·동작·숫자","'슬펐다'를 쓰지 않고 슬픔이 묻은 행동과 물건을 쓴다(객관적 상관물). 가장 직접적인 감정 문장은 글 전체에 한 번, 끝 가까이에만."],
+ ["사물 하나를 심고 되돌려 놓기","처음에 사물 하나(시계, 씨앗, 문틈의 햇빛)를 놓고 마지막에 다시 꺼낸다. 그 사이 사물의 뜻이 달라져 있으면 글이 닫힌다."],
+ ["명제 → 반문 → 하지만 → 바람","생각을 한 번 세우고(명제), 스스로 의심하고(반문), 그럼에도 남는 것을 붙잡고(하지만), 바람으로 닫는다. 깊이는 자기 정정에서 나온다."],
+ ["긴 문장과 짧은 문장의 리듬","흐르는 복문으로 이어 가다가 핵심은 짧게 끊는다. 짧은 문장은 아껴야 무게가 생긴다."],
+ ["상투 표현 지우기","'눈물이 앞을 가렸다', '가슴이 찢어지는' 같은 이미 닳은 비유는 지우고, 그 상황에서만 나올 수 있는 구체로 바꾼다."],
+ ["설명하지 않고 남겨 두기","결론이나 교훈으로 봉합하지 않는다. 독자가 행간에서 스스로 해석하게 여백을 둔다 — 그것이 여운이다."],
+ ["끝 문장은 첫 문장의 답","글을 연 장면이나 질문을 마지막 문단에서 되받는다. 원을 그리며 닫히되 처음과 같은 자리로 돌아오지는 않는다."],
+];
+
+// 글쓰기 과제 (논리·문학·LEET 논술)
+const PROMPTS = {
+ logic:["'효율'과 '공정' 가운데 공동체가 먼저 지켜야 할 가치는 무엇인지 논하라.","인공지능이 쓴 글을 자기 이름으로 제출하는 것은 표절인가.","사형제는 정의를 실현하는가, 해치는가.","'노력하면 누구나 성공한다'는 믿음은 사회에 이로운가.","타인을 완전히 이해하는 것은 가능한가.","법을 지키는 것과 옳은 일을 하는 것이 부딪칠 때 무엇을 택해야 하는가."],
+ lit:["오래 쓰던 물건 하나를 버리는 날을 장면으로 써라. '슬프다'는 말 없이.","말하지 못한 한마디가 있는 저녁을 써라.","내가 가장 미워했던 것이 사실 내 안에 있던 것이었다는 깨달음을 써라(그림자).","같은 길을 두 계절에 걸었다. 달라진 것은 길이 아니었다.","누군가를 기다리는 시간을 사물 하나로만 전하라.","어두운 곳에서도 자란 것에 대해 써라."],
+ leet:["제시문 (가)는 '개인의 자유는 타인에게 해를 끼치지 않는 한 제한될 수 없다'는 입장, (나)는 '공동체의 좋은 삶을 위해 개인의 선택은 일정 부분 제한될 수 있다'는 입장이다. 두 입장을 비교하고, 술·담배 광고 금지 정책에 각각 어떻게 적용될지 논하라.","제시문 (가)는 형벌의 목적을 응보로, (나)는 범죄 예방으로 본다. 두 관점에서 '초범인 청소년의 중범죄'를 어떻게 다뤄야 할지 각각 논하고 자신의 견해를 밝혀라.","제시문 (가)는 과학 이론은 반증 가능해야 한다고, (나)는 과학은 패러다임 안에서 발전한다고 본다. 두 관점의 차이를 설명하고 하나의 과학사 사례를 들어 평가하라."]
+};
+
+// LEET 안내
+const LEET = {
+ parts:[
+  {k:"언어이해",n:"30문항 · 5지선다",d:"인문·사회·과학기술·법·예술 지문을 읽고 내용 일치, 추론, 비판, 적용, 구조 파악 문제를 푼다.",how:["문단마다 한 줄로 요약하며 읽는다 — 끝까지 다 읽고 나서 문제로","개념의 관계(A는 B의 원인/조건/예외/대립)를 표시한다","'필자의 견해'와 '소개된 견해'를 구별한다","선택지를 지문 근거 문장과 1:1로 대조 — 상식으로 고르지 않는다","모르는 분야일수록 지문만 믿는다(배경지식은 함정)"]},
+  {k:"추리논증",n:"40문항 · 5지선다",d:"법학·인문 철학·과학·경제 소재로 원리 적용, 수리 추론, 논증 분석, 논증 평가(강화·약화), 퀴즈(논리 게임)를 푼다.",how:["원리 적용: 규정을 요건 → 효과로 쪼개 사례에 기계적으로 대응","논증 분석: 결론 → 전제 → 숨은 전제 순서로 찾기","강화·약화: 주장과 근거를 잇는 고리를 찾고 그 고리를 건드리는 선택지","퀴즈: 조건을 표로 옮기고 가장 많이 제약된 칸부터","한 문제에 오래 붙잡히지 않기 — 정확성이 우선이지만 버릴 문제는 버린다"]},
+  {k:"논술",n:"2문항 · 서술",d:"제시문을 요약·비교하고, 원리를 사례에 적용하거나 자신의 견해를 논증한다.",how:["문제가 요구한 동사(요약하라/비교하라/평가하라)를 하나도 빠뜨리지 않는다","개요를 먼저: 쟁점 → 각 입장의 핵심 → 적용 → 내 견해와 근거","제시문 문장을 베끼지 말고 자기 말로 재진술","분량을 채우는 것보다 논리의 빈틈이 없는 것이 점수"]}
+ ],
+ books:"실제 기출은 법학전문대학원협의회(leet.or.kr)에서 해마다 공개하고, 공식 해설서가 '법학적성시험 문제 해설'로 나온다. 이 앱의 지문·문제는 기출 형식을 본떠 새로 만든 연습용이라, 2단계부터는 공식 기출을 함께 푼다."
+};
+
+const STAGES_G = [
+ {name:"1단계 · 생각의 도구",weeks:"4주",todo:["개념어 하루 15개","논리학 10단원 퀴즈 모두 통과","융 심리 10단원 읽기","논리적 글 주 2편(800자) + 첨삭"],skip:["LEET 실전 시간 재기 — 도구가 먼저","어려운 철학 원전 통독 — 개념어로 충분"]},
+ {name:"2단계 · 읽는 힘",weeks:"6~8주",todo:["언어이해 지문 하루 1세트(문단 요약 쓰며)","추리논증 유형별 하루 3문제","문학적 글 주 1편 + 첨삭, 개념어 누적 300","공식 LEET 기출 1개년 시작"],skip:["모든 분야 배경지식 공부 — 지문만 믿는 연습이 우선","문제집 여러 권 동시 진행"]},
+ {name:"3단계 · 실전",weeks:"시험까지",todo:["언어이해 30문항·추리논증 40문항 실전 주 1회","오답은 '근거 문장'과 '내가 끌린 이유' 두 줄","LEET 논술 주 1편(제시문 비교·적용)","공식 기출 최근 5개년 회독"],skip:["새 개념 공부 — 틀린 유형만","문학 글쓰기 비중 늘리기 — 시험 직전엔 논술 위주"]}
+];
+
+</script>
+<script>
+(function(){
+"use strict";
+const $app=document.getElementById("app");
+const INT=[0,1,2,4,8,16,30,60], DAILY_NEW=15;
+const N5=["①","②","③","④","⑤"];
+function dayNum(d){d=d||new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*60000)/86400000)}
+function dayStr(n){const d=new Date(n*86400000);return (d.getUTCMonth()+1)+"/"+d.getUTCDate()}
+const TODAY=()=>dayNum();
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function uid(){return "x"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function $(id){return document.getElementById(id)}
+
+// ================= 상태 =================
+const BLANK=()=>({v:1,words:{},xw:[],wrong:{},done:{},logs:{},tags:{},drafts:[],stage:0,sets:[]});
+let S=BLANK();
+function fix(){const b=BLANK();for(const k in b)if(S[k]==null)S[k]=b[k]}
+function log(){const k=TODAY();S.logs[k]=S.logs[k]||{w:0,q:0,c:0,m:0,ch:0};return S.logs[k]}
+function streak(){let n=0,d=TODAY();if(!S.logs[d])d--;while(S.logs[d]&&(S.logs[d].w+S.logs[d].q+S.logs[d].ch)>0){n++;d--}return n}
+
+// ================= 저장 =================
+let ref=null,saving=false,dirty=false,timer=null,busy=false;
+const LS="tb-geul-v1";
+function setSync(t){$("sync").textContent=t}
+function lsGet(){try{return JSON.parse(localStorage.getItem(LS)||"null")}catch(e){return null}}
+function lsSet(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+async function readRef(r){const s=await r.get();if(!s)return null;if(typeof s.data==="function"){return s.exists===false?null:s.data()}if(s.data!==undefined)return s.data;return s}
+function save(){lsSet();dirty=true;clearTimeout(timer);timer=setTimeout(flush,1500)}
+async function flush(){
+  if(!ref||saving||!dirty)return;saving=true;dirty=false;setSync("저장 중…");
+  try{await ref.set({json:JSON.stringify(S),updated:Date.now()});setSync("계정에 저장됨")}
+  catch(e){setSync("저장 실패 · 이 기기에만 저장");dirty=true}
+  saving=false;if(dirty)timer=setTimeout(flush,3000)}
+function size(x){return x?Object.keys(x.logs||{}).length+Object.keys(x.words||{}).length+Object.keys(x.done||{}).length+(x.drafts||[]).length:0}
+async function claudeUse(n){try{if(!window.claude||!window.claude.use)return null;return await Promise.race([window.claude.use(n),new Promise(r=>setTimeout(()=>r(null),10000))])}catch(e){return null}}
+async function initStore(){
+  const l=lsGet();if(l)S=Object.assign(BLANK(),l);fix();setSync("이 기기에만 저장");route();
+  try{
+    const db=await claudeUse("db"),user=await claudeUse("user");if(!db||!user)return;
+    const id=await user.id();if(!id)return;
+    ref=db.collection("data/users/"+id).doc("geul");
+    const got=await readRef(ref);
+    if(got&&got.json){const remote=JSON.parse(got.json);
+      if(size(remote)>=size(lsGet())){S=Object.assign(BLANK(),remote);fix();lsSet()}else{dirty=true;flush()}}
+    else{dirty=true;flush()}
+    setSync("계정에 저장됨");if(!busy)route();
+  }catch(e){setSync("이 기기에만 저장")}
+}
+let lastAct=Date.now();
+["click","keydown","touchstart"].forEach(e=>document.addEventListener(e,()=>{lastAct=Date.now()},{passive:true}));
+setInterval(()=>{if(!document.hidden&&Date.now()-lastAct<180000){log().m++;save()}},60000);
+
+// ================= Claude =================
+let sampleFn=null,sampleState="wait";
+(async()=>{sampleFn=await claudeUse("sample");sampleState=sampleFn?"ok":"none";if(!busy)route()})();
+async function ask(prompt,tier){
+  if(!sampleFn)throw {code:"none"};
+  try{return await sampleFn.json(prompt,{modelTier:tier||"complex"})}
+  catch(e){if(e&&(e.code==="not_granted"||e.code==="rate_limited"))throw e;
+    const r=await sampleFn(prompt+"\nJSON 외의 글자는 절대 쓰지 마.",{modelTier:tier||"complex"});
+    const t=(r&&r.text||"").replace(/^[^{]*/,"").replace(/[^}]*$/,"");return JSON.parse(t)}
+}
+async function askText(prompt,tier){
+  if(!sampleFn)throw {code:"none"};
+  const r=await sampleFn(prompt,{modelTier:tier||"complex"});return (r&&r.text)||String(r||"")}
+function genError(e){
+  if(e&&e.code==="none")return "이 화면에서는 Claude 기능을 쓸 수 없어요. claude.ai에서 앱을 열면 돼요. 기본 문제와 개념어는 그대로 쓸 수 있어요.";
+  if(e&&e.code==="not_granted")return "Claude 사용 허락이 꺼져 있어요. 앱을 다시 열고 허락하면 돼요.";
+  if(e&&e.code==="rate_limited")return "잠깐 너무 많이 요청했어요. 1~2분 뒤에 다시 눌러 주세요.";
+  if(e&&e.code==="empty")return "만들어진 문제가 형식에 맞지 않아 버렸어요. 한 번만 다시 눌러 주세요.";
+  return "만들지 못했어요. 잠시 뒤 다시 눌러 주세요.";
+}
+function cleanItems(raw,src,tag){
+  const arr=(raw&&raw.questions)||[];const out=[];
+  arr.forEach(q=>{if(!q||!q.q||!Array.isArray(q.o)||q.o.length!==5)return;const a=+q.a;if(!(a>=0&&a<5))return;
+    out.push({id:uid(),src,tag:q.type||tag||src,q:String(q.q),o:q.o.map(String),a,ex:String(q.ex||"")})});
+  return out}
+
+// ================= 공용 문제 풀이 =================
+function runQuiz(items,opt){
+  opt=opt||{};busy=true;let i=0,right=0;
+  function finish(){busy=false;
+    if(opt.unit){S.done[opt.unit]=Math.max(S.done[opt.unit]||0,Math.round(right/items.length*100))}
+    save();
+    $app.innerHTML=`<h2>${esc(opt.title||"문제")} 끝</h2><div class="card"><div class="big">${right} / ${items.length}</div>
+     <p class="muted">틀린 문제는 오답에 모였어요. 오답은 '근거 문장'과 '내가 끌린 이유'를 함께 보는 게 핵심이에요.</p>
+     <div class="row"><button class="btn" id="done">확인</button></div></div>`;
+    $("done").onclick=()=>{opt.onDone?opt.onDone(right,items.length):route()}}
+  function draw(){
+    if(i>=items.length)return finish();
+    const it=items[i];
+    $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>${esc(opt.title||"문제")}</h2><span class="muted">${i+1} / ${items.length}</span></div>
+     <div class="bar" style="margin-bottom:16px"><i style="width:${i/items.length*100}%"></i></div>
+     <div class="card"><div class="row" style="justify-content:space-between"><span class="pill">${esc(it.src)}${it.tag&&it.tag!==it.src?" · "+esc(it.tag):""}</span>${it.gen?`<button class="btn ghost sm" id="flag">이상한 문제예요</button>`:""}</div>
+     ${it.passage?`<div class="passage">${esc(it.passage)}</div>`:""}
+     <p class="q">${esc(it.q)}</p>
+     <div class="opts">${it.o.map((o,k)=>`<button class="opt" data-k="${k}">${N5[k]} ${esc(o)}</button>`).join("")}</div>
+     <div id="ex"></div></div>`;
+    if($("flag"))$("flag").onclick=()=>{delete S.wrong[it.id];save();i++;draw()};
+    $app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+      if($app.querySelector(".opt.ok"))return;
+      const k=+b.dataset.k,ok=k===it.a;
+      $app.querySelectorAll(".opt").forEach(o=>{o.disabled=true;if(+o.dataset.k===it.a)o.classList.add("ok")});
+      if(!ok)b.classList.add("no");
+      const lg=log();lg.q++;if(ok)lg.c++;
+      const tg=S.tags[it.tag]||{c:0,w:0};ok?tg.c++:tg.w++;S.tags[it.tag]=tg;
+      if(ok){right++;if(opt.mode==="review")delete S.wrong[it.id]}
+      else{const w=S.wrong[it.id]||{n:0};w.n++;w.t=TODAY();w.why=w.why||"";
+        w.item={id:it.id,src:it.src,tag:it.tag,q:it.q,o:it.o,a:it.a,ex:it.ex,passage:it.passage?it.passage.slice(0,3000):undefined};
+        S.wrong[it.id]=w;trimWrong()}
+      save();
+      $("ex").innerHTML=`<div class="ex"><strong>${ok?"맞았어요.":"틀렸어요. 정답은 "+N5[it.a]+"."}</strong>\n${esc(it.ex)}</div>
+       ${ok?"":`<p class="muted" style="margin:12px 0 4px">내가 ${N5[k]}에 끌린 이유 한 줄 (오답노트에 함께 저장돼요)</p><textarea class="short" id="why" placeholder="예: '대부분'을 '모두'로 읽었다"></textarea>`}
+       <div class="row" style="margin-top:14px"><button class="btn" id="next">${i+1<items.length?"다음":"결과 보기"}</button></div>`;
+      $("next").onclick=()=>{const w=$("why");if(w&&w.value.trim()&&S.wrong[it.id]){S.wrong[it.id].why=w.value.trim();save()}i++;draw();window.scrollTo(0,0)};
+    });
+  }
+  draw();
+}
+function trimWrong(){const ks=Object.keys(S.wrong);if(ks.length>300){ks.sort((a,b)=>S.wrong[a].t-S.wrong[b].t).slice(0,ks.length-300).forEach(k=>delete S.wrong[k])}}
+function unitItems(u,src){return u.q.map((q,n)=>({id:u.id+"-"+n,src,tag:u.title,q:q[0],o:q[1],a:q[2],ex:q[3]}))}
+
+// ================= 개념어 =================
+function allWords(){return WORDS.concat(S.xw)}
+function wq(){
+  const t=TODAY(),ws=allWords(),due=[],fresh=[];
+  ws.forEach((w,i)=>{const s=S.words[i];if(!s)fresh.push(i);else if(s.d<=t)due.push(i)});
+  const newToday=Object.values(S.words).filter(s=>s.f===t).length;
+  return {due,fresh:fresh.slice(0,Math.max(0,DAILY_NEW-newToday)),total:ws.length,known:Object.values(S.words).filter(s=>s.l>=3).length}}
+function viewWords(){
+  const q=wq(),cats={};allWords().forEach((w,i)=>{const c=w[5]||"내가 넣은 말";(cats[c]=cats[c]||[]).push(i)});
+  $app.innerHTML=`<h2>개념어 · 논리 어휘</h2>
+   <div class="grid"><div class="card"><div class="muted">오늘 복습</div><div class="big">${q.due.length}</div></div>
+   <div class="card"><div class="muted">오늘 새 낱말</div><div class="big">${q.fresh.length}</div></div>
+   <div class="card"><div class="muted">익힌 낱말</div><div class="big">${q.known} / ${q.total}</div></div></div>
+   <div class="row" style="margin:16px 0"><button class="btn" id="go"${q.due.length+q.fresh.length?"":" disabled"}>카드 시작</button><button class="btn ghost" id="use">문장 만들기 연습</button></div>
+   <p class="muted">뜻을 외우는 것보다 '헷갈리는 짝'과 함께 기억하는 게 LEET·논술에서 점수가 돼요. 카드 뒷면에서 꼭 확인하세요.</p>
+   <div class="card"><h3>낱말 더하기</h3><p class="muted">책이나 지문에서 막힌 말을 넣으면 Claude가 뜻·예문·헷갈리는 짝을 채워요.</p>
+   <div class="row"><input id="nw" placeholder="예: 정언명령" style="flex:1"><button class="btn" id="add">넣기</button></div><div id="am" class="muted"></div></div>
+   <div class="sep"></div>${Object.entries(cats).map(([c,ix])=>`<details><summary>${esc(c)} <span class="muted">${ix.length}</span></summary>
+   ${ix.map(i=>{const w=allWords()[i];return `<div class="tech"><b>${esc(w[0])} <span class="hanja">${w[1]!=="—"?esc(w[1]):""}</span></b>${esc(w[2])}<div class="muted">${esc(w[4])}</div></div>`}).join("")}</details>`).join("")}`;
+  $("go").onclick=()=>wordSession(shuffle(q.due).concat(q.fresh));
+  $("use").onclick=useWords;
+  $("add").onclick=async()=>{const v=$("nw").value.trim();if(!v)return;$("am").textContent="뜻을 찾는 중…";
+    try{const r=await ask(`한국어 개념어 학습 카드를 만들어. 낱말: "${v}". 대학 신입생이 논리적 글쓰기와 LEET 지문을 읽을 때 필요한 뜻으로.
+JSON: {"w":"낱말","h":"한자나 원어, 없으면 —","m":"쉬운 뜻 한 문장","e":"이 낱말이 들어간 자연스러운 예문 하나","p":"헷갈리는 짝이나 쓰임 주의 한 문장"}`,"default");
+      if(!r||!r.m)throw {code:"empty"};S.xw.push([r.w||v,r.h||"—",r.m,r.e||"",r.p||"","내가 넣은 말"]);save();viewWords()}
+    catch(e){$("am").textContent=genError(e)}};
+}
+function wordSession(queue){
+  busy=true;let i=0;const ws=allWords();
+  function draw(){
+    if(i>=queue.length){busy=false;$app.innerHTML=`<h2>오늘 카드 끝</h2><div class="card"><p>${queue.length}장을 넘겼어요. 내일 다시 나올 카드는 알아서 골라 둘게요.</p><div class="row"><button class="btn" id="b">확인</button><button class="btn ghost" id="u">문장 만들기로</button></div></div>`;$("b").onclick=()=>{location.hash="#home";route()};$("u").onclick=useWords;return}
+    const idx=queue[i],w=ws[idx];
+    $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>개념어</h2><span class="muted">${i+1} / ${queue.length}</span></div>
+     <div class="card flash"><span class="pill">${esc(w[5]||"")}</span><div class="w">${esc(w[0])}</div><div class="hanja">${w[1]!=="—"?esc(w[1]):""}</div>
+     <p class="muted">뜻을 먼저 떠올려 말해 보고 뒤집으세요.</p><button class="btn" id="flip">뜻 보기</button><div id="back" hidden style="text-align:left;width:100%">
+     <div class="ex"><b>${esc(w[2])}</b>\n\n예) ${esc(w[3])}\n\n짝·주의: ${esc(w[4])}</div>
+     <div class="row" style="justify-content:center;margin-top:14px"><button class="btn bad" data-r="0">몰랐다</button><button class="btn ghost" data-r="1">애매했다</button><button class="btn good" data-r="2">알았다</button></div></div></div>`;
+    $("flip").onclick=()=>{$("back").hidden=false;$("flip").hidden=true};
+    $app.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{
+      const r=+b.dataset.r,t=TODAY(),s=S.words[idx]||{l:0,f:t};
+      s.l=r===0?0:r===1?Math.max(1,s.l):Math.min(INT.length-1,s.l+1);s.d=t+(r===0?0:INT[s.l]);S.words[idx]=s;
+      log().w++;save();if(r===0)queue.push(idx);i++;draw()});
+  }
+  draw();
+}
+function useWords(){
+  busy=true;const ws=allWords(),learned=Object.keys(S.words).map(Number).filter(i=>ws[i]);
+  const pick=shuffle(learned.length>=3?learned:ws.map((_,i)=>i)).slice(0,3);
+  $app.innerHTML=`<h2>문장 만들기</h2><div class="card"><p>아래 세 낱말을 <b>모두</b> 써서 두세 문장을 지어 보세요. 주제는 자유 — 오늘 있었던 일이어도 좋아요.</p>
+   <div class="row">${pick.map(i=>`<span class="pill">${esc(ws[i][0])}</span>`).join("")}</div>
+   <textarea class="short" id="t" style="margin-top:12px" placeholder="예: 그럼에도 …"></textarea>
+   <div class="row" style="margin-top:10px"><button class="btn" id="c">Claude에게 봐 달라기</button><button class="btn ghost" id="o">다른 낱말</button></div><div id="fb"></div></div>`;
+  $("o").onclick=useWords;
+  $("c").onclick=async()=>{const t=$("t").value.trim();if(t.length<10)return;$("fb").innerHTML=`<p class="muted">읽는 중…</p>`;
+    try{const r=await askText(`대학 신입생이 개념어 연습으로 쓴 문장이야. 낱말: ${pick.map(i=>ws[i][0]).join(", ")}.
+문장: """${t}"""
+낱말마다 ① 뜻에 맞게 썼는지(맞음/어긋남) ② 어긋났다면 왜, 고친 문장 하나. 마지막에 문장 흐름에 대한 한 줄. 짧게, 존댓말(해요체)로, 마크다운 기호 없이.`,"default");
+      $("fb").innerHTML=`<div class="ex fb">${esc(r)}</div>`;log().ch++;save()}catch(e){$("fb").innerHTML=`<p class="muted">${esc(genError(e))}</p>`}};
+}
+
+// ================= 논리학 · 심리학 단원 =================
+function viewUnits(list,key,title,intro){
+  $app.innerHTML=`<h2>${title}</h2><p class="muted">${intro}</p><div class="list">${list.map((u,n)=>{const d=S.done[u.id];
+   return `<a class="item" href="#${key}/${u.id}"><span>${n+1}. ${esc(u.title)}</span>${d==null?`<span class="pill w">아직</span>`:d>=80?`<span class="pill g">${d}점</span>`:`<span class="pill b">${d}점</span>`}</a>`}).join("")}</div>`}
+function viewUnit(list,key,id,src){
+  const u=list.find(x=>x.id===id);if(!u){location.hash="#"+key;return}
+  $app.innerHTML=`<p><a href="#${key}">← ${src} 목록</a></p><h2>${esc(u.title)}</h2>
+   <div class="card"><p>${esc(u.sum)}</p><ul class="pts">${u.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>
+   ${u.use?`<div class="ex"><b>글쓰기에 쓰는 법</b>\n${esc(u.use)}</div>`:""}</div>
+   <div class="row" style="margin:16px 0"><button class="btn" id="qz">확인 문제 ${u.q.length}개</button><button class="btn ghost" id="more">비슷한 문제 더 만들기</button></div><div id="m" class="muted"></div>`;
+  $("qz").onclick=()=>runQuiz(unitItems(u,src),{title:u.title,unit:u.id,onDone:()=>{location.hash="#"+key+"/"+u.id;route()}});
+  $("more").onclick=async()=>{$("m").textContent="Claude가 문제를 만드는 중이에요…";
+    try{const r=await ask(`${src} 학습용 5지선다 문제 4개를 새로 만들어. 단원: "${u.title}". 핵심: ${u.sum} / ${u.pts.join(" / ")}.
+LEET 추리논증·대학 교양 수준. 한국어. 보기 5개, 정답은 하나, 오답도 그럴듯하게. 해설은 왜 정답인지와 가장 헷갈리는 오답이 왜 틀렸는지 두세 문장.
+정답 위치를 고르게 섞어.
+JSON: {"questions":[{"q":"문제","o":["보기1","보기2","보기3","보기4","보기5"],"a":정답번호0부터,"ex":"해설"}]}`,"default");
+      const it=cleanItems(r,src,u.title).map(x=>(x.gen=1,x));if(!it.length)throw {code:"empty"};runQuiz(it,{title:u.title+" · 추가"})}
+    catch(e){$("m").textContent=genError(e)}};
+}
+
+// ================= LEET =================
+const FIELDS=["인문(철학·역사)","사회(정치·법·경제)","과학·기술","예술·문학 이론","법학"];
+const RTYPES=[["원리 적용","규정이나 원리를 제시하고 사례에 적용하는 문제. <보기>의 사례 ㄱ,ㄴ,ㄷ 판단형이면 보기 5개를 'ㄱ', 'ㄴ', 'ㄱ, ㄷ' 같은 조합으로"],["논증 분석","논증의 결론·전제·숨은 전제·구조를 묻는 문제"],["강화·약화","주장이나 가설을 강화 또는 약화하는 정보를 고르는 문제"],["논쟁 비교","두세 사람(갑·을·병)의 견해를 비교·평가하는 문제"],["수리 추론","간단한 수와 비율·경우의 수로 추론하는 문제(복잡한 계산은 없이)"],["논리 퀴즈","조건 여러 개로 배치·순서·참거짓을 확정하는 문제"]];
+function viewLeet(){
+  $app.innerHTML=`<h2>LEET · 법학적성시험</h2>
+   ${LEET.parts.map(p=>`<details><summary>${esc(p.k)} <span class="muted">${esc(p.n)}</span></summary><p>${esc(p.d)}</p><ul class="pts">${p.how.map(h=>`<li>${esc(h)}</li>`).join("")}</ul></details>`).join("")}
+   <p class="muted">${esc(LEET.books)}</p>
+   <div class="card" style="margin-top:12px"><h3>언어이해 연습 세트</h3><p class="muted">1,600~2,000자 지문 하나와 4문항. 문단마다 한 줄 요약을 쓰고 나서 문제로 넘어가요.</p>
+   <div class="seg" id="fd">${FIELDS.map((f,k)=>`<button data-k="${k}"${k===0?" class=on":""}>${f}</button>`).join("")}</div>
+   <div class="row" style="margin-top:12px"><button class="btn" id="rd">지문 만들기</button></div><div id="rm" class="muted"></div></div>
+   <div class="card" style="margin-top:12px"><h3>추리논증 유형 연습</h3><p class="muted">유형마다 3문항. 약한 유형은 기록 화면에서 보여요.</p>
+   <div class="seg" id="ty">${RTYPES.map((t,k)=>`<button data-k="${k}"${k===0?" class=on":""}>${t[0]}</button>`).join("")}</div>
+   <div class="row" style="margin-top:12px"><button class="btn" id="rs">문제 만들기</button></div><div id="sm" class="muted"></div></div>
+   <div class="card" style="margin-top:12px"><h3>LEET 논술</h3><p>제시문 비교·적용 과제는 <a href="#write">글쓰기</a>의 'LEET 논술'에서 쓰고 첨삭받아요.</p></div>
+   ${S.sets.length?`<div class="card" style="margin-top:12px"><h3>지난 지문 다시 풀기</h3><div class="list">${S.sets.slice(-8).reverse().map((s,n)=>`<button class="item" data-s="${S.sets.length-1-n}"><span>${esc(s.title)}</span><span class="muted">${dayStr(s.d)}</span></button>`).join("")}</div></div>`:""}`;
+  let fk=0,tk=0;
+  $("fd").querySelectorAll("button").forEach(b=>b.onclick=()=>{fk=+b.dataset.k;$("fd").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))});
+  $("ty").querySelectorAll("button").forEach(b=>b.onclick=()=>{tk=+b.dataset.k;$("ty").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))});
+  $app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>readingSet(S.sets[+b.dataset.s]));
+  $("rd").onclick=async()=>{$("rm").textContent="Claude가 지문을 쓰는 중이에요… (30초쯤)";
+    try{const r=await ask(`LEET 언어이해 형식의 연습 세트를 새로 만들어. 실제 기출 지문을 베끼거나 흉내 내지 말고 새 글로. 분야: ${FIELDS[fk]}.
+지문: 1,600~2,000자, 5~7문단, 대학 교양서 수준의 논증적 글. 둘 이상의 견해나 개념이 대립·발전하는 구조, 문단은 빈 줄로 구분.
+문항 4개(5지선다): ① 내용 일치 ② 글의 구조·견해 비교 ③ 추론(지문에서 반드시 따라 나오는 것) ④ <보기> 사례 적용이나 비판.
+오답은 지문 단어를 쓰되 관계를 뒤집거나 범위를 넓힌 것처럼 정교하게. 정답 위치를 섞어. 해설엔 근거가 되는 문단 번호와 가장 매력적인 오답이 틀린 이유.
+JSON: {"title":"지문 제목","passage":"지문","questions":[{"type":"내용 일치","q":"","o":["","","","",""],"a":0,"ex":""}]}`,"complex");
+      if(!r||!r.passage||String(r.passage).length<600)throw {code:"empty"};
+      const it=cleanItems(r,"언어이해");if(it.length<2)throw {code:"empty"};
+      const set={title:(r.title||FIELDS[fk])+" · "+FIELDS[fk],passage:String(r.passage),items:it,d:TODAY()};
+      S.sets.push(set);if(S.sets.length>20)S.sets.shift();save();readingSet(set)}
+    catch(e){$("rm").textContent=genError(e)}};
+  $("rs").onclick=async()=>{$("sm").textContent="Claude가 문제를 만드는 중이에요…";const t=RTYPES[tk];
+    try{const r=await ask(`LEET 추리논증 형식의 연습 문제 3개를 새로 만들어. 실제 기출을 베끼지 말 것. 유형: ${t[0]} — ${t[1]}.
+소재는 법학, 윤리학, 과학 실험, 경제, 사회 제도 등에서 문제마다 다르게. 각 문제는 제시문(300~600자)과 발문을 q에 함께 넣어(제시문 다음 줄바꿈 두 번 후 발문).
+5지선다, 정답 하나, 오답은 매력적으로. 해설은 풀이 순서대로 3~5문장, 가장 헷갈리는 오답이 틀린 이유 포함. 정답 위치를 섞어.
+JSON: {"questions":[{"type":"${t[0]}","q":"제시문\\n\\n발문","o":["","","","",""],"a":0,"ex":""}]}`,"complex");
+      const it=cleanItems(r,"추리논증",t[0]).map(x=>(x.gen=1,x));if(!it.length)throw {code:"empty"};runQuiz(it,{title:"추리논증 · "+t[0]})}
+    catch(e){$("sm").textContent=genError(e)}};
+}
+function readingSet(set){
+  busy=true;const paras=set.passage.split(/\n\s*\n/).filter(x=>x.trim());
+  $app.innerHTML=`<p><a href="#leet">← LEET</a></p><h2>${esc(set.title)}</h2>
+   <p class="muted">문단마다 한 줄로 요약하며 읽어요. 다 쓰면 문제로 넘어가요. (요약은 비워도 넘어갈 수 있어요)</p>
+   ${paras.map((p,n)=>`<div class="card" style="margin:10px 0"><div class="muted">${n+1}문단</div><p style="white-space:pre-wrap">${esc(p)}</p><input data-p="${n}" placeholder="이 문단을 한 줄로" style="width:100%"></div>`).join("")}
+   <div class="row"><button class="btn" id="go">문제 풀기 (${set.items.length})</button><button class="btn ghost" id="ck">내 요약 봐 달라기</button></div><div id="fb"></div>`;
+  $("ck").onclick=async()=>{const sums=[...$app.querySelectorAll("[data-p]")].map(x=>x.value.trim());if(!sums.some(Boolean))return;
+    $("fb").innerHTML=`<p class="muted">읽는 중…</p>`;
+    try{const r=await askText(`다음 지문의 문단별 한 줄 요약을 학생이 썼어. 문단마다 핵심을 맞게 잡았는지, 놓친 관계(대립·원인·조건·예외)가 있는지 짧게 짚고, 모범 요약을 한 줄씩. 마지막에 글 전체 구조를 한 줄로. 해요체, 마크다운 기호 없이.
+지문:\n${set.passage}\n\n학생 요약:\n${sums.map((s,n)=>(n+1)+"문단: "+(s||"(비움)")).join("\n")}`,"default");
+      $("fb").innerHTML=`<div class="ex fb">${esc(r)}</div>`}catch(e){$("fb").innerHTML=`<p class="muted">${esc(genError(e))}</p>`}};
+  $("go").onclick=()=>runQuiz(set.items.map(x=>Object.assign({},x,{passage:set.passage,gen:1})),{title:"언어이해"});
+}
+
+// ================= 글쓰기 =================
+const KINDS={logic:["논리적 글",WRITE_LOGIC],lit:["문학적 글",WRITE_LIT],leet:["LEET 논술",WRITE_LOGIC]};
+function viewWrite(){
+  $app.innerHTML=`<h2>글쓰기</h2>
+   <div class="grid">${Object.entries(KINDS).map(([k,v])=>`<a class="item" href="#write/${k}"><span>${v[0]}</span><span class="pill">쓰기</span></a>`).join("")}</div>
+   <details open><summary>논리적 글 — 기법 8</summary>${WRITE_LOGIC.map(t=>`<div class="tech"><b>${esc(t[0])}</b>${esc(t[1])}</div>`).join("")}</details>
+   <details><summary>문학적 글 — 기법 8</summary>${WRITE_LIT.map(t=>`<div class="tech"><b>${esc(t[0])}</b>${esc(t[1])}</div>`).join("")}</details>
+   <h3 style="margin-top:20px">내 글 ${S.drafts.length}편</h3><div class="list">${S.drafts.slice().reverse().map(d=>`<a class="item" href="#write/${d.k}/${d.id}"><span>${esc(d.p.slice(0,40))}${d.p.length>40?"…":""}</span><span class="muted">${KINDS[d.k][0]} · ${d.t.length}자${d.fb?" · 첨삭":""}</span></a>`).join("")||`<p class="muted">아직 쓴 글이 없어요.</p>`}</div>`;
+}
+function editor(kind,id){
+  busy=true;let d=S.drafts.find(x=>x.id===id);
+  if(!d){const ps=PROMPTS[kind];d={id:uid(),k:kind,p:ps[Math.floor(Math.random()*ps.length)],t:"",fb:"",d:TODAY()}}
+  const tips=KINDS[kind][1];
+  $app.innerHTML=`<p><a href="#write">← 글쓰기</a></p><h2>${KINDS[kind][0]}</h2>
+   <div class="card"><div class="muted">과제</div><p id="pp">${esc(d.p)}</p><div class="row"><button class="btn ghost sm" id="np">다른 과제</button><button class="btn ghost sm" id="mp">내가 정하기</button></div></div>
+   <details><summary>쓰기 전 체크</summary>${tips.map(t=>`<div class="tech"><b>${esc(t[0])}</b>${esc(t[1])}</div>`).join("")}</details>
+   ${kind!=="lit"?`<div class="card" style="margin:10px 0"><div class="muted">한 줄 주장 (먼저)</div><input id="cl" style="width:100%" placeholder="나는 ~라고 생각한다. 왜냐하면 ~" value="${esc(d.cl||"")}"></div>`:""}
+   <textarea id="t" placeholder="여기에 써요. 자동 저장돼요.">${esc(d.t)}</textarea>
+   <div class="row" style="justify-content:space-between;margin-top:8px"><span class="muted" id="cnt"></span><span class="row"><button class="btn ghost" id="pdf">PDF로 저장</button><button class="btn" id="fbb">첨삭 받기</button></span></div>
+   <div id="fb">${d.fb?`<div class="ex fb">${esc(d.fb)}</div>`:""}</div>`;
+  const ta=$("t");
+  function keep(){d.t=ta.value;if($("cl"))d.cl=$("cl").value;if(!S.drafts.includes(d)&&(d.t.trim()||d.cl))S.drafts.push(d);if(S.drafts.length>60)S.drafts.shift();save()}
+  function cnt(){const n=ta.value.replace(/\s/g,"").length;$("cnt").textContent=`${ta.value.length}자 (공백 빼고 ${n}자)`}
+  ta.oninput=()=>{cnt();clearTimeout(ta._t);ta._t=setTimeout(keep,800)};if($("cl"))$("cl").oninput=()=>{clearTimeout(ta._t);ta._t=setTimeout(keep,800)};cnt();
+  $("np").onclick=()=>{const ps=PROMPTS[kind];d.p=ps[(ps.indexOf(d.p)+1)%ps.length];$("pp").textContent=d.p;keep()};
+  $("mp").onclick=()=>{const v=prompt("과제를 적어 주세요",d.p);if(v&&v.trim()){d.p=v.trim();$("pp").textContent=d.p;keep()}};
+  $("pdf").onclick=async()=>{keep();const box=document.createElement("div");box.innerHTML=`<h1>${esc(KINDS[kind][0])}</h1><p>${esc(d.p)}</p>${d.cl?`<h2>한 줄 주장</h2><p>${esc(d.cl)}</p>`:""}<h2>본문</h2>${d.t.split(/\n+/).map(x=>`<p>${esc(x)}</p>`).join("")}${d.fb?`<h2>첨삭</h2>${d.fb.split(/\n+/).map(x=>`<p>${esc(x)}</p>`).join("")}`:""}`;
+    $("pdf").textContent="만드는 중…";try{const blob=await makePdf(box);await deliver(blob,"글_"+dayStr(TODAY()).replace("/","-")+".pdf",$("pdf").parentNode)}catch(e){}$("pdf").textContent="PDF로 저장"};
+  $("fbb").onclick=async()=>{keep();if(ta.value.trim().length<80){$("fb").innerHTML=`<p class="muted">80자 넘게 쓰면 첨삭할 수 있어요.</p>`;return}
+    $("fb").innerHTML=`<p class="muted">Claude가 읽고 있어요… (20~40초)</p>`;
+    try{const r=await askText(feedbackPrompt(kind,d),"complex");d.fb=r.trim();log().ch++;keep();$("fb").innerHTML=`<div class="ex fb">${esc(d.fb)}</div>`}
+    catch(e){$("fb").innerHTML=`<p class="muted">${esc(genError(e))}</p>`}};
+}
+function feedbackPrompt(kind,d){
+  const voice=`이 학생의 문체 원칙(지켜야 할 것): 끊지 않고 길게 이어지는 흐르는 문장, 일상의 쉬운 말, '명제 → 반문 → 하지만 → 바람'의 흐름, "~이지 않을까", "~라고 생각한다" 같은 낮게 가라앉은 확신, 감정은 직접 설명하지 않고 행간으로, 명령문·당위·과장된 긍정·상투적 교훈 피하기, '바라본다/둔다/남겨둔다' 반복 금지, 장면에서 시작해 여운으로 맺기. 이 문체를 바꾸라고 하지 말고 이 문체 안에서 더 좋아지게 짚어.`;
+  const head=`대학 신입생의 ${KINDS[kind][0]}을 첨삭해. 냉정하고 정확하게, 칭찬은 한 줄만. 해요체, 마크다운 기호(#, *, -) 없이 소제목은 【 】로.
+과제: ${d.p}
+${d.cl?"학생의 한 줄 주장: "+d.cl+"\n":""}글:
+"""${d.t}"""
+`;
+  if(kind==="lit")return head+voice+`
+【한 줄 평】
+【장면과 행간】 감정을 직접 말한 문장을 찾아 사물·동작으로 바꾼 예를 하나씩.
+【상투 표현】 닳은 비유·표현을 짚고 이 글에만 있을 법한 구체로 바꾼 예.
+【반복과 어휘】 반복되는 낱말과 더 정확한 낱말.
+【흐름】 문단 순서, 처음과 끝이 서로 답하는지, 여운이 남는지.
+【고쳐 쓴 한 문단】 가장 약한 문단 하나를 학생의 문체를 지키며 고쳐 쓴 예.`;
+  return head+(kind==="leet"?"LEET 논술 채점 기준(요구한 동사 이행, 제시문 재진술의 정확성, 적용의 정확성, 견해의 논증)으로 봐.\n":"")+voice+`
+【한 줄 평】
+【주장】 주장이 한 문장으로 분명한지, 과제가 묻는 것에 답했는지.
+【근거와 논리】 근거의 종류(사실·원리·사례), 빠진 숨은 전제, 논리 오류(이름을 붙여서).
+【반론 처리】 예상 반론을 공정하게 다루고 넘어섰는지, 없다면 넣을 반론 하나.
+【문단 구성】 문단마다 소주제문, 접속어가 논리 관계와 맞는지.
+【반복과 어휘】 반복되는 낱말과 더 정확한 개념어.
+【고쳐 쓴 한 문단】 가장 약한 문단 하나를 학생의 문체를 지키며 고쳐 쓴 예.`;
+}
+
+// ---------- 화면 문서 → PDF (A4, 페이지마다 이미지) ----------
+async function makePdf(root){
+  try{if(document.fonts&&document.fonts.ready)await document.fonts.ready}catch(e){}
+  const PW=1240,PH=1754,M=100,CW=PW-M*2;
+  const FONT='"Gowun Batang","MaruBuri","Nanum Myeongjo","AppleMyungjo",serif';
+  const pages=[]; let cx,y;
+  function newPage(){const cv=document.createElement("canvas");cv.width=PW;cv.height=PH;cx=cv.getContext("2d");
+    if(!cx)throw new Error("no canvas");cx.fillStyle="#fff";cx.fillRect(0,0,PW,PH);cx.fillStyle="#000";cx.strokeStyle="#000";cx.textBaseline="top";pages.push(cv);y=M;
+    cx.font="20px "+FONT;cx.fillStyle="#666";cx.fillText(String(pages.length),PW-M,PH-M/2);cx.fillStyle="#000"}
+  function font(sz,b){cx.font=(b?"700 ":"")+sz+"px "+FONT}
+  function wrap(t,w){const out=[];String(t).split("\n").forEach(par=>{let line="";
+    (par.match(/\S+\s*/g)||[""]).forEach(tok=>{
+      if(cx.measureText(line+tok).width<=w){line+=tok;return}
+      if(line.trim()){out.push(line.trimEnd());line=""}
+      if(cx.measureText(tok).width<=w){line=tok;return}
+      let cur="";for(const ch of tok){if(cx.measureText(cur+ch).width>w&&cur){out.push(cur);cur=ch}else cur+=ch}line=cur});
+    out.push(line.trimEnd())});return out}
+  function ensure(h){if(y+h>PH-M)newPage()}
+  function text(t,sz,b,ind){ind=ind||0;font(sz,b);const lh=Math.round(sz*1.5);const ls=wrap(t,CW-ind);ls.forEach((l,n)=>{ensure(lh);cx.fillText(l,M+ind,y);y+=lh});return ls.length}
+  function tx(el){const c=el.cloneNode(true);c.querySelectorAll("br").forEach(b=>b.replaceWith("\n"));c.querySelectorAll(".blank").forEach(b=>b.replaceWith("____________________________"));return c.textContent.replace(/\u00a0/g," ").replace(/[ \t]+/g," ").trim()}
+  function table(tb){
+    const rows=Array.from(tb.querySelectorAll("tr")).map(r=>Array.from(r.children).map(c=>({t:tx(c),h:c.tagName==="TH"})));
+    if(!rows.length)return; const n=Math.max(...rows.map(r=>r.length)); font(24,false);
+    const nat=Array.from({length:n},(_,c)=>Math.max(60,...rows.map(r=>r[c]?Math.min(CW*.55,cx.measureText(r[c].t).width+28):0)));
+    const sum=nat.reduce((a,b)=>a+b,0), cw=nat.map(v=>v/sum*CW), lh=36;
+    const head=rows[0]&&rows[0].every(c=>c.h)?rows[0]:null;
+    function row(r){const ls=r.map((c,k)=>{font(24,c.h);return wrap(c.t,cw[k]-20)});const h=Math.max(...ls.map(l=>l.length))*lh+16;
+      if(y+h>PH-M){newPage();if(head&&r!==head)row(head)}
+      let x=M;r.forEach((c,k)=>{if(c.h){cx.fillStyle="#eee";cx.fillRect(x,y,cw[k],h);cx.fillStyle="#000"}cx.lineWidth=1.5;cx.strokeRect(x,y,cw[k],h);font(24,c.h);ls[k].forEach((l,j)=>cx.fillText(l,x+10,y+8+j*lh));x+=cw[k]});
+      y+=h}
+    rows.forEach(row); y+=14}
+  function walk(el){
+    Array.from(el.children).forEach(c=>{const t=c.tagName;
+      if(t==="H1"){text(tx(c),44,true);y+=10}
+      else if(t==="H2"){y+=18;ensure(80);text(tx(c),32,true);cx.fillRect(M,y,CW,3);y+=14}
+      else if(t==="P"){text(tx(c),26,false);y+=8}
+      else if(t==="UL"){Array.from(c.children).forEach(li=>{font(26,false);ensure(39);cx.fillText("•",M+6,y);text(tx(li),26,false,34);y+=4});y+=8}
+      else if(t==="TABLE")table(c);
+      else if(t==="DIV"){y+=10;ensure(60);cx.fillStyle="#888";cx.fillRect(M,y,CW,2);cx.fillStyle="#000";y+=14;walk(c);y+=c.classList.contains("wq")?90:6}
+      else{const s=tx(c);if(s){text(s,26,false);y+=8}}})}
+  newPage(); walk(root);
+  const enc=new TextEncoder(), parts=[], offs=[]; let len=0;
+  const push=x=>{const b=typeof x==="string"?enc.encode(x):x;parts.push(b);len+=b.length};
+  const n=pages.length, pw=595.28, ph=841.89;
+  push("%PDF-1.4\n");
+  const obj=(id,body)=>{offs[id]=len;push(id+" 0 obj\n"+body+"\nendobj\n")};
+  obj(1,"<< /Type /Catalog /Pages 2 0 R >>");
+  obj(2,"<< /Type /Pages /Kids ["+pages.map((_,k)=>(3+3*k)+" 0 R").join(" ")+"] /Count "+n+" >>");
+  pages.forEach((cv,k)=>{const p=3+3*k,im=p+1,ct=p+2;
+    const u=cv.toDataURL("image/jpeg",.85), bs=atob(u.slice(u.indexOf(",")+1)), j=new Uint8Array(bs.length);for(let q=0;q<bs.length;q++)j[q]=bs.charCodeAt(q);
+    obj(p,"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+pw+" "+ph+"] /Resources << /XObject << /Im0 "+im+" 0 R >> >> /Contents "+ct+" 0 R >>");
+    offs[im]=len;push(im+" 0 obj\n<< /Type /XObject /Subtype /Image /Width "+PW+" /Height "+PH+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+j.length+" >>\nstream\n");push(j);push("\nendstream\nendobj\n");
+    const cs="q "+pw+" 0 0 "+ph+" 0 0 cm /Im0 Do Q";
+    obj(ct,"<< /Length "+cs.length+" >>\nstream\n"+cs+"\nendstream")});
+  const total=3+3*n, xref=len; let x="xref\n0 "+total+"\n0000000000 65535 f \n";
+  for(let q=1;q<total;q++)x+=String(offs[q]).padStart(10,"0")+" 00000 n \n";
+  push(x);push("trailer\n<< /Size "+total+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF\n");
+  return new Blob(parts,{type:"application/pdf"});
+}
+
+
+function offerLink(blob,fn,m){try{const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=fn;a.textContent="PDF 열기: "+fn;a.className="btn ghost";a.style.marginLeft="8px";m.appendChild(a)}catch(e){}}
+async function deliver(blob,fn,m){
+  const dl=await claudeUse("downloads");
+  if(dl&&dl.save){try{await dl.save({filename:fn,data:blob});return}catch(e){}}
+  offerLink(blob,fn,m)}
+
+// ================= 오답 =================
+function viewReview(){
+  const ws=Object.values(S.wrong).sort((a,b)=>b.t-a.t);
+  $app.innerHTML=`<h2>오답 ${ws.length}</h2><p class="muted">LEET 오답은 '정답 근거 문장'과 '내가 끌린 이유'를 함께 봐야 같은 함정에 다시 안 빠져요.</p>
+   <div class="row" style="margin:12px 0"><button class="btn" id="go"${ws.length?"":" disabled"}>오답 다시 풀기 (최대 10)</button><button class="btn ghost" id="pdf"${ws.length?"":" disabled"}>오답노트 PDF</button></div>
+   <div class="list">${ws.slice(0,40).map(w=>`<details><summary>${esc(w.item.src)} · ${esc(w.item.tag||"")} <span class="muted">${w.n}번 틀림</span></summary><p>${esc(w.item.q.slice(0,300))}</p><div class="ex">정답 ${N5[w.item.a]} ${esc(w.item.o[w.item.a])}\n${esc(w.item.ex)}${w.why?"\n\n내가 끌린 이유: "+esc(w.why):""}</div></details>`).join("")}</div>`;
+  $("go").onclick=()=>runQuiz(shuffle(ws).slice(0,10).map(w=>Object.assign({},w.item)),{title:"오답 다시",mode:"review"});
+  $("pdf").onclick=async()=>{const box=document.createElement("div");box.innerHTML=`<h1>오답노트</h1>${ws.slice(0,40).map((w,n)=>`<h2>${n+1}. ${esc(w.item.src)} · ${esc(w.item.tag||"")}</h2><p>${esc(w.item.q)}</p><ul>${w.item.o.map((o,k)=>`<li>${N5[k]} ${esc(o)}</li>`).join("")}</ul><p>정답 ${N5[w.item.a]} — ${esc(w.item.ex)}</p>${w.why?`<p>내가 끌린 이유: ${esc(w.why)}</p>`:""}`).join("")}`;
+    $("pdf").textContent="만드는 중…";try{await deliver(await makePdf(box),"오답노트.pdf",$("pdf").parentNode)}catch(e){}$("pdf").textContent="오답노트 PDF"};
+}
+
+// ================= 플랜 =================
+function viewPlan(){
+  $app.innerHTML=`<h2>플랜</h2><p class="muted">지금 단계를 눌러 두면 '오늘' 화면이 그 단계에 맞춰져요.</p>
+   ${STAGES_G.map((s,n)=>`<div class="card stage${n===S.stage?" now":n<S.stage?" done":""}" style="margin:12px 0"><div class="row" style="justify-content:space-between"><h3>${esc(s.name)} <span class="muted">${esc(s.weeks)}</span></h3>${n===S.stage?`<span class="pill">지금</span>`:`<button class="btn ghost sm" data-s="${n}">이 단계로</button>`}</div>
+   <b>할 것</b><ul class="pts">${s.todo.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><b>지금은 안 해도 되는 것</b><ul class="pts">${s.skip.map(x=>`<li class="muted">${esc(x)}</li>`).join("")}</ul></div>`).join("")}
+   <div class="card"><h3>공부 원리 세 가지</h3><ul class="pts"><li>읽기보다 꺼내기 — 개념어 카드와 확인 문제가 다시 읽기보다 오래 남아요.</li><li>나눠서 자주 — 하루 몰아서보다 매일 30분이 나아요(간격 반복).</li><li>섞어서 — 추리논증은 유형을 섞어 풀어야 실전에서 유형을 알아봐요.</li></ul></div>`;
+  $app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{S.stage=+b.dataset.s;save();viewPlan()});
+}
+
+// ================= 오늘 =================
+function nextUnit(list){return list.find(u=>!(S.done[u.id]>=80))}
+function viewHome(){
+  const q=wq(),lg=S.logs[TODAY()]||{w:0,q:0,c:0,m:0,ch:0},st=STAGES_G[S.stage];
+  const lu=nextUnit(LOGIC),pu=nextUnit(PSY),wk=Object.values(S.drafts).filter(d=>d.d>TODAY()-7).length;
+  const tasks=[];
+  tasks.push([`개념어 카드 ${q.due.length+q.fresh.length}장`,"#words",q.due.length+q.fresh.length===0]);
+  if(S.stage===0){if(lu)tasks.push([`논리학 · ${lu.title}`,"#logic/"+lu.id,false]);if(pu)tasks.push([`심리학 · ${pu.title}`,"#psy/"+pu.id,false])}
+  if(S.stage>=1)tasks.push(["언어이해 지문 1세트(문단 요약 쓰며)","#leet",false],["추리논증 유형 3문제","#leet",false]);
+  if(S.stage===2)tasks.push(["LEET 논술 한 편","#write/leet",false]);
+  tasks.push([wk>=2?"이번 주 글 "+wk+"편 썼어요":"이번 주 글 "+wk+"편 — 한 편 더",wk%2?"#write/lit":"#write/logic",wk>=2]);
+  $app.innerHTML=`<h2>오늘</h2><p class="muted">${esc(st.name)} · ${streak()}일째 이어서 공부 중</p>
+   <div class="grid"><div class="card"><div class="muted">오늘 카드</div><div class="big">${lg.w}</div></div><div class="card"><div class="muted">오늘 문제</div><div class="big">${lg.c}/${lg.q}</div></div><div class="card"><div class="muted">오늘 공부 시간</div><div class="big">${lg.m}분</div></div></div>
+   <h3 style="margin-top:20px">오늘 할 것</h3><div class="list">${tasks.map(t=>`<a class="item" href="${t[1]}"><span>${esc(t[0])}</span>${t[2]?`<span class="pill g">됨</span>`:`<span class="pill">하기</span>`}</a>`).join("")}</div>
+   ${sampleState==="none"?`<p class="muted" style="margin-top:14px">지금은 Claude 기능(문제 생성·첨삭)을 쓸 수 없는 화면이에요. claude.ai에서 열면 돼요.</p>`:""}`;
+}
+
+// ================= 기록 =================
+function viewStats(){
+  const days=[];for(let k=13;k>=0;k--){const d=TODAY()-k;days.push([dayStr(d),S.logs[d]||{w:0,q:0,c:0,m:0,ch:0}])}
+  const mx=Math.max(1,...days.map(d=>d[1].m));
+  const tags=Object.entries(S.tags).filter(([t,v])=>v.c+v.w>=3).map(([t,v])=>[t,Math.round(v.c/(v.c+v.w)*100),v.c+v.w]).sort((a,b)=>a[1]-b[1]);
+  $app.innerHTML=`<h2>기록</h2><div class="card"><h3>최근 2주 공부 시간</h3>
+   <svg viewBox="0 0 700 180" role="img" aria-label="최근 2주 공부 시간">${days.map((d,k)=>{const h=Math.round(d[1].m/mx*120);return `<rect x="${k*50+8}" y="${140-h}" width="34" height="${h}" fill="#1d5a66"><link rel="apple-touch-icon" href="icon.png"><link rel="icon" type="image/png" href="icon.png">
+<title>${d[0]} ${d[1].m}분</title></rect><text x="${k*50+25}" y="160" text-anchor="middle">${d[0]}</text>${d[1].m?`<text x="${k*50+25}" y="${134-h}" text-anchor="middle">${d[1].m}</text>`:""}`}).join("")}</svg></div>
+   <div class="card" style="margin-top:12px"><h3>유형별 정답률 (낮은 순)</h3>${tags.length?`<table><tr><th>유형</th><th>정답률</th><th>푼 수</th></tr>${tags.map(t=>`<tr><td>${esc(t[0])}</td><td>${t[1]}%</td><td>${t[2]}</td></tr>`).join("")}</table>`:`<p class="muted">한 유형을 3문제 넘게 풀면 보여요.</p>`}</div>
+   <div class="grid" style="margin-top:12px"><div class="card"><div class="muted">익힌 개념어</div><div class="big">${wq().known}</div></div><div class="card"><div class="muted">쓴 글</div><div class="big">${S.drafts.length}</div></div><div class="card"><div class="muted">논리학 통과</div><div class="big">${LOGIC.filter(u=>S.done[u.id]>=80).length}/${LOGIC.length}</div></div><div class="card"><div class="muted">심리학 통과</div><div class="big">${PSY.filter(u=>S.done[u.id]>=80).length}/${PSY.length}</div></div></div>`;
+}
+
+// ================= 화면 전환 =================
+function route(){busy=false;const h=(location.hash||"#home").slice(1),[v,a,b]=h.split("/");
+  document.querySelectorAll("#nav a").forEach(x=>x.classList.toggle("on",x.getAttribute("href")==="#"+v));
+  if(v==="logic")a?viewUnit(LOGIC,"logic",a,"논리학"):viewUnits(LOGIC,"logic","논리학","LEET 추리논증과 논리적 글쓰기의 뼈대. 단원마다 확인 문제 80점이 넘으면 통과예요.");
+  else if(v==="psy")a?viewUnit(PSY,"psy",a,"심리학"):viewUnits(PSY,"psy","심리학 · 융을 중심으로","융의 분석심리학 아홉 단원과 다른 심리학 비교 한 단원. 단원마다 '글쓰기에 쓰는 법'이 붙어 있어요.");
+  else if(v==="write")a&&KINDS[a]?editor(a,b):viewWrite();
+  else ({home:viewHome,plan:viewPlan,words:viewWords,leet:viewLeet,review:viewReview,stats:viewStats}[v]||viewHome)();
+  window.scrollTo(0,0)}
+window.addEventListener("hashchange",route);
+document.getElementById("nav").addEventListener("click",e=>{const x=e.target.closest("a");if(x&&x.getAttribute("href")===location.hash){e.preventDefault();route()}});
+$app.addEventListener("click",e=>{const x=e.target.closest("a[href^='#']");if(x&&x.getAttribute("href")===location.hash){e.preventDefault();route()}});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)flush()});
+initStore();
+})();
+</script>
+</body>
+</html>
