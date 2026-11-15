@@ -14,6 +14,14 @@ jobs:
         with: { python-version: "3.12" }
       - name: Tools
         run: python -m pip install pyinstaller pillow
+      - uses: actions/setup-go@v5
+        with: { go-version: "stable" }
+      - name: go-ios (master, iOS 27 HID 포함)
+        shell: pwsh
+        run: |
+          git clone --depth 1 https://github.com/danielpaulus/go-ios goios-src
+          cd goios-src; go build -o ../tools/ipctl/ios-master.exe .; cd ..
+          ./tools/ipctl/ios-master.exe version
       - name: go-ios + WebDriverAgent
         shell: pwsh
         env: { GH_TOKEN: "${{ github.token }}" }
@@ -25,7 +33,7 @@ jobs:
           $a = $g.assets | Where-Object { $_.name -match '(?i)win' -and $_.name -match '\.zip$' } | Select-Object -First 1
           Invoke-WebRequest $a.browser_download_url -OutFile goios.zip
           Expand-Archive goios.zip goios
-          Copy-Item (Get-ChildItem goios -Recurse -Filter ios.exe | Select-Object -First 1).FullName ios.exe
+          Move-Item ios-master.exe ios.exe -Force
           ./ios.exe version | Tee-Object -Append build-info.txt
           $w = Invoke-RestMethod https://api.github.com/repos/appium/WebDriverAgent/releases/latest -Headers $h
           "WDA $($w.tag_name): $($w.assets.name -join ', ')" | Tee-Object -Append build-info.txt

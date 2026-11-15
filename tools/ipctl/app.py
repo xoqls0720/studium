@@ -44,7 +44,7 @@ def ios_bin():
 def ios(*args, timeout=40):
     r = subprocess.run([IOS, *args], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, creationflags=NOWIN, cwd=HERE)
     out = (r.stdout or "") + (r.stderr or "")
-    log("ios", *args, "→", out.strip()[:400])
+    log("ios", *args, "→", out.strip()[:4000])
     return out
 
 def ios_bg(*args):
@@ -119,8 +119,29 @@ class App:
     def say(self, t): log(t); self.root.after(0, lambda: (self.cv.itemconfigure(self.msg, text=t), self.cv.tag_raise(self.msg)))
 
     # ── 연결 ─────────────────────────────────────
+    def diag(self):
+        """명령.txt 가 있으면 한 줄씩 ios 명령을 실행해 명령결과.txt 에 전부 적는다 (원인 찾기용)"""
+        f = os.path.join(HERE, "명령.txt")
+        if not os.path.exists(f): return
+        lines = [l.strip() for l in open(f, encoding="utf-8-sig") if l.strip() and not l.startswith("#")]
+        os.remove(f)
+        with open(os.path.join(HERE, "명령결과.txt"), "w", encoding="utf-8") as o:
+            for l in lines:
+                self.say("진단 중: ios " + l)
+                if l.startswith("bg "):
+                    ios_bg(*l[3:].split()); o.write(f"$ ios {l[3:]} (백그라운드)\n\n"); time.sleep(5); continue
+                if l.startswith("sleep "):
+                    time.sleep(float(l[6:])); continue
+                try:
+                    r = subprocess.run([IOS, *l.split()], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300, creationflags=NOWIN, cwd=HERE)
+                    out = (r.stdout or "") + (r.stderr or "")
+                except Exception as e: out = f"오류: {e}"
+                o.write(f"$ ios {l}\n{out}\n\n"); o.flush()
+        self.say("진단 끝 — 명령결과.txt")
+
     def boot(self):
         try:
+            self.diag()
             if not up():
                 if not IOS: return self.say("go-ios 가 없어요.\n'설치_한번만.bat' 을 먼저 실행해 주세요.")
                 self.say("아이폰을 찾는 중… (선 연결, 아이폰 잠금 해제, '이 컴퓨터 신뢰' 누르기)")
