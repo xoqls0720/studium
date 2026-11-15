@@ -10,9 +10,17 @@ async function loadExam(id) { return (state.exam ||= {})[id] ||= await readJSON(
 const examLabel = (d, q) => d.gen ? `예상 지문 · ${d.title}` : `제${d.round}회 ${d.stage}차${q ? ` ${q.period ? q.period + '교시 ' : ''}${q.n}번` : ''}`;
 
 // 과목 지문 전부 (최근 회차부터, 같은 회차는 문제 번호 순)
-async function oxPool(sid, examIds, gen = !examIds && oxGenOn()) {
+// 회독 범위는 기본으로 최근 RECENT개 회차(합격 수기: '10개년치 기출을 실전처럼'). 오래된 회차는 개정 전 법이라 답이 바뀐 지문이 많다.
+// 회차를 직접 고를 때(examIds)와 이미 복습에 들어온 지문(dueOx)은 범위와 상관없이 다룬다.
+const oxRecent = () => pref('oxRecent', 10);
+function inRecent(idx, e) {
+  const R = oxRecent(); if (!R) return true;
+  const maxR = Math.max(0, ...idx.exams.filter(x => x.stage === e.stage).map(x => x.round || 0));
+  return !e.round || e.round > maxR - R;
+}
+async function oxPool(sid, examIds, gen = !examIds && oxGenOn(), all = false) {
   const idx = await loadGichulIndex(), out = [];
-  for (const e of idx.exams.filter(e => (!sid || e.subjects.includes(sid)) && (!examIds || examIds.includes(e.id)))) {
+  for (const e of idx.exams.filter(e => (!sid || e.subjects.includes(sid)) && (examIds ? examIds.includes(e.id) : all || inRecent(idx, e)))) {
     let d;
     try { d = await loadExam(e.id); } catch { continue; }
     const qs = new Map(d.questions.map(q => [q.id, q]));
@@ -23,7 +31,7 @@ async function oxPool(sid, examIds, gen = !examIds && oxGenOn()) {
 }
 // 단원 OX(생성기가 조문·판례로 만든 예상 지문)도 회독에 넣는다. 기출을 넣기 전에도 회독 엔진을 쓸 수 있게.
 // 목록·통계는 index.json 의 단원별 ox 수로 id 만 만들고, 풀 때 hydrate 로 글을 채운다. id 에 단원 해시가 들어가 단원을 다시 만들면 새 지문이 된다.
-const oxGenOn = () => pref('oxGen', true);
+const oxGenOn = () => pref('oxGen', false);   // 기출이 있으면 AI가 만든 예상 지문은 기본으로 뺀다
 function genStubs(sid) {
   const out = [];
   for (const s of allSubjects()) if (!sid || s.id === sid) for (const u of s.units || []) for (let i = 0; i < (u.ox || 0); i++)
@@ -86,7 +94,7 @@ const isExamQId = id => /^\d+-\d:\d+:\d+$/.test(id);
 async function dueOx() {
   const ids = Object.keys(prog.srs).filter(k => isOxId(k) && isDue(k));
   if (!ids.length) return [];
-  const all = await oxPool(null, null, true), want = new Set(ids);
+  const all = await oxPool(null, null, true, true), want = new Set(ids);
   return hydrate(all.filter(j => want.has(j.id)));
 }
 
@@ -99,7 +107,7 @@ async function viewGichul() {
   const idx = await loadGichulIndex(true);
   const all = await oxPool(), subs = allSubjects();
   if (!idx.exams.length && !all.length) { render(head + gichulHowto()); bindGo(); return; }
-  let h = head + (idx.exams.length ? '' : `<div class="card"><b>아직 기출이 없어서</b> 단원마다 만든 예상 지문(조문·판례 OX)으로 회독해요. 기출 PDF를 넣으면 기출 지문이 함께 들어와요. <a href="#/add">기출 넣는 법</a></div>`) + '<div class="grid">';
+  let h = head + (idx.exams.length ? '' : `<div class="card"><b>아직 기출이 없어서</b> 단원마다 만든 예상 지문(조문·판례 OX)으로 회독해요. 기출 PDF를 넣으면 기출 지문이 함께 들어와요. PC의 '받은 자료/기출' 폴더에 넣으면 돼요.</div>`) + '<div class="grid">';
   for (const s of subs) {
     const list = all.filter(j => j.sid === s.id);
     if (!list.length) continue;
@@ -109,13 +117,13 @@ async function viewGichul() {
       <div class="bar"><i style="width:${st.pct}%"></i></div>
       <div class="tags">${stars ? `<span class="tag bad">★ ${stars}</span>` : ''}${p > 1 ? `<span class="tag ok">${p - 1}회독 끝</span>` : ''}</div></div>`;
   }
-  h += '</div>' + (idx.exams.length ? '' : '<div class="row"><button class="btn" data-go="#/add">' + ic('plus', 18) + '기출 파일 넣기</button></div>');
+  h += '</div>' + (idx.exams.length ? '' : '<p class="faint">기출 PDF는 PC의 \'받은 자료/기출\' 폴더에 넣으면 정리돼요.</p>');
   if (!idx.exams.length) { render(h); bindGo(); return; }
   h += `<div class="sect">회차별 풀기</div><div class="card" style="padding-top:8px;padding-bottom:8px"><ul class="list">${idx.exams.map(e => {
     const done = Object.keys(prog.q).filter(k => k.startsWith(e.id + ':')).length;
     return `<li data-go="#/gichul/${e.id}"><span class="num">${e.round}</span><span class="grow"><span class="tt">${esc(e.title)}</span><div class="faint">${e.year}년 · 문제 ${e.n} · 지문 ${e.ox}${e.explained ? ` · 해설 ${e.explained}` : ''}</div></span>${done ? `<span class="tag ok">${done}/${e.n} 풂</span>` : ''}<span class="chev">${ic('chev', 16)}</span></li>`;
   }).join('')}</ul></div>
-    <div class="row"><button class="btn" data-go="#/trend">${ic('chart', 18)}출제 경향</button><button class="btn" data-go="#/add">${ic('plus', 18)}기출 파일 넣기</button></div>`;
+    <div class="row"><button class="btn" data-go="#/trend">${ic('chart', 18)}출제 경향</button></div>`;
   render(h);
 }
 const sha6 = id => [...String(id)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7).toString(16).padStart(6, '0');
@@ -127,7 +135,7 @@ function gichulHowto() {
       <li>hwp가 '배포용 문서'(보호)면 한컴오피스 뷰어나 구글 드라이브 미리보기로 열어 PDF로 저장해 같은 폴더에 넣어요.</li>
       <li>PC 생성기가 문제와 지문으로 나누고, 정답으로 지문마다 O·X를 매겨요. 해설·근거 조문도 과목마다 조금씩 붙여요.</li></ol>
     <p class="faint" style="margin:12px 0 0">법원시험정보 사이트는 robots.txt로 자동 수집을 막아 두었어요. 수집기의 기출 받기는 기본으로 꺼져 있고, 켜면 하루 한 번 새 글만 받아 '받은 자료/기출'에 넣어요. 기출은 법원행정처가 공개한 자료라 개인 공부에는 출처를 밝혀 쓸 수 있어요.</p>
-    <div class="row" style="margin-top:14px"><button class="btn pri" data-go="#/add">${ic('plus', 18)}기출 파일 넣기</button></div></div>`;
+    <p class="faint" style="margin-top:14px">기출 PDF는 PC의 '받은 자료/기출' 폴더에 넣으면 정리돼요.</p></div>`;
 }
 
 // ── 회차 하나 ───────────────────────────────────────────────────────
@@ -191,13 +199,15 @@ async function viewSubjectGichul(s) {
       <label>순서 <select id="g-ord" style="min-height:30px;padding:2px 8px;border:0;background:none">${[['exam', '최근 회차부터'], ['shuffle', '섞어서'], ['star', '★·틀린 것 먼저']].map(([v, t]) => `<option value="${v}" ${pref('oxOrder', 'exam') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
       <label>건너뛰기 <select id="g-k" style="min-height:30px;padding:2px 8px;border:0;background:none">${[[0, '안 함'], [2, '2연속 O'], [3, '3연속 O'], [4, '4연속 O'], [5, '5연속 O']].map(([v, t]) => `<option value="${v}" ${OXK() === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
       <label>한 번에 <select id="g-n" style="min-height:30px;padding:2px 8px;border:0;background:none">${[20, 40, 80, 9999].map(n => `<option value="${n}" ${pref('oxBatch', 40) === n ? 'selected' : ''}>${n === 9999 ? '전부' : n + '개'}</option>`).join('')}</select></label></div>
-      <label class="row" style="margin-top:12px;gap:8px"><input type="checkbox" id="g-gen" ${oxGenOn() ? 'checked' : ''}> 단원 예상 지문(조문·판례 OX)도 회독에 넣기</label>
+      <label class="row" style="margin-top:12px;gap:8px"><input type="checkbox" id="g-recent" ${oxRecent() ? 'checked' : ''}> 최근 ${oxRecent() || 10}개 회차만 회독 (권장 — 합격자들이 돌린 범위, 개정 전 옛 지문 제외)</label>
+      <label class="row" style="margin-top:6px;gap:8px"><input type="checkbox" id="g-gen" ${oxGenOn() ? 'checked' : ''}> AI가 만든 단원 예상 지문도 넣기 (기출을 다 돌린 뒤에만 권장)</label>
       <div class="row" style="margin-top:12px">${gens.length ? `<button class="btn sm" data-ex="gen">예상 지문 ${gens.length}</button>` : ''}${exams.map(e => `<button class="btn sm" data-ex="${e.id}">${esc(examLabel(e))} ${list.filter(j => j.ex.id === e.id).length}</button>`).join('')}</div>
       <div class="row" style="margin-top:12px"><button class="btn ghost sm" id="g-reset">${p}회독 처음부터</button><button class="btn ghost sm" id="g-next">${p + 1}회독 시작</button></div></div>`);
   $('#g-ord').onchange = e => setPref('oxOrder', e.target.value);
   $('#g-k').onchange = e => { setPref('skipK', +e.target.value); viewSubjectGichul(s); };
   $('#g-n').onchange = e => setPref('oxBatch', +e.target.value);
   $('#g-gen').onchange = e => { setPref('oxGen', e.target.checked); viewSubjectGichul(s); };
+  $('#g-recent').onchange = e => { setPref('oxRecent', e.target.checked ? 10 : 0); viewSubjectGichul(s); };
   const back = `#/s/${s.id}/gichul`;
   $('#g-go') && ($('#g-go').onclick = () => startOx(orderOx(left).slice(0, pref('oxBatch', 40)), `${s.name} ${p}회독`, back, p, s.id));
   // 듣기로 회독: 지문을 읽어 주고 생각할 시간 뒤 정답·해설. 답을 들려주기 전에 O·X 를 누른 지문만 이번 회독에 남는다

@@ -1,6 +1,7 @@
 'use strict';
 // ── 과목 ────────────────────────────────────────────────────────
-const TABS = [['book', '기본서'], ['gichul', '기출 OX'], ['cards', '카드'], ['cases', '판례'], ['quiz', '문제'], ['summary', '요약·경향'], ['exam', '시험 대비'], ['wrong', '오답'], ['nlm', 'NotebookLM']];
+// 합격에 직결된 것만: 기출 지문 회독이 중심, 기본서는 이해용, 조문·판례 카드, 오답. (AI 생성 문제·요약집·대학식 시험 대비·NotebookLM은 뺐다)
+const TABS = [['gichul', '기출 OX'], ['book', '기본서'], ['cards', '조문·판례 카드'], ['cases', '최신 판례'], ['wrong', '오답']];
 function tabsHtml(s, on) {
   const st = subjStats(s);
   return `<section class="shead noprint" style="--h:${hue(sha6(s.id))}"><div class="eyebrow">${esc(s.libName || '과목')}</div><h2 class="display">${esc(s.name)}</h2>
@@ -8,12 +9,19 @@ function tabsHtml(s, on) {
     <div class="seg noprint">${TABS.map(([k, t]) => `<button class="${k === on ? 'on' : ''}" data-go="#/s/${s.id}/${k}">${t}</button>`).join('')}</div>`;
 }
 
-function viewBook(s) {
+async function viewBook(s) {
   frame(s.name, '#/');
-  const rc = s.units.filter(u => u.ready).map(u => readCount(u.id)), pass = rc.length ? Math.min(...rc) : 0, inPass = rc.filter(n => n > pass).length;
+  const fq = await unitFreq(s);   // 단원별 기출 문항 수(최근 10개 회차 / 전체). 경향이 없으면 null
+  const low = u => fq && fq.get(u.id)?.n10 === 0;   // 최근 10개 회차에 한 문제도 안 나온 단원 → 후순위(접어 둠)
+  const freqTag = u => { const f = fq?.get(u.id); return !f ? '' : f.n10 ? `<span class="tag ${f.n10 >= 20 ? 'bad' : f.n10 >= 8 ? 'warn' : ''}" title="최근 10개 회차 1차 기출 문항 수">기출 ${f.n10}</span>` : `<span class="tag">출제 없음</span>`; };
+  const rc = s.units.filter(u => u.ready && !low(u)).map(u => readCount(u.id)), pass = rc.length ? Math.min(...rc) : 0, inPass = rc.filter(n => n > pass).length;
+  const li = (u, i) => `<li class="${u.ready ? '' : 'off'}" ${u.ready ? `data-go="#/s/${s.id}/u/${u.id}"` : ''}><span class="num">${pad2(i + 1)}</span><span class="grow"><span class="tt">${esc(u.title)}</span>${u.revised ? ` <span class="tag warn">개정 ${esc(u.revised.date || '')}</span>` : ''}${memoOf(u.id) ? `<span class="faint"> · ${ic('memo', 13)} 메모</span>` : ''}${u.law ? `<div class="faint">${esc(u.file || '')}</div>` : ''}</span>${isMarked(u.id) ? `<span style="color:var(--gold)">${ic('mark', 16)}</span>` : ''}${freqTag(u)}${u.ready ? `${readCount(u.id) ? `<span class="tag ok">${readCount(u.id)}회독</span>` : ''}<span class="chev">${ic('chev', 16)}</span>` : '<span class="tag warn">정리 중</span>'}</li>`;
+  const main = s.units.map((u, i) => [u, i]).filter(([u]) => !low(u)), rest = s.units.map((u, i) => [u, i]).filter(([u]) => low(u));
   render(tabsHtml(s, 'book') + `${rc.length ? `<div class="card callout"><div class="mark">${ic('book')}</div><div class="grow"><b>${pass + 1}회독 진행 중 · ${inPass}/${rc.length}</b><div class="faint">끝까지 읽으면 읽음, 6시간 뒤 다시 끝까지 읽으면 회독이 하나 늘어요</div><div class="bar" style="margin:8px 0 0"><i style="width:${inPass / rc.length * 100}%"></i></div></div></div>` : ''}
-  <div class="card" style="padding-top:8px;padding-bottom:8px"><ul class="list">${s.units.map((u, i) => `<li class="${u.ready ? '' : 'off'}" ${u.ready ? `data-go="#/s/${s.id}/u/${u.id}"` : ''}><span class="num">${pad2(i + 1)}</span><span class="grow"><span class="tt">${esc(u.title)}</span>${u.revised ? ` <span class="tag warn">개정 ${esc(u.revised.date || '')}</span>` : ''}${memoOf(u.id) ? `<span class="faint"> · ${ic('memo', 13)} 메모</span>` : ''}${u.law ? `<div class="faint">${esc(u.file || '')}</div>` : ''}</span>${isMarked(u.id) ? `<span style="color:var(--gold)">${ic('mark', 16)}</span>` : ''}${u.ready ? `${readCount(u.id) ? `<span class="tag ok">${readCount(u.id)}회독</span>` : `<span class="faint">${u.n}문제</span>`}<span class="chev">${ic('chev', 16)}</span>` : '<span class="tag warn">정리 중</span>'}</li>`).join('')}</ul></div>
-  <div class="row noprint"><button class="btn" data-go="#/s/${s.id}/print">${ic('print', 18)}기본서 전체 인쇄·PDF</button><button class="btn" data-go="#/add">${ic('plus', 18)}이 과목에 자료 넣기</button></div>
+  ${fq ? `<p class="faint" style="margin:0 0 10px">기본서는 기출 지문을 이해하기 위한 책이에요. 단원 옆 숫자는 최근 10개 회차에 나온 문항 수 — 큰 단원부터 확실히 하세요.</p>` : ''}
+  <div class="card" style="padding-top:8px;padding-bottom:8px"><ul class="list">${main.map(([u, i]) => li(u, i)).join('')}</ul></div>
+  ${rest.length ? `<details class="card" style="padding-top:10px;padding-bottom:10px"><summary style="cursor:pointer"><b>후순위 단원 ${rest.length}개</b> <span class="faint">— 최근 10개 회차에 출제가 없어 계획에서 뺐어요. 기출 회독으로 충분해요.</span></summary><ul class="list" style="margin-top:8px">${rest.map(([u, i]) => li(u, i)).join('')}</ul></details>` : ''}
+  <div class="row noprint"><button class="btn" data-go="#/s/${s.id}/print">${ic('print', 18)}기본서 전체 인쇄·PDF</button></div>
   ${s.pdf && Object.keys(s.pdf).length ? `<div class="sect">굿노트</div><div class="card callout noprint"><div class="mark">${ic('share')}</div><div class="grow"><b>굿노트로 보내기</b><div class="faint">아이패드 공유 창에서 굿노트를 고르면 바로 열려요. 쪽마다 오른쪽에 필기 칸이 있어요.</div></div></div>
     <div class="row noprint">${[['book', '기본서'], ['summary', '요약서'], ['quiz', '문제지 + 정답'], ['oxsheet', '기출 회독지']].filter(([k]) => s.pdf[k]).map(([k, t]) => `<button class="btn" data-gn="${k}">${ic('share', 18)}${t}</button>`).join('')}</div>` : ''}`);
   store.set('addTo', {lib: s.lib, libName: s.libName, subject: s.name});
@@ -56,10 +64,8 @@ async function viewUnit(s, uid) {
     ${d.revised ? `<div class="card callout gold"><div class="mark">${ic('alert')}</div><div class="grow"><b>개정된 조문이 있어요 · ${esc(d.revised.date)}</b><div class="faint">${esc((d.revised.arts || []).join(', '))} — 본문은 개정 뒤 조문으로 다시 썼어요. 그 전 기출 지문은 답이 다를 수 있어요.</div></div><button class="btn sm" data-go="#/laws">개정 보기</button></div>` : ''}
     ${d.cloze?.length ? `<div class="row noprint" style="margin-bottom:10px"><span class="faint">조문:</span>${[...new Map(d.cloze.map(z => [z.k, z])).values()].map(z => `<button class="btn ghost sm" data-go="#/law/${encodeURIComponent(z.law)}?k=${encodeURIComponent(z.k)}">${esc(z.no)}</button>`).join('')}</div>` : ''}
     <div class="row noprint" style="margin-bottom:14px">
-      <button class="btn sm" id="u-listen">${ic('sound', 16)}듣기</button><button class="btn sm gem" id="u-pod">${ic('spark', 16)}팟캐스트</button>
       <button class="btn sm" id="u-mark" style="${isMarked(u.id) ? 'color:var(--gold);border-color:var(--gold-line)' : ''}">${ic('mark', 16)}책갈피</button>
       <button class="btn sm" id="u-memo">${ic('memo', 16)}메모${memoOf(u.id) ? ' ·' : ''}</button></div>
-    <div id="u-podbox" class="card" hidden></div>
     <div id="u-memobox" class="card" ${memoOf(u.id) ? '' : 'hidden'}><div class="row" style="margin-bottom:8px"><span class="grow" style="font-size:13px;font-weight:650;color:var(--sub)">내 메모 · 기기끼리 맞춰져요</span><button class="btn ghost sm" id="u-mp"></button></div><textarea id="u-memotext" style="min-height:150px" placeholder="이해한 것, 헷갈리는 조문, 암기 요령…">${esc(memoOf(u.id))}</textarea></div>
     <div id="pw"><div class="card paper" id="paper" style="padding:28px">${unitHtml(u, d)}</div></div>
     ${d.terms?.length ? `<div class="sect">용어 · 눌러서 뜻 보기</div><div class="terms">${d.terms.map(t => `<div class="term"><b>${esc(t.t)}</b><span>${esc(t.d)}</span></div>`).join('')}</div>` : ''}
@@ -92,13 +98,6 @@ async function viewUnit(s, uid) {
     }
   };
   addEventListener('scroll', mark, {passive: true});
-  let listening = false;
-  $('#u-listen').onclick = () => {
-    if (listening) { speakStop(); listening = false; $('#u-listen').innerHTML = ic('sound', 16) + '듣기'; return; }
-    listening = true; $('#u-listen').innerHTML = ic('pause', 16) + '멈춤';
-    speak(`${u.title}. ${d.note}. 핵심 정리. ${(d.points || []).join('. ')}`, {onend: () => { listening = false; $('#u-listen') && ($('#u-listen').innerHTML = ic('sound', 16) + '듣기'); }});
-  };
-  $('#u-pod').onclick = () => { const b = $('#u-podbox'); b.hidden = false; podcastPanel(b, 'u:' + u.id, u.title, `${d.note}\n핵심: ${(d.points || []).join('\n')}`); };
   $('#u-mark').onclick = () => { const on = toggleMark(u.id); $('#u-mark').style.cssText = on ? 'color:var(--gold);border-color:var(--gold-line)' : ''; toast(on ? '책갈피에 넣었어요' : '책갈피를 뺐어요'); };
   $('#u-memo').onclick = () => { const t = $('#u-memotext'); $('#u-memobox').hidden = false; t.dispatchEvent(new Event('input')); t.focus(); };
   $('#u-memotext').oninput = e => setMemo(u.id, e.target.value);

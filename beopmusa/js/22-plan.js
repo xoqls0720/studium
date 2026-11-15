@@ -28,7 +28,8 @@ async function planOf(st) {
   const days = Math.max(1, (left ?? 120) - buffer), all = await oxPool(), rows = [];
   for (const s of subjectsOf(st)) {
     const list = all.filter(j => j.sid === s.id), N = list.length, p = passOf(s.id), ps = passStats(list, p);
-    const units = s.units.filter(u => u.ready), U = units.length;
+    const fq = st === 1 ? await unitFreq(s) : null;
+    const units = s.units.filter(u => u.ready && !(fq && fq.get(u.id)?.n10 === 0)), U = units.length;   // 출제 없는 단원은 기본서 계획에서 뺀다
     const rOx = Math.max(0, (T - p + 1) * N - ps.done), rBook = Math.max(0, B * U - units.reduce((a, u) => a + Math.min(B, readCount(u.id)), 0));
     rows.push({s, list, N, p, ps, U, rOx, rBook, w: weightOf(s.id, st), stars: list.filter(j => oxStar(j.id)).length});
   }
@@ -95,6 +96,24 @@ ${ctx}`, [['이번 주 계획', '이번 주 7일 계획을 요일별 표로 짜 
 
 // ── 출제 경향 ────────────────────────────────────────────────────────
 async function loadTrend() { return state.trend ||= await readJSON('기출/경향.json').catch(() => ({subjects: {}})); }
+// 단원별 1차 기출 문항 수 {n10: 최근 RECENT개 회차, nAll: 전체}. 경향의 단원 키가 단원 키와 같거나 그 아래 장·절이면 합친다.
+async function unitFreq(s) {
+  const t = (await loadTrend()).subjects?.[s.id];
+  if (!t?.byUnit || !(s.stage || [1, 2]).includes(1)) return null;
+  const R = oxRecent(), parse = k => { const m = String(k).match(/제(\d+)회.*제(\d)차/); return m && m[2] === '1' ? +m[1] : 0; };
+  let maxR = 0;
+  for (const v of Object.values(t.byUnit)) for (const k of Object.keys(v.by || {})) maxR = Math.max(maxR, parse(k));
+  const out = new Map();
+  for (const u of s.units) {
+    let n10 = 0, nAll = 0;
+    if (u.key) for (const [tk, v] of Object.entries(t.byUnit)) {
+      if (!(tk === u.key || tk.startsWith(u.key))) continue;
+      for (const [k, c] of Object.entries(v.by || {})) { const r = parse(k); if (!r) continue; nAll += c; if (!R || r > maxR - R) n10 += c; }
+    }
+    out.set(u.id, {n10, nAll});
+  }
+  return [...out.values()].some(f => f.nAll) ? out : null;   // 분류가 하나도 안 맞으면 쓰지 않는다
+}
 function trendHtml(s, t) {
   if (!t) return `<div class="card muted">${esc(s.name)} 출제 경향은 기출을 넣고 PC 생성기가 해설·단원 분류를 하면 만들어져요.</div>`;
   const rows = Object.entries(t.byUnit || {}).sort((a, b) => b[1].n - a[1].n), max = Math.max(1, ...rows.map(([, v]) => v.n));
