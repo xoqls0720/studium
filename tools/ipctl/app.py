@@ -24,6 +24,7 @@ os.makedirs(HERE, exist_ok=True)
 LOG = os.path.join(HERE, "실행기록.txt")
 WDA, MJ = 8100, 9100
 NOWIN = 0x08000000 if os.name == "nt" else 0
+os.environ.setdefault("ENABLE_GO_IOS_AGENT", "user")  # go-ios 1.3+: iOS 17 이상 터널을 관리자 권한 없이 자동으로
 procs = []
 
 def log(*a):

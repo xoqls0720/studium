@@ -30,8 +30,8 @@ jobs:
           $w = Invoke-RestMethod https://api.github.com/repos/appium/WebDriverAgent/releases/latest -Headers $h
           "WDA $($w.tag_name): $($w.assets.name -join ', ')" | Tee-Object -Append build-info.txt
           $b = $w.assets | Where-Object { $_.name -eq 'WebDriverAgentRunner-Runner.zip' } | Select-Object -First 1
-          Invoke-WebRequest $b.browser_download_url -OutFile wda.zip
-          Expand-Archive wda.zip wda
+          Invoke-WebRequest $b.browser_download_url -OutFile wdadl.zip
+          Expand-Archive wdadl.zip wda
           $app = Get-ChildItem wda -Recurse -Directory -Filter '*.app' | Select-Object -First 1
           New-Item -ItemType Directory Payload | Out-Null
           Copy-Item $app.FullName Payload -Recurse
