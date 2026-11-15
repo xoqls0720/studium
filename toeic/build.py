@@ -3,6 +3,6 @@ from pathlib import Path
 root = Path(__file__).parent
 a = (root / "src" / "app.html").read_text(encoding="utf-8").replace("/*DATA*/", (root / "src" / "data.js").read_text(encoding="utf-8"))
 (root / "artifact.html").write_text(a, encoding="utf-8")
-pwa = '<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1d5a66">\n<script src="../shim/claude.js"></script>\n'
+pwa = '<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1d5a66">\n<script src="../shim/claude.js"></script>\n<script src="../shim/tabs.js"></script>\n'
 (root / "index.html").write_text(a.replace("<title>", pwa + "<title>", 1), encoding="utf-8")
 print("artifact.html, index.html")
