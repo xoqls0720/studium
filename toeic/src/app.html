@@ -94,7 +94,7 @@ table{border-collapse:collapse;width:100%} td,th{padding:8px;border-bottom:1px s
 <header>
   <div class="top"><h1>태빈 토익 독학 · 목표 990</h1><span class="chip" id="sync">저장 준비 중</span></div>
   <nav id="nav">
-    <a href="#home">오늘</a><a href="#plan">플랜</a><a href="#words">단어</a><a href="#grammar">문법</a><a href="#parts">파트별</a><a href="#mock">모의고사</a><a href="#review">오답노트</a><a href="#stats">기록</a>
+    <a href="#home">오늘</a><a href="#plan">플랜</a><a href="#words">단어</a><a href="#grammar">문법</a><a href="#parts">파트별</a><a href="#mock">모의고사</a><a href="#review">오답노트</a><a href="#export">굿노트</a><a href="#stats">기록</a>
   </nav>
 </header>
 <main id="app"></main>
@@ -429,10 +429,13 @@ function viewWords(){
     </ul></details>
    <div class="row" style="margin:16px 0"><button class="btn" id="go" ${due.length+fresh.length?"":"disabled"}>${due.length+fresh.length?"오늘 단어 시작":"오늘 분량 끝"}</button>
    <span class="seg" id="wl">${LEVELS.map((l,k)=>`<button data-l="${k}" class="${k===S.level?"on":""}">${l.name}</button>`).join("")}</span><button class="btn ghost" id="more">이 수준 단어 30개 더 받기</button></div>
+   <div class="row" style="margin-bottom:8px">${gnB("gnw","단어장 전체 굿노트로")}${gnB("gnt","오늘 단어 굿노트로")}</div>
    <div id="wmsg" class="muted"></div>
    <p class="muted">뜻이 떠오르면 '알았어요', 아니면 '몰랐어요'. 아는 단어는 1·2·4·8·16·30일 간격으로, 모르는 단어는 다음 날 다시 나와요.</p>
    <div class="sep"></div><h3>전체 단어</h3><input id="find" placeholder="영어나 뜻으로 찾기" style="width:100%;margin-bottom:10px"><div class="list" id="wlist"></div>`;
   document.getElementById("go").onclick=()=>wordSession(due.concat(fresh));
+  gnGo("gnw",()=>gnWords(W,"전체 "+W.length+"단어"),"토익 단어장 전체.pdf");
+  gnGo("gnt",()=>{const ix=due.concat(fresh);return gnWords(ix.map(i=>W[i]).filter(Boolean),"오늘 "+ix.length+"단어")},"토익 오늘 단어.pdf");
   document.querySelectorAll("#wl button").forEach(b=>b.onclick=()=>{S.level=+b.dataset.l;save();viewWords()});
   document.getElementById("more").onclick=async()=>{
     const m=document.getElementById("wmsg"), b=document.getElementById("more"); b.disabled=true;
@@ -485,12 +488,15 @@ function viewGrammar(){
   $app.innerHTML=`<h2>문법</h2><p class="muted">위에서부터 한 단원씩. 설명을 읽고 퀴즈 4문제를 푼 뒤, 부족하면 같은 유형 문제를 Claude에게 더 받아요.</p><div class="list">${UNITS.map((u,n)=>{const sc=S.lessons[u.id];
     return `<button class="item" data-u="${n}"><span><b>${n+1}. ${esc(u.title)}</b><br><span class="muted">${esc(u.sum.slice(0,50))}…</span></span>${sc==null?'<span class="pill b">아직</span>':`<span class="pill ${sc===4?"g":""}">${sc}/4</span>`}</button>`}).join("")}</div>`;
   $app.querySelectorAll(".item").forEach(b=>b.onclick=()=>viewUnit(+b.dataset.u));
+  $app.insertAdjacentHTML("afterbegin",`<div class="row" style="justify-content:flex-end">${gnB("gng","문법 전체 굿노트로")}</div>`);
+  gnGo("gng",()=>SKELETON_DOC+UNITS.map((u,n)=>`<div class="page">${gnUnit(u,n)}</div>`).join(""),"토익 문법 노트.pdf");
 }
 function viewUnit(n){
   const u=UNITS[n];
   $app.innerHTML=`<h2>${n+1}. ${esc(u.title)}</h2><div class="card"><p>${esc(u.sum)}</p><ul class="pts">${u.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>
-    <div class="row"><button class="btn" id="qz">퀴즈 4문제</button><button class="btn ghost" id="more">이 유형 10문제 더 받기</button><button class="btn ghost" id="back">단원 목록</button><button class="btn ghost" id="upr">예문 한글 발음 보기</button></div><div id="uprbox"></div><p id="gm" class="muted"></p></div>`;
+    <div class="row"><button class="btn" id="qz">퀴즈 4문제</button><button class="btn ghost" id="more">이 유형 10문제 더 받기</button><button class="btn ghost" id="back">단원 목록</button>${gnB("gnu")}<button class="btn ghost" id="upr">예문 한글 발음 보기</button></div><div id="uprbox"></div><p id="gm" class="muted"></p></div>`;
   document.getElementById("back").onclick=viewGrammar;
+  gnGo("gnu",()=>gnUnit(u,n),`토익 문법 ${n+1}. ${u.title}.pdf`);
   document.getElementById("upr").onclick=e=>{const tx=[];u.pts.forEach(p=>engRuns(p).forEach(x=>tx.push(x)));showPron(e.target,document.getElementById("uprbox"),tx)};
   document.getElementById("qz").onclick=()=>runSets([{items:u.q.map((_,i)=>Object.assign({id:"g:"+u.id+":"+i},QB["g:"+u.id+":"+i]))}],{title:u.title+" 퀴즈",onDone:(r)=>{S.lessons[u.id]=Math.max(S.lessons[u.id]||0,r);save();viewUnit(n)}});
   document.getElementById("more").onclick=async()=>{const m=document.getElementById("gm");document.getElementById("more").disabled=true;
@@ -677,6 +683,8 @@ function viewReview(){
   const b=document.getElementById("rv"); if(b)b.onclick=()=>{
     const sets=ids.slice(0,20).map(id=>{const w=S.wrong[id];return Object.assign({items:[w.item]},w.ctx||{})});
     runSets(sets,{title:"오답 다시 풀기",mode:"review",onDone:()=>viewReview()})};
+  $app.insertAdjacentHTML("afterbegin",`<div class="row" style="justify-content:flex-end">${gnB("gnr","오답노트 굿노트로")}</div>`);
+  gnGo("gnr",()=>wrongDoc(),"토익 오답노트.pdf");
 }
 
 // ================= 진단 =================
@@ -794,6 +802,19 @@ function planStrategy(){
     <li><a href="#export">굿노트로 보내기</a>: 오답노트·단어 체크표·문법 노트를 PDF로 만들어 굿노트에서 손으로 정리.</li>
     <li>아이패드 Safari → 공유 단추 → <b>홈 화면에 추가</b>하면 앱처럼 열려요(claude.ai 로그인 필요).</li></ul></details>`;
 }
+
+
+// ================= 굿노트 바로 보내기 (필기 여백 · 빈칸 · 맨 뒤 정답) =================
+function gnB(id,t){return `<button class="btn ghost" id="${id}">✎ ${t||"굿노트로"}</button>`}
+function gnGo(id,build,name){const b=document.getElementById(id);if(b)b.onclick=()=>window.NotePDF?NotePDF.send(b,build,name):viewExport()}
+function gnPr(w){const o=wpron(w);return o?` [${o.h.replace(/\*/g,"")}${o.i?" /"+o.i+"/":""}]`:""}
+function gnWords(list,title){return `<p>${esc(title)}</p><table><tr><th>단어 · 발음</th><th>뜻</th><th>예문</th></tr>${list.map(w=>`<tr><td>${esc(w[0])} (${esc(w[1])})${esc(gnPr(w))}</td><td>${esc(w[2])}</td><td>${esc(w[3])}<br>${esc(w[4])}</td></tr>`).join("")}</table>
+  <div class="page"><h2>빈칸 시험 — 뜻을 써 보세요</h2><table><tr><th>단어</th><th>뜻</th></tr>${list.map(w=>`<tr><td>${esc(w[0])}</td><td>&nbsp;</td></tr>`).join("")}</table></div>
+  <div class="page"><h2>거꾸로 — 영어로 써 보세요</h2><table><tr><th>뜻</th><th>영어</th></tr>${list.map(w=>`<tr><td>${esc(w[2])}</td><td>&nbsp;</td></tr>`).join("")}</table></div>`}
+function gnUnit(u,n){const qs=u.q.map((_,i)=>QB["g:"+u.id+":"+i]).filter(Boolean);
+  return `<h2>${n+1}. ${esc(u.title)}</h2><blockquote>${esc(u.sum)}</blockquote><ul>${u.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>
+  ${qs.map((q,i)=>`<div class="q" data-space="40"><p>${i+1}. ${esc(q.q)}</p><ul>${q.o.map((o,k)=>`<li>(${L[k]}) ${esc(o)}</li>`).join("")}</ul></div>`).join("")}
+  ${qs.length?`<h3>정답</h3>${qs.map((q,i)=>`<p class="ans">${i+1}. (${L[q.a]}) ${esc(q.ex||"")}</p>`).join("")}`:""}`}
 
 // ================= 굿노트 내보내기 =================
 const SKELETON_DOC=`<h1>영어 문장 뼈대 노트</h1>
@@ -970,7 +991,7 @@ async function makePdf(root){
 
 const VIEWS={home:viewHome,plan:viewRoadmap,roadmap:viewRoadmap,strategy:viewRoadmap,export:viewExport,words:viewWords,grammar:viewGrammar,parts:viewParts,mock:viewMock,review:viewReview,diag:viewDiag,stats:viewStats};
 function route(){busy=false;clearInterval(curTick);const h=(location.hash||"#home").slice(1),v=VIEWS[h]?h:"home";
-  const navV={roadmap:"plan",strategy:"plan",diag:"plan",export:"stats"}[v]||v;
+  const navV={roadmap:"plan",strategy:"plan",diag:"plan"}[v]||v;
   document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+navV));
   stopSpeak(); VIEWS[v](); window.scrollTo(0,0)}
 window.addEventListener("hashchange",route);
