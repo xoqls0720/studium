@@ -106,13 +106,25 @@ async function deckOf(s, {onlyRead = false} = {}) {
 const hasSrs = uid => Object.keys(prog.srs).some(k => k.startsWith(`c:${uid}:`));
 
 // 오늘 볼 것: 때가 된 카드·문제 + 새 카드(읽은 강의에서, 하루 한도까지). 과목을 섞어 번갈아 낸다.
+// 시험이 3주 안이고 범위를 넣어 둔 과목은 범위 밖 새 카드를 미루고, 범위 안 복습을 먼저 낸다 — 시험에 나오는 것만
+function examScope(s) {
+  const ex = prog.exams?.[s.id];
+  if (!ex?.date || !ex.range?.length) return null;
+  const d = ddays(ex.date);
+  return d >= 0 && d <= 21 ? new Set(ex.range) : null;
+}
 async function todayQueue() {
-  const subs = allSubjects(), due = [], fresh = [];
+  const subs = allSubjects(), due = [], fresh = [], inScope = new Set();
   for (const s of subs) {
-    for (const c of await deckOf(s, {onlyRead: true})) (prog.srs[c.id] ? (isDue(c.id) && due.push(c)) : fresh.push(c));
+    const sc = examScope(s);
+    for (const c of await deckOf(s, {onlyRead: true})) {
+      if (sc && c.uid && sc.has(c.uid)) inScope.add(c.id);
+      if (prog.srs[c.id]) { if (isDue(c.id)) due.push(c); }
+      else if (!sc || !c.uid || sc.has(c.uid)) fresh.push(c);
+    }
   }
   const left = Math.max(0, pref('newPerDay', 20) - introducedToday());
-  due.sort((a, b) => prog.srs[a.id].due - prog.srs[b.id].due);
+  due.sort((a, b) => (inScope.has(b.id) - inScope.has(a.id)) || prog.srs[a.id].due - prog.srs[b.id].due);
   // 내가 직접 만든 카드는 먼저 들어온다(외우려고 고른 것이라)
   return {due, fresh: [...fresh.filter(c => c.mine), ...interleave(fresh.filter(c => !c.mine))].slice(0, left), freshTotal: fresh.length};
 }
