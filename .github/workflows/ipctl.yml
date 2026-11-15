@@ -1,0 +1,57 @@
+name: iPhone control exe
+on:
+  push:
+    paths: ["tools/ipctl/**", ".github/workflows/ipctl.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Tools
+        run: python -m pip install pyinstaller pillow
+      - name: go-ios + WebDriverAgent
+        shell: pwsh
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          cd tools/ipctl
+          $h = @{ Authorization = "Bearer $env:GH_TOKEN"; "User-Agent" = "ipctl" }
+          $g = Invoke-RestMethod https://api.github.com/repos/danielpaulus/go-ios/releases/latest -Headers $h
+          "go-ios $($g.tag_name): $($g.assets.name -join ', ')" | Tee-Object build-info.txt
+          $a = $g.assets | Where-Object { $_.name -match '(?i)win' -and $_.name -match '\.zip$' } | Select-Object -First 1
+          Invoke-WebRequest $a.browser_download_url -OutFile goios.zip
+          Expand-Archive goios.zip goios
+          Copy-Item (Get-ChildItem goios -Recurse -Filter ios.exe | Select-Object -First 1).FullName ios.exe
+          ./ios.exe version | Tee-Object -Append build-info.txt
+          $w = Invoke-RestMethod https://api.github.com/repos/appium/WebDriverAgent/releases/latest -Headers $h
+          "WDA $($w.tag_name): $($w.assets.name -join ', ')" | Tee-Object -Append build-info.txt
+          $b = $w.assets | Where-Object { $_.name -eq 'WebDriverAgentRunner-Runner.zip' } | Select-Object -First 1
+          Invoke-WebRequest $b.browser_download_url -OutFile wda.zip
+          Expand-Archive wda.zip wda
+          $app = Get-ChildItem wda -Recurse -Directory -Filter '*.app' | Select-Object -First 1
+          New-Item -ItemType Directory Payload | Out-Null
+          Copy-Item $app.FullName Payload -Recurse
+          Compress-Archive Payload WDA.zip; Rename-Item WDA.zip WDA.ipa
+          Get-Item WDA.ipa, ios.exe | Format-Table Name, Length | Out-String | Tee-Object -Append build-info.txt
+      - name: Icon
+        run: python tools/ipctl/icon.py tools/ipctl/icon.ico
+      - name: Build exe
+        shell: pwsh
+        run: |
+          cd tools/ipctl
+          pyinstaller --noconfirm --onefile --windowed --name iPhoneControl --icon icon.ico --add-data "ios.exe;." --add-data "WDA.ipa;." app.py
+          Get-Item dist/iPhoneControl.exe | Format-Table Name, Length | Out-String | Tee-Object -Append build-info.txt
+      - name: Publish to ipctl-dist branch
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory out | Out-Null
+          Copy-Item tools/ipctl/dist/iPhoneControl.exe, tools/ipctl/build-info.txt out/
+          cd out
+          git init -b ipctl-dist
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A; git commit -m "build ${{ github.sha }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ipctl-dist
