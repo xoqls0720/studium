@@ -1,0 +1,37 @@
+{
+ "name": "태빈 공부 앱",
+ "identifier": "io.github.xoqls0720.source",
+ "subtitle": "Studium · 생각과 글 · 토익 · 법무사",
+ "sourceURL": "https://xoqls0720.github.io/studium/altstore.json",
+ "iconURL": "https://xoqls0720.github.io/studium/icon-512.png",
+ "tintColor": "1d5a66",
+ "apps": [
+  {
+   "name": "Studium",
+   "bundleIdentifier": "io.github.xoqls0720.studium",
+   "developerName": "태빈",
+   "subtitle": "공부 서재 · LEET · 토익 · 법무사",
+   "localizedDescription": "대학 공부(Studium), 생각과 글(LEET·논리·심리·서재·글쓰기·소설), 토익 990, 법무사를 하나로 묶은 공부 앱.",
+   "iconURL": "https://xoqls0720.github.io/studium/icon-512.png",
+   "tintColor": "1d5a66",
+   "category": "education",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "buildVersion": "1",
+     "date": "2026-11-15",
+     "localizedDescription": "빌드 1",
+     "downloadURL": "https://github.com/xoqls0720/studium/releases/download/app-1.0.0-1/Studium.ipa",
+     "size": 2160554,
+     "minOSVersion": "15.0"
+    }
+   ],
+   "version": "1.0.0",
+   "downloadURL": "https://github.com/xoqls0720/studium/releases/download/app-1.0.0-1/Studium.ipa",
+   "size": 2160554,
+   "versionDate": "2026-11-15",
+   "versionDescription": "빌드 1"
+  }
+ ],
+ "news": []
+}
