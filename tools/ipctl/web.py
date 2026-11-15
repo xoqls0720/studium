@@ -122,6 +122,20 @@ def start(app, ios_path, data_dir, mjpeg_port=9100):
                     return self._json({"code": r.returncode, "out": r.stdout, "err": r.stderr})
                 except Exception as e: return self._json({"error": str(e)}, 500)
             self._json({"error": "?"}, 404)
-    srv = ThreadingHTTPServer(("127.0.0.1", PORT), H)
+    class S(ThreadingHTTPServer):
+        allow_reuse_address = False  # 윈도우에서 True 면 이미 쓰는 포트를 겹쳐 잡아 다른 프로그램이 응답한다
+        def server_bind(self):
+            import socket
+            if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+                self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            super().server_bind()
+    srv, err = None, None
+    for port in [PORT] + list(range(18765, 18800)):
+        try: srv = S(("127.0.0.1", port), H); break
+        except OSError as e: err = e
+    if not srv: raise err
     threading.Thread(target=srv.serve_forever, daemon=True).start()
-    return f"http://127.0.0.1:{PORT}/"
+    url = f"http://127.0.0.1:{srv.server_address[1]}/"
+    try: open(os.path.join(data_dir, "주소.txt"), "w", encoding="utf-8").write(url)
+    except Exception: pass
+    return url
