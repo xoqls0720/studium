@@ -8,8 +8,15 @@ Edge(없으면 Chrome)의 '앱 창' 모드로 띄워서 주소창·탭 없이 �
 import os, sys, subprocess, shutil, tkinter as tk
 from tkinter import messagebox
 
-BASE = "https://xoqls0720.github.io/studium/"
-APPS = {"": "Studium", "geul/": "생각과 글", "toeic/": "토익", "beopmusa/": "법무사"}
+BASE = "https://xoqls0720.github.io/"
+# 키: 바로가기 인자, 값: (이름, 주소)
+APPS = {
+    "studium": ("Studium", "studium/"),
+    "geul": ("생각과 글", "studium/geul/"),
+    "toeic": ("토익", "studium/toeic/"),
+    "beopmusa": ("법무사", "studium/beopmusa/"),
+    "novelist": ("Novelist", "novel-viewer/"),
+}
 NOWIN = 0x08000000
 
 def browser():
@@ -25,9 +32,9 @@ def browser():
         if os.path.exists(c): return c
     return shutil.which("msedge") or shutil.which("chrome")
 
-def open_app(path=""):
+def open_app(key="studium"):
     b = browser()
-    url = BASE + path
+    url = BASE + APPS[key][1]
     if not b:
         os.startfile(url); return
     subprocess.Popen([b, f"--app={url}", "--window-size=1280,860"], creationflags=NOWIN)
@@ -36,30 +43,36 @@ def make_shortcuts():
     exe = sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__)
     ps = r"""
 $s = New-Object -ComObject WScript.Shell
-$targets = @([Environment]::GetFolderPath('Desktop'), (Join-Path ([Environment]::GetFolderPath('StartMenu')) 'Programs'))
-foreach ($d in $targets) {
-  $l = $s.CreateShortcut((Join-Path $d 'Studium.lnk'))
-  $l.TargetPath = '%EXE%'
-  $l.WorkingDirectory = Split-Path '%EXE%'
-  $l.IconLocation = '%EXE%,0'
-  $l.Description = '공부 앱 Studium (생각과 글 · 토익 · 법무사)'
-  $l.Save()
+$desk = [Environment]::GetFolderPath('Desktop')
+$menu = Join-Path ([Environment]::GetFolderPath('StartMenu')) 'Programs\Studium'
+New-Item -ItemType Directory -Force $menu | Out-Null
+$items = @(%ITEMS%)
+foreach ($it in $items) {
+  foreach ($d in @($desk, $menu)) {
+    $l = $s.CreateShortcut((Join-Path $d ($it[1] + '.lnk')))
+    $l.TargetPath = '%EXE%'
+    $l.Arguments = $it[0]
+    $l.WorkingDirectory = Split-Path '%EXE%'
+    $l.IconLocation = '%EXE%,0'
+    $l.Description = $it[1]
+    $l.Save()
+  }
 }
-""".replace("%EXE%", exe.replace("'", "''"))
+""".replace("%EXE%", exe.replace("'", "''")).replace("%ITEMS%", ",".join(f"@('{k}','{v[0]}')" for k, v in APPS.items()))
     subprocess.run(["powershell", "-NoProfile", "-Command", ps], creationflags=NOWIN)
 
 def chooser():
     r = tk.Tk(); r.title("Studium"); r.resizable(False, False)
     r.configure(bg="#ffffff")
     tk.Label(r, text="무엇을 공부할까요?", bg="#ffffff", fg="#000", font=("Malgun Gothic", 13, "bold")).pack(padx=30, pady=(22, 12))
-    for path, name in APPS.items():
+    for key, (name, _) in APPS.items():
         tk.Button(r, text=name, width=22, font=("Malgun Gothic", 11), bg="#f3f3f0", fg="#000", relief="flat",
-                  command=lambda p=path: (open_app(p), r.destroy())).pack(padx=30, pady=4)
+                  command=lambda k=key: (open_app(k), r.destroy())).pack(padx=30, pady=4)
     tk.Label(r, text="앱 안 아래쪽 탭으로도 서로 옮겨 갈 수 있어요", bg="#ffffff", fg="#555", font=("Malgun Gothic", 9)).pack(pady=(10, 18))
     r.mainloop()
 
 if __name__ == "__main__":
-    flag = os.path.join(os.environ.get("LOCALAPPDATA", "."), "Studium", "shortcut.done")
+    flag = os.path.join(os.environ.get("LOCALAPPDATA", "."), "Studium", "shortcut2.done")
     if not os.path.exists(flag):
         try:
             make_shortcuts(); os.makedirs(os.path.dirname(flag), exist_ok=True); open(flag, "w").write("1")
