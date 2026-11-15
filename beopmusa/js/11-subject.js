@@ -74,7 +74,7 @@ async function viewUnit(s, uid) {
       <button class="btn" id="u-cards">${ic('cards', 18)}카드 ${cards.length}</button>
       <button class="btn" data-go="#/s/${s.id}/blank/${u.id}">${ic('pen', 18)}백지 복습</button>
       <button class="btn" id="u-read">${isRead(u.id) ? ic('check', 18, 2.2) + '읽음' : '읽음 표시'}</button>
-      ${u.pdf ? `<button class="btn" id="u-gn">${ic('share', 18)}굿노트로</button>` : ''}
+      ${u.pdf ? `<button class="btn" id="u-gn">${ic('share', 18)}굿노트로</button>` : ''}<button class="btn" id="u-gnn">${ic('pen', 18)}${u.pdf ? '필기 노트' : '굿노트로'}</button>
       <button class="btn ghost" id="u-print">${ic('print', 18)}인쇄·PDF</button>
     </div>
     ${aiCard()}
@@ -111,6 +111,7 @@ async function viewUnit(s, uid) {
     try { const path = `${s.folder}/${u.pdf}`; pdfCache.set(path, new File([await (await src().file(path)).blob()], `${s.name} - ${u.title}.pdf`, {type: 'application/pdf'})); } catch {}
   })();
   $('#u-print').onclick = () => print();
+  $('#u-gnn').onclick = () => NotePDF.send($('#u-gnn'), () => gnUnit(s, u, d), `${s.name} - ${u.title}.pdf`);
   selCard($('#paper'), s, u.id);
   bindAi(`unit:${u.id}`, `너는 '${s.name}' 과목의 친절하고 정확한 조교다. 학생이 지금 '${u.title}' 정리 노트를 보고 있다.
 아래 노트를 근거로 한국어로 답한다. 노트에 없는 내용을 보탤 때는 '자료 밖 일반 지식'이라고 밝힌다. 답은 간결한 마크다운으로, 필요하면 표·목록을 쓴다.
@@ -223,7 +224,8 @@ async function viewPrint(s, unitIds, title) {
   const us = s.units.filter(u => u.ready && (!unitIds || unitIds.includes(u.id)));
   let h = `<div class="card" style="padding:32px"><div class="eyebrow">기본서</div><h1 class="display">${esc(title || s.name)}</h1><ol>${us.map(u => `<li>${esc(u.title)}</li>`).join('')}</ol></div>`;
   for (const u of us) { try { const d = await loadUnit(s, u); h += `<div class="card" style="break-before:page;padding:32px"><h1 class="display" style="font-size:26px">${esc(u.title)}</h1>${unitHtml(u, d)}</div>`; } catch {} }
-  render(`<div class="narrow"><div class="row noprint" style="margin-bottom:16px"><button class="btn pri" onclick="print()">${ic('print', 18)}인쇄·PDF로 저장</button></div>${h}</div>`);
+  render(`<div class="narrow"><div class="row noprint" style="margin-bottom:16px"><button class="btn pri" id="pgn">${ic('pen', 18)}굿노트로 (필기용)</button><button class="btn" onclick="print()">${ic('print', 18)}인쇄·PDF로 저장</button></div>${h}</div>`);
+  $('#pgn').onclick = () => NotePDF.send($('#pgn'), async () => { let g = ''; for (const u of us) { try { const d = await loadUnit(s, u); g += `<div class="page"><h1>${esc(u.title)}</h1>${gnUnit(s, u, d, false)}</div>`; } catch {} } return g; }, `${title || s.name + ' 기본서'}.pdf`);
 }
 
 async function viewSummary(s) {

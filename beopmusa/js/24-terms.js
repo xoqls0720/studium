@@ -116,6 +116,7 @@ function viewTerms() {
   const total = TERMS.reduce((a, g) => a + g.t.length, 0);
   render(`<section class="hero" style="margin-bottom:14px"><div class="eyebrow">한자부터 바닥까지</div><h2 class="display">용어 사전</h2>
     <p class="lede">법 공부에서 걸리는 한자 용어 ${total}개를 글자 단위로 풀었어요. 거의 다 잊었어도 여기서부터 다시 잡으면 돼요. 헷갈리는 짝(무효/취소, 기각/각하…)은 구별까지 적어 뒀어요.</p></section>
+    <div class="row noprint" style="margin-bottom:10px"><button class="btn" id="tm-gn">${ic('pen', 18)}굿노트로 (용어장 + 빈칸 시험)</button></div>
     <input type="search" id="tm-q" placeholder="용어나 뜻으로 찾기 — 예: 하자, 임시, 먼저 갚" style="width:100%;margin-bottom:14px">
     <div id="tm-list">${TERMS.map((g, gi) => `<div class="sect" data-g="${gi}">${esc(g.g)}</div><div class="card" style="padding-top:4px;padding-bottom:4px"><ul class="list">
       ${g.t.map((x, ti) => `<li class="off" data-k="${esc((x[0] + x[1] + x[2] + x[3]).toLowerCase())}" style="cursor:default;align-items:flex-start">
@@ -136,4 +137,6 @@ function viewTerms() {
     addCards(s, [{f: `용어: ${x[0]} ${x[1]}`, b: `${x[2]}\n${x[3]}`, kind: '용어', from: '용어 사전'}]);
     toast(`${s.name} 카드에 담았어요 — 복습에서 만나요`);
   });
+  $('#tm-gn').onclick = () => NotePDF.send($('#tm-gn'), () => TERMS.map(g => `<h2>${esc(g.g)}</h2><table><tr><th>용어</th><th>한자</th><th>글자 풀이</th><th>뜻</th></tr>${g.t.map(x => `<tr><td>${esc(x[0])}</td><td>${esc(x[1])}</td><td>${esc(x[2])}</td><td>${esc(String(x[3]).replace(/\*\*/g, ''))}</td></tr>`).join('')}</table>`).join('')
+    + `<div class="page"><h2>빈칸 시험 — 뜻을 써 보세요</h2><table><tr><th>용어</th><th>내 답</th></tr>${TERMS.flatMap(g => g.t).map(x => `<tr><td>${esc(x[0])} ${esc(x[1])}</td><td>&nbsp;</td></tr>`).join('')}</table></div>`, '법무사 용어 사전.pdf');
 }

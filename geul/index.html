@@ -102,6 +102,144 @@ details summary{cursor:pointer;font-weight:700}
 .fb{white-space:pre-wrap}
 .fb h4{margin:14px 0 4px}
 </style>
+<script>
+// 굿노트 필기용 PDF 만들기 — 화면의 글(HTML)을 A4 쪽 그림으로 그려 PDF 로 묶고, 공유 창(굿노트)으로 보낸다.
+// 쓰는 곳: Studium · 생각과 글 · 토익 · 법무사. 서버 없이 기기 안에서만 만든다.
+//   NotePDF.send(btn, () => html문자열 또는 요소, '파일이름.pdf', {margin:true})
+// 꾸밈: <h1> <h2> <h3> <p> <ul>/<ol> <table> <blockquote> <pre> <img> <hr>
+//       <div class="q"> 문제 상자(아래에 답 쓰는 빈칸) · <div class="page"> 새 쪽 · <div class="ans"> 회색 정답
+(function () {
+  "use strict";
+  const PW = 1240, PH = 1754, M = 90;
+  const FONT = '"Gowun Batang","MaruBuri","Nanum Myeongjo","AppleMyungjo","Apple SD Gothic Neo",serif';
+  async function make(src, opt) {
+    opt = opt || {};
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+    const root = typeof src === "string" ? Object.assign(document.createElement("div"), { innerHTML: src }) : src;
+    const NOTE = opt.margin === false ? 0 : 300;              // 오른쪽 필기 여백
+    const CW = PW - M * 2 - NOTE, pages = [];
+    let cx, y;
+    function newPage() {
+      const cv = document.createElement("canvas"); cv.width = PW; cv.height = PH; cx = cv.getContext("2d");
+      cx.fillStyle = "#fff"; cx.fillRect(0, 0, PW, PH); cx.textBaseline = "top"; pages.push(cv); y = M;
+      if (NOTE) { cx.strokeStyle = "#e3e3e3"; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(PW - M - NOTE + 30, M); cx.lineTo(PW - M - NOTE + 30, PH - M); cx.stroke();
+        cx.fillStyle = "#b5b5b5"; cx.font = "18px " + FONT; cx.fillText("필기", PW - M - NOTE + 46, M - 4); }
+      cx.fillStyle = "#999"; cx.font = "18px " + FONT; cx.fillText(String(pages.length), PW / 2, PH - M / 2 - 10);
+      if (opt.title && pages.length > 1) cx.fillText(String(opt.title).slice(0, 40), M, M / 2 - 10);
+      cx.fillStyle = "#000"; cx.strokeStyle = "#000";
+    }
+    const font = (sz, b) => { cx.font = (b ? "700 " : "") + sz + "px " + FONT; };
+    function wrap(t, w) {
+      const out = [];
+      String(t).split("\n").forEach(par => {
+        let line = "";
+        (par.match(/\S+\s*/g) || [""]).forEach(tok => {
+          if (cx.measureText(line + tok).width <= w) { line += tok; return; }
+          if (line.trim()) { out.push(line.trimEnd()); line = ""; }
+          if (cx.measureText(tok).width <= w) { line = tok; return; }
+          let cur = ""; for (const ch of tok) { if (cx.measureText(cur + ch).width > w && cur) { out.push(cur); cur = ch; } else cur += ch; } line = cur;
+        });
+        out.push(line.trimEnd());
+      });
+      return out;
+    }
+    const ensure = h => { if (y + h > PH - M) newPage(); };
+    function text(t, sz, b, ind, color) {
+      ind = ind || 0; font(sz, b); const lh = Math.round(sz * 1.6);
+      wrap(t, CW - ind).forEach(l => { ensure(lh); if (color) cx.fillStyle = color; cx.fillText(l, M + ind, y); cx.fillStyle = "#000"; y += lh; });
+    }
+    function tx(el) { const c = el.cloneNode(true); c.querySelectorAll("br").forEach(b => b.replaceWith("\n")); return c.textContent.replace(/ /g, " ").replace(/[ \t]+/g, " ").replace(/\n /g, "\n").trim(); }
+    function table(tb) {
+      const rows = Array.from(tb.querySelectorAll("tr")).map(r => Array.from(r.children).map(c => ({ t: tx(c), h: c.tagName === "TH" })));
+      if (!rows.length) return; const n = Math.max(...rows.map(r => r.length)); font(22);
+      const nat = Array.from({ length: n }, (_, c) => Math.max(60, ...rows.map(r => r[c] ? Math.min(CW * .6, cx.measureText(r[c].t).width + 26) : 0)));
+      const sum = nat.reduce((a, b) => a + b, 0), cw = nat.map(v => v / sum * CW), lh = 33, head = rows[0].every(c => c.h) ? rows[0] : null;
+      function row(r) {
+        const ls = r.map((c, k) => { font(22, c.h); return wrap(c.t, cw[k] - 18); }), h = Math.max(...ls.map(l => l.length)) * lh + 14;
+        if (y + h > PH - M) { newPage(); if (head && r !== head) row(head); }
+        let x = M; r.forEach((c, k) => { if (c.h) { cx.fillStyle = "#eee"; cx.fillRect(x, y, cw[k], h); cx.fillStyle = "#000"; } cx.lineWidth = 1.5; cx.strokeRect(x, y, cw[k], h); font(22, c.h); ls[k].forEach((l, j) => cx.fillText(l, x + 9, y + 7 + j * lh)); x += cw[k]; });
+        y += h;
+      }
+      rows.forEach(row); y += 14;
+    }
+    async function img(el) {
+      const im = el.tagName === "IMG" ? el : el.querySelector("img"); if (!im) return;
+      if (!im.complete) await new Promise(r => { im.onload = im.onerror = r; });
+      if (!im.naturalWidth) return;
+      const full = el.classList && el.classList.contains("full");
+      const w = full ? PW - M * 2 : Math.min(CW, im.naturalWidth), h = im.naturalHeight * w / im.naturalWidth;
+      if (full) { if (y > M) newPage(); cx.drawImage(im, M, M, w, Math.min(h, PH - M * 2)); y = PH; return; }
+      ensure(Math.min(h, PH - M * 2)); cx.drawImage(im, M, y, w, Math.min(h, PH - M * 2)); y += Math.min(h, PH - M * 2) + 12;
+    }
+    async function walk(el) {
+      for (const c of Array.from(el.children)) {
+        const t = c.tagName;
+        if (c.classList.contains("page")) { if (y > M) newPage(); await walk(c); continue; }
+        if (t === "H1") { text(tx(c), 42, true); y += 12; }
+        else if (t === "H2") { y += 16; ensure(90); text(tx(c), 31, true); cx.fillRect(M, y, CW, 3); y += 14; }
+        else if (t === "H3") { y += 8; ensure(60); text(tx(c), 26, true); y += 4; }
+        else if (t === "P") { text(tx(c), 24, false, 0, c.classList.contains("ans") ? "#666" : null); y += 8; }
+        else if (t === "UL" || t === "OL") { Array.from(c.children).forEach((li, k) => { font(24); ensure(38); cx.fillText(t === "OL" ? (k + 1) + "." : "•", M + 4, y); text(tx(li), 24, false, 36); y += 3; }); y += 8; }
+        else if (t === "TABLE") table(c);
+        else if (t === "IMG" || (t === "FIGURE")) await img(c);
+        else if (t === "HR") { y += 10; ensure(20); cx.fillStyle = "#bbb"; cx.fillRect(M, y, CW, 2); cx.fillStyle = "#000"; y += 14; }
+        else if (t === "PRE") { text(c.textContent, 21, false, 10); y += 8; }
+        else if (t === "BLOCKQUOTE") { const y0 = y; text(tx(c), 23, false, 22); cx.fillStyle = "#999"; cx.fillRect(M, y0, 4, y - y0); cx.fillStyle = "#000"; y += 10; }
+        else if (t === "DIV" && c.classList.contains("q")) {
+          y += 8; ensure(80); cx.fillStyle = "#999"; cx.fillRect(M, y, CW, 2); cx.fillStyle = "#000"; y += 14; await walk(c);
+          const sp = +(c.dataset.space || 70); if (sp) { ensure(sp); cx.strokeStyle = "#ddd"; for (let k = 34; k <= sp; k += 34) { cx.beginPath(); cx.moveTo(M, y + k); cx.lineTo(M + CW, y + k); cx.stroke(); } cx.strokeStyle = "#000"; y += sp; }
+          y += 6;
+        }
+        else if (t === "DIV" || t === "SECTION" || t === "ARTICLE" || t === "DETAILS") await walk(c);
+        else { const s = tx(c); if (s) { text(s, 24, false); y += 6; } }
+      }
+    }
+    newPage(); if (opt.title) { text(opt.title, 42, true); y += 18; } await walk(root);
+    // PDF 로 묶기 (쪽마다 JPEG 한 장)
+    const enc = new TextEncoder(), parts = [], offs = []; let len = 0;
+    const push = x => { const b = typeof x === "string" ? enc.encode(x) : x; parts.push(b); len += b.length; };
+    const n = pages.length, pw = 595.28, ph = 841.89;
+    push("%PDF-1.4\n");
+    const obj = (id, body) => { offs[id] = len; push(id + " 0 obj\n" + body + "\nendobj\n"); };
+    obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+    obj(2, "<< /Type /Pages /Kids [" + pages.map((_, k) => (3 + 3 * k) + " 0 R").join(" ") + "] /Count " + n + " >>");
+    pages.forEach((cv, k) => {
+      const p = 3 + 3 * k, im = p + 1, ct = p + 2;
+      const u = cv.toDataURL("image/jpeg", .86), bs = atob(u.slice(u.indexOf(",") + 1)), j = new Uint8Array(bs.length); for (let q = 0; q < bs.length; q++) j[q] = bs.charCodeAt(q);
+      obj(p, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + pw + " " + ph + "] /Resources << /XObject << /Im0 " + im + " 0 R >> >> /Contents " + ct + " 0 R >>");
+      offs[im] = len; push(im + " 0 obj\n<< /Type /XObject /Subtype /Image /Width " + PW + " /Height " + PH + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + j.length + " >>\nstream\n"); push(j); push("\nendstream\nendobj\n");
+      const cs = "q " + pw + " 0 0 " + ph + " 0 0 cm /Im0 Do Q"; obj(ct, "<< /Length " + cs.length + " >>\nstream\n" + cs + "\nendstream");
+    });
+    const total = 3 + 3 * n, xref = len; let x = "xref\n0 " + total + "\n0000000000 65535 f \n";
+    for (let q = 1; q < total; q++) x += String(offs[q]).padStart(10, "0") + " 00000 n \n";
+    push(x); push("trailer\n<< /Size " + total + " /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF\n");
+    return new Blob(parts, { type: "application/pdf" });
+  }
+  const ready = new WeakMap();
+  // 버튼 하나로: PDF 만들기 → 공유 창(굿노트 고르기). 만드는 사이 터치 허락이 끊기면 버튼이 '한 번 더'로 바뀐다.
+  async function send(btn, build, filename, opt) {
+    filename = String(filename || "노트.pdf").replace(/[\\/:*?"<>|]/g, "_"); if (!/\.pdf$/i.test(filename)) filename += ".pdf";
+    let file = btn && ready.get(btn);
+    const label = btn ? btn.innerHTML : "";
+    if (!file) {
+      if (btn) { btn.disabled = true; btn.textContent = "PDF 만드는 중…"; }
+      try { const src = await build(); file = new File([await make(src, Object.assign({ title: filename.replace(/\.pdf$/i, "") }, opt))], filename, { type: "application/pdf" }); }
+      catch (e) { if (btn) { btn.disabled = false; btn.innerHTML = label; } alert("PDF를 만들지 못했어요: " + (e && e.message || e)); return; }
+      if (btn) { btn.disabled = false; btn.innerHTML = label; ready.set(btn, file); }
+    }
+    try {
+      if (window.claude && window.claude.use && !window.claude.outside) { const dl = await window.claude.use("downloads"); if (dl && dl.save) { await dl.save({ filename, data: file }); return; } }
+    } catch (e) {}
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: filename }); return; }
+      catch (e) { if (e.name === "AbortError") return; if (e.name === "NotAllowedError" && btn) { btn.textContent = "준비됐어요 · 눌러서 굿노트로"; return; } }
+    }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = filename; a.style.display = "none"; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 3000);
+  }
+  window.NotePDF = { make, send };
+})();
+
+</script>
 </head>
 <body>
 <header>
@@ -787,7 +925,7 @@ function viewWords(){
    <div class="grid"><div class="card"><div class="muted">오늘 복습</div><div class="big">${q.due.length}</div></div>
    <div class="card"><div class="muted">오늘 새 낱말</div><div class="big">${q.fresh.length}</div></div>
    <div class="card"><div class="muted">익힌 낱말</div><div class="big">${q.known} / ${q.total}</div></div></div>
-   <div class="row" style="margin:16px 0"><button class="btn" id="go"${q.due.length+q.fresh.length?"":" disabled"}>카드 시작</button><button class="btn ghost" id="use">문장 만들기 연습</button></div>
+   <div class="row" style="margin:16px 0"><button class="btn" id="go"${q.due.length+q.fresh.length?"":" disabled"}>카드 시작</button><button class="btn ghost" id="use">문장 만들기 연습</button>${gnB("gn","단어장 굿노트로")}</div>
    <p class="muted">뜻을 외우는 것보다 '헷갈리는 짝'과 함께 기억하는 게 LEET·논술에서 점수가 돼요. 카드 뒷면에서 꼭 확인하세요.</p>
    <div class="card"><h3>낱말 더하기</h3><p class="muted">책이나 지문에서 막힌 말을 넣으면 Claude가 뜻·예문·헷갈리는 짝을 채워요.</p>
    <div class="row"><input id="nw" placeholder="예: 정언명령" style="flex:1"><button class="btn" id="add">넣기</button></div><div id="am" class="muted"></div></div>
@@ -795,6 +933,7 @@ function viewWords(){
    ${ix.map(i=>{const w=allWords()[i];return `<div class="tech"><b>${esc(w[0])} <span class="hanja">${w[1]!=="—"?esc(w[1]):""}</span></b>${esc(w[2])}<div class="muted">${esc(w[4])}</div></div>`}).join("")}</details>`).join("")}`;
   $("go").onclick=()=>wordSession(shuffle(q.due).concat(q.fresh));
   $("use").onclick=useWords;
+  gnGo("gn",()=>Object.entries(cats).map(([c,ix])=>`<h2>${esc(c)}</h2><table><tr><th>낱말</th><th>뜻</th><th>예문 · 헷갈리는 짝</th></tr>${ix.map(i=>{const w=allWords()[i];return `<tr><td>${esc(w[0])}${w[1]!=="—"?"<br>"+esc(w[1]):""}</td><td>${esc(w[2])}</td><td>${esc(w[3])}<br>${esc(w[4])}</td></tr>`}).join("")}</table>`).join("")+`<div class="page"><h2>빈칸 시험 — 뜻과 예문을 써 보세요</h2><table><tr><th>낱말</th><th>뜻</th><th>내 예문</th></tr>${allWords().map(w=>`<tr><td>${esc(w[0])}</td><td>&nbsp;</td><td>&nbsp;</td></tr>`).join("")}</table></div>`,"개념어 단어장.pdf");
   $("add").onclick=async()=>{const v=$("nw").value.trim();if(!v)return;$("am").textContent="뜻을 찾는 중…";
     try{const r=await ask(`한국어 개념어 학습 카드를 만들어. 낱말: "${v}". 대학 신입생이 논리적 글쓰기와 LEET 지문을 읽을 때 필요한 뜻으로.
 JSON: {"w":"낱말","h":"한자나 원어, 없으면 —","m":"쉬운 뜻 한 문장","e":"이 낱말이 들어간 자연스러운 예문 하나","p":"헷갈리는 짝이나 쓰임 주의 한 문장"}`,"default");
@@ -843,7 +982,8 @@ function viewUnit(list,key,id,src){
   $app.innerHTML=`<p><a href="#${key}">← ${src} 목록</a></p><h2>${esc(u.title)}</h2>
    <div class="card"><p>${esc(u.sum)}</p><ul class="pts">${u.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>
    ${u.use?`<div class="ex"><b>글쓰기에 쓰는 법</b>\n${esc(u.use)}</div>`:""}</div>
-   <div class="row" style="margin:16px 0"><button class="btn" id="qz">확인 문제 ${u.q.length}개</button><button class="btn ghost" id="more">비슷한 문제 더 만들기</button></div><div id="m" class="muted"></div>`;
+   <div class="row" style="margin:16px 0"><button class="btn" id="qz">확인 문제 ${u.q.length}개</button><button class="btn ghost" id="more">비슷한 문제 더 만들기</button>${gnB("gn")}</div><div id="m" class="muted"></div>`;
+  gnGo("gn",()=>`<p>${src}</p><blockquote>${esc(u.sum)}</blockquote><ul>${u.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>${u.use?`<h3>글쓰기에 쓰는 법</h3><p>${esc(u.use)}</p>`:""}<h2>확인 문제</h2>${gnQ(u.q)}<div class="q" data-space="240"><p>이 단원을 내 말로 요약해 보세요(백지 복습).</p></div>${gnA(u.q)}`,src+" "+u.title+".pdf");
   $("qz").onclick=()=>runQuiz(unitItems(u,src),{title:u.title,unit:u.id,onDone:()=>{location.hash="#"+key+"/"+u.id;route()}});
   $("more").onclick=async()=>{$("m").textContent="Claude가 문제를 만드는 중이에요…";
     try{const r=await ask(`${src} 학습용 5지선다 문제 4개를 새로 만들어. 단원: "${u.title}". 핵심: ${u.sum} / ${u.pts.join(" / ")}.
@@ -902,7 +1042,8 @@ function readingSet(set){
   $app.innerHTML=`<p><a href="#leet">← LEET</a></p><h2>${esc(set.title)}</h2>
    <p class="muted">문단마다 한 줄로 요약하며 읽어요. 다 쓰면 문제로 넘어가요. (요약은 비워도 넘어갈 수 있어요)</p>
    ${paras.map((p,n)=>`<div class="card" style="margin:10px 0"><div class="muted">${n+1}문단</div><p style="white-space:pre-wrap">${esc(p)}</p><input data-p="${n}" placeholder="이 문단을 한 줄로" style="width:100%"></div>`).join("")}
-   <div class="row"><button class="btn" id="go">문제 풀기 (${set.items.length})</button><button class="btn ghost" id="ck">내 요약 봐 달라기</button></div><div id="fb"></div>`;
+   <div class="row"><button class="btn" id="go">문제 풀기 (${set.items.length})</button><button class="btn ghost" id="ck">내 요약 봐 달라기</button>${gnB("gn")}</div><div id="fb"></div>`;
+  gnGo("gn",()=>`${paras.map((p,n)=>`<p>${esc(p)}</p><div class="q" data-space="40"><p class="ans">${n+1}문단 한 줄 요약</p></div>`).join("")}<div class="page"><h2>문제</h2>${gnQ(set.items)}</div>${gnA(set.items)}`,set.title+".pdf");
   $("ck").onclick=async()=>{const sums=[...$app.querySelectorAll("[data-p]")].map(x=>x.value.trim());if(!sums.some(Boolean))return;
     $("fb").innerHTML=`<p class="muted">읽는 중…</p>`;
     try{const r=await askText(`다음 지문의 문단별 한 줄 요약을 학생이 썼어. 문단마다 핵심을 맞게 잡았는지, 놓친 관계(대립·원인·조건·예외)가 있는지 짧게 짚고, 모범 요약을 한 줄씩. 마지막에 글 전체 구조를 한 줄로. 해요체, 마크다운 기호 없이.
@@ -1034,7 +1175,13 @@ async function viewGx(id){
    <div class="card"><p>${ex.n}문항 · 시간 ${A.min}분 (현행 시험의 문항당 시간 기준)${ex.img?" · 쪽 그림 보며 답안지에 마킹":""}</p>${noAns?`<p class="muted">정답이 비어 있어 채점은 안 돼요. <button class="btn ghost sm" id="fix">정답 넣기</button></p>`:""}
    <div class="row"><button class="btn" id="real">실전 (${A.min}분)</button><button class="btn ghost" id="prac">연습 (한 문제씩 바로 확인)</button></div></div>
    ${r.length?`<div class="card" style="margin-top:12px"><h3>푼 기록</h3><table><tr><th>날짜</th><th>점수</th><th>걸린 시간</th><th></th></tr>${r.slice().reverse().map((x,k)=>`<tr><td>${dayStr(x.d)}</td><td>${x.s}/${ex.n}</td><td>${x.m}분</td><td><button class="btn ghost sm" data-r="${r.length-1-k}">다시 보기</button></td></tr>`).join("")}</table></div>`:""}
-   <div class="row" style="margin-top:12px"><button class="btn ghost sm" id="del">이 시험지 지우기</button></div>`;
+   <div class="row" style="margin-top:12px">${gnB("gn","문제지 굿노트로")}<button class="btn ghost sm" id="del">이 시험지 지우기</button></div>`;
+  gnGo("gn",async()=>{
+    if(ex.img){let h="";for(let n=1;n<=(ex.pages||40);n++){const u=await imgGet("gx:"+id+":"+n);if(!u)break;h+=`<img class="full" src="${u}">`}
+      if(!h)throw new Error("먼저 시험지 PDF를 넣어 주세요");return h+`<div class="page"><h2>정답</h2><p class="ans">${ex.items.map(it=>it.n+"번 "+(it.a!=null?CIRC[it.a]:"?")).join("  ")}</p></div>`}
+    let h="",seen={};ex.items.forEach(it=>{const g=it.grp&&ex.passages[it.grp];if(g&&!seen[it.grp]){seen[it.grp]=1;h+=`<h3>[${esc(it.grp)}] 다음 글을 읽고 물음에 답하시오.</h3>${g.t.split(/\n+/).map(l=>`<p>${esc(l)}</p>`).join("")}`}
+      h+=`<div class="q" data-space="30"><p>${it.n}. ${esc(it.q||it.bad||"")}</p>${it.o?`<ul>${it.o.map((o,k)=>`<li>${CIRC[k]} ${esc(o)}</li>`).join("")}</ul>`:""}</div>`});
+    return h+`<div class="page"><h2>정답</h2><p class="ans">${ex.items.map(it=>it.n+"번 "+(it.a!=null?CIRC[it.a]:"?")).join("  ")}</p></div>`},`${ex.year} LEET ${ex.area}.pdf`);
   if($("fix"))$("fix").onclick=()=>gxConfirm(ex);
   if($("ipdf"))$("ipdf").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const pages=await readPdf(f,(i,n)=>$("ist").textContent=`${i}/${n}쪽 그리는 중…`,"gx:"+id);ex.pages=pages.length;await gxSave(ex,true);viewGx(id)}catch(er){$("ist").textContent=er.message||"읽지 못했어요."}};
   if(ex.img&&!pg1){$("real").disabled=true;$("prac").disabled=true}
@@ -1136,7 +1283,9 @@ function viewWrite(){
    <div class="grid">${Object.entries(KINDS).map(([k,v])=>`<a class="item" href="#write/${k}"><span>${v[0]}</span><span class="pill">쓰기</span></a>`).join("")}</div>
    <details open><summary>논리적 글 — 기법 8</summary>${WRITE_LOGIC.map(t=>`<div class="tech"><b>${esc(t[0])}</b>${esc(t[1])}</div>`).join("")}</details>
    <details><summary>문학적 글 — 기법 8</summary>${WRITE_LIT.map(t=>`<div class="tech"><b>${esc(t[0])}</b>${esc(t[1])}</div>`).join("")}</details>
+   <div class="row" style="margin-top:12px">${gnB("gn","기법 카드 굿노트로")}</div>
    <h3 style="margin-top:20px">내 글 ${S.drafts.length}편</h3><div class="list">${S.drafts.slice().reverse().map(d=>`<a class="item" href="#write/${d.k}/${d.id}"><span>${esc(d.p.slice(0,40))}${d.p.length>40?"…":""}</span><span class="muted">${KINDS[d.k][0]} · ${d.t.length}자${d.fb?" · 첨삭":""}</span></a>`).join("")||`<p class="muted">아직 쓴 글이 없어요.</p>`}</div>`;
+  gnGo("gn",()=>`<h2>논리적 글 — 기법 8</h2>${WRITE_LOGIC.map(t=>`<h3>${esc(t[0])}</h3><p>${esc(t[1])}</p>`).join("")}<div class="page"><h2>문학적 글 — 기법 8</h2>${WRITE_LIT.map(t=>`<h3>${esc(t[0])}</h3><p>${esc(t[1])}</p>`).join("")}</div><div class="page"><h2>연습 — 문장 연습 12</h2>${DRILLS.map(d=>`<div class="q" data-space="220"><p><b>${esc(d[0])}</b> ${esc(d[1])}</p></div>`).join("")}</div>`,"글쓰기 기법.pdf");
 }
 function editor(kind,id){
   busy=true;let d=S.drafts.find(x=>x.id===id);
@@ -1254,6 +1403,17 @@ async function deliver(blob,fn,m){
   offerLink(blob,fn,m)}
 
 
+
+// ================= 굿노트 필기용 PDF (오른쪽 필기 여백 · 문제 아래 빈칸 · 맨 뒤 정답) =================
+const CIRC="①②③④⑤";
+function gnB(id,t){return `<button class="btn ghost" id="${id}">✎ ${t||"굿노트로 필기"}</button>`}
+function gnGo(id,build,name){const b=$(id);if(b)b.onclick=()=>window.NotePDF?NotePDF.send(b,build,name):alert("PDF 도구를 불러오지 못했어요.")}
+function gnQ(items){return items.map((q,i)=>`<div class="q" data-space="40"><p>${i+1}. ${esc(q[0]||q.q)}</p><ul>${(q[1]||q.o).map((o,k)=>`<li>${CIRC[k]} ${esc(o)}</li>`).join("")}</ul></div>`).join("")}
+function gnA(items){return `<div class="page"><h2>정답과 해설</h2>${items.map((q,i)=>`<p class="ans">${i+1}. ${CIRC[q[2]!=null?q[2]:q.a]||"?"} — ${esc(q[3]||q.ex||"")}</p>`).join("")}</div>`}
+function gnRead(r){return `<p>${esc(r.f||"")} · ${esc(r.a||"")}${r.y?" · "+(r.y<0?"기원전 "+(-r.y):r.y):""}</p><blockquote>${esc(r.q||"")}</blockquote><h2>핵심</h2><p>${esc(r.sum||"")}</p>
+  <h2>주석</h2><table><tr><th>개념</th><th>쉬운 풀이</th></tr>${(r.n||[]).map(x=>`<tr><td>${esc(x[0])}</td><td>${esc(x[1])}</td></tr>`).join("")}</table>
+  <h2>생각할 거리</h2>${(r.ask||[]).map(x=>`<div class="q" data-space="200"><p>${esc(x)}</p></div>`).join("")}<h2>글쓰기에 쓰는 법</h2><p>${esc(r.use||"")}</p>${r.find?`<p class="ans">원제: ${esc(r.find)}</p>`:""}`}
+
 // ================= 서재: 고전 해설 · 시 · 내가 넣은 논문 =================
 const FIELDS_R=["전체",...new Set(READS.map(r=>r.f))];
 function rq(s){return "https://scholar.google.com/scholar?q="+encodeURIComponent(s)}
@@ -1300,14 +1460,15 @@ function viewRead(id){
   if(id.startsWith("p-"))return viewPaper(id.slice(2));
   const r=id.startsWith("g-")?(S.guides||[]).find(x=>"g-"+x.id===id):READS.find(x=>x.id===id);
   if(!r){location.hash="#lib";return}
-  $app.innerHTML=`<p><a href="#lib">← 서재</a></p><h2>${esc(r.t)}</h2>${readHtml(r)}${readTools(id,r)}`;
-  bindRead(id,r,ctxOf(r));
+  $app.innerHTML=`<p><a href="#lib">← 서재</a></p><h2>${esc(r.t)}</h2><div class="row" style="margin-bottom:10px">${gnB("gn")}</div>${readHtml(r)}${readTools(id,r)}`;
+  bindRead(id,r,ctxOf(r));gnGo("gn",()=>gnRead(r),r.t+".pdf");
 }
 function viewPoem(k){const x=POEMS[k];if(!x){location.hash="#lib";return}
-  $app.innerHTML=`<p><a href="#lib">← 서재</a></p><h2>${esc(x.t)}</h2><div class="card"><div class="muted">${esc(x.a)} · ${x.y}년 발표 · 저작권 보호 기간이 끝난 작품(표기는 현대어에 가깝게)</div>
+  $app.innerHTML=`<p><a href="#lib">← 서재</a></p><h2>${esc(x.t)}</h2><div class="row" style="margin-bottom:10px">${gnB("gn")}</div><div class="card"><div class="muted">${esc(x.a)} · ${x.y}년 발표 · 저작권 보호 기간이 끝난 작품(표기는 현대어에 가깝게)</div>
    <div class="passage" style="font-size:1.1rem;line-height:2">${esc(x.text)}</div>
    <h3>주석</h3>${x.n.map(z=>`<div class="tech"><b>${esc(z[0])}</b>${esc(z[1])}</div>`).join("")}
    <div class="ex"><b>읽는 법</b>\n${esc(x.read)}</div></div>${readTools("poem-"+k,{t:x.t})}`;
+  gnGo("gn",()=>`<p>${esc(x.a)} · ${x.y}</p>${x.text.split("\n").map(l=>`<p>${esc(l)||"&nbsp;"}</p>`).join("")}<h2>주석</h2><table><tr><th>구절</th><th>풀이</th></tr>${x.n.map(z=>`<tr><td>${esc(z[0])}</td><td>${esc(z[1])}</td></tr>`).join("")}</table><h2>읽는 법</h2><p>${esc(x.read)}</p><div class="q" data-space="300"><p>이 시처럼 감정을 사물과 반어로 전하는 짧은 글을 써 보세요.</p></div>`,x.t+".pdf");
   bindRead("poem-"+k,{t:x.t,a:x.a,q:"이 시가 감정을 직접 말하지 않고 전하는 방식",ask:["이 시처럼 감정을 사물과 반어로 전하는 짧은 글"]},`시: ${x.t} (${x.a})\n${x.text}\n주석: ${x.n.map(z=>z.join(" — ")).join(" / ")}\n읽는 법: ${x.read}`);
 }
 async function askGuide(){busy=true;
@@ -1358,7 +1519,8 @@ async function viewPaper(id){const x=(S.papers||[]).find(p=>p.id===id);if(!x){lo
    <div class="ex"><b>글쓰기에 쓰는 법</b>\n${esc(r.use||"")}</div></div>
    <div class="card" style="margin-top:12px"><h3>부분별로 쉽게 풀어 읽기</h3><p class="muted">원문을 ${n}부분으로 나눴어요. 누르면 그 부분을 문단마다 쉬운 말로 풀고 어려운 말에 주석을 달아요.</p>
    <div class="seg">${Array.from({length:n},(_,k)=>`<button data-k="${k}">${k+1}${x.parts[k]?" ✓":""}</button>`).join("")}</div><div id="pp"></div></div>
-   ${readTools("p-"+id,{t:x.title})}<div class="row" style="margin-top:12px"><button class="btn ghost sm" id="del">이 글 지우기</button></div>`;
+   ${readTools("p-"+id,{t:x.title})}<div class="row" style="margin-top:12px">${gnB("gn","주석 노트를 굿노트로")}<button class="btn ghost sm" id="del">이 글 지우기</button></div>`;
+  gnGo("gn",()=>`<p>${esc(r.who||"")}</p><blockquote>${esc(r.one)}</blockquote><p><b>질문</b> ${esc(r.q||"")}</p><p><b>핵심 주장</b> ${esc(r.claim||"")}</p><h2>글의 흐름</h2><ol>${(r.structure||[]).map(s=>`<li>${esc(s)}</li>`).join("")}</ol><h2>근거</h2><ul>${(r.evidence||[]).map(s=>`<li>${esc(s)}</li>`).join("")}</ul><h2>주석</h2><table><tr><th>개념</th><th>풀이</th></tr>${(r.n||[]).map(z=>`<tr><td>${esc(z[0])}</td><td>${esc(z[1])}</td></tr>`).join("")}</table><h2>한계·반론</h2><ul>${(r.limits||[]).map(s=>`<li>${esc(s)}</li>`).join("")}</ul>${Object.keys(x.parts).sort((p,q)=>p-q).map(k=>`<div class="page"><h2>${+k+1}부분 쉬운 풀이</h2>${x.parts[k].split(/\n+/).map(l=>`<p>${esc(l)}</p>`).join("")}</div>`).join("")}<h2>생각할 거리</h2>${(r.ask||[]).map(s=>`<div class="q" data-space="200"><p>${esc(s)}</p></div>`).join("")}`,x.title+" 주석.pdf");
   bindRead("p-"+id,{t:x.title,a:r.who||"",q:r.q,ask:r.ask},`제목: ${x.title}\n요약: ${r.one}\n주장: ${r.claim}\n흐름: ${(r.structure||[]).join(" / ")}\n개념: ${(r.n||[]).map(z=>z.join("—")).join(" / ")}`);
   $("del").onclick=()=>{if(!confirm("이 글과 주석을 지울까요?"))return;S.papers=S.papers.filter(p=>p.id!==id);save();location.hash="#lib"};
   $app.querySelectorAll("[data-k]").forEach(b=>b.onclick=async()=>{const k=+b.dataset.k,box=$("pp");

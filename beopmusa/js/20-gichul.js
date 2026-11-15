@@ -180,7 +180,7 @@ async function viewExamRound(id) {
       if (+d.stage !== 1) return '';
       const ps = [...new Set(d.questions.map(q => q.period).filter(Boolean))].sort();
       return ps.length ? ps.map(p => { const n = d.questions.filter(q => q.period === p).length; return `<button class="btn" data-live="${p}">${p}교시 실전 ${n}문제 · ${Math.round(n * 1.2)}분</button>`; }).join('') : `<button class="btn" data-live="all">실전 풀기 · ${Math.round(d.questions.length * 1.2)}분</button>`;
-    })()}<button class="btn" id="er-ox">이 회차 지문 OX</button></div>
+    })()}<button class="btn" id="er-ox">이 회차 지문 OX</button><button class="btn" id="er-gn">${ic('pen', 18)}굿노트 문제지</button></div>
     <div class="card" style="padding-top:8px;padding-bottom:8px"><ul class="list">${[...bySub].map(([sid, qs]) => {
       const s = subjById(sid), r = rate(qs);
       return `<li data-sid="${esc(sid)}"><span class="grow"><span class="tt">${esc(s?.name || qs[0].subj || sid)}</span><div class="faint">${qs[0].n}~${qs.at(-1).n}번 · ${qs.length}문제${qs.some(q => q.revisedBy || q.revised) ? ' · 개정 영향 있음' : ''}</div></span>${r != null ? `<span class="tag ${r >= 70 ? 'ok' : r >= 40 ? 'warn' : 'bad'}">${r}%</span>` : ''}<span class="chev">${ic('chev', 16)}</span></li>`;
@@ -191,6 +191,14 @@ async function viewExamRound(id) {
     const p = b.dataset.live, qs = p === 'all' ? d.questions : d.questions.filter(q => q.period === +p);
     startQuiz(qs.map(q => examToQuiz(d, q)), `${d.title}${p === 'all' ? '' : ` ${p}교시`} 실전`, `#/gichul/${id}`, {limitMin: Math.round(qs.length * 1.2)});
   });
+  $('#er-gn').onclick = () => NotePDF.send($('#er-gn'), () => {
+    const qs = d.questions.map(q => examToQuiz(d, q));
+    let h = '', last = '';
+    qs.forEach((q, i) => { const sn = subjById(d.questions[i].sid)?.name || d.questions[i].subj || ''; if (sn !== last) { h += `<h2>${esc(sn)}</h2>`; last = sn; }
+      h += `<div class="q" data-space="${q.type === 'short' ? 260 : 30}"><p>${d.questions[i].n}. ${esc(q.q)}</p>${q.type === 'mcq' ? `<ul>${q.c.map((c, k) => `<li>${'①②③④⑤'[k] || k + 1} ${esc(c)}</li>`).join('')}</ul>` : ''}</div>`; });
+    h += `<div class="page"><h2>정답과 해설</h2>${qs.map((q, i) => `<p class="ans">${d.questions[i].n}. ${q.type === 'mcq' ? (q.alt?.length > 1 ? q.alt.map(x => '①②③④⑤'[x]).join('·') : '①②③④⑤'[q.a]) : ''}${q.e ? ' — ' + esc(String(q.e).slice(0, 600)) : ''}</p>`).join('')}</div>`;
+    return h;
+  }, `${d.title} 문제지.pdf`);
   $('#er-ox').onclick = async () => { const list = await oxPool(null, [id]); startOx(list, `${examLabel(d)} 지문`, `#/gichul/${id}`, 0); };
 }
 
