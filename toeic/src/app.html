@@ -560,6 +560,15 @@ async function pdfToImgs(file,key,onp){const lib=await loadPdfJs(),doc=await lib
 function keyFromText(t,from,to){ // "101 (A) 102 (C)" 또는 "101. A" 꼴 정답표
   const out={},re=/(\d{1,3})\s*[.)]?\s*\(?([ABCD])\)?(?![a-z])/g;let m;while((m=re.exec(t))){const n=+m[1];if(n>=from&&n<=to&&out[n]==null)out[n]="ABCD".indexOf(m[2])}
   return out}
+function keyPart(t){const i=t.search(/Correct Answers|정답/i);return i>=0?t.slice(i):""}
+// 시험지 뒤 '듣기 대본(SCRIPT)'을 문항 번호별로 나눠 둔다 → 음원이 없어도 대본을 읽어 준다
+function scriptOf(t){const i=t.search(/SCRIPT FOR THE LISTENING|Listening Test\s+In the Listening/i);if(i<0)return null;
+  let s=t.slice(i);const e=s.search(/Correct Answers/i);if(e>0)s=s.slice(0,e);
+  const out={},re=/(?:Questions?\s+(\d{1,3})\s+(?:through|and|-)\s+(\d{1,3})\s+refer[^\n]*)|(?:(?:^|\s)(\d{1,2})\.\s+(?=\((?:[MW]-|N\))))/g;let m,last=null,idx=[];
+  while((m=re.exec(s)))idx.push({p:m.index,a:+(m[1]||m[3]),b:+(m[2]||m[3])});
+  idx.forEach((x,k)=>{const chunk=s.slice(x.p,k+1<idx.length?idx[k+1].p:undefined).replace(/\[\d+ seconds?\]/g,"").trim();for(let n=x.a;n<=x.b;n++)out[n]=chunk.slice(0,4000)});
+  return Object.keys(out).length?out:null}
+function scrLines(c){return c.split(/(?=\((?:[MW]-[A-Za-z]{2}|N)\))/).map(x=>{const m=x.match(/^\((M|W)-[A-Za-z]{2}\)|^\(N\)/);return {sp:m?(m[1]||"N"):"N",t:x.replace(/^\([^)]*\)\s*/,"").replace(/^Questions?[^.]*\.\s*/,"").replace(/\s+/g," ").trim()}}).filter(x=>x.t&&!/^\d+\.?$/.test(x.t))}
 function tScaled(raw,lc){return Math.max(5,Math.min(495,Math.round((lc?raw*5+20:raw*5)/5)*5))}
 function gxList(){return S.gx||(S.gx=[])}
 function gxMockCard(){const L=gxList();
@@ -579,7 +588,9 @@ function gxImport(){busy=true;
     const rg=GE("rg").value,from=rg==="rc"?101:1,to=rg==="lc"?100:200,id="t"+Date.now().toString(36);
     try{const q=await pdfToImgs(f,"gx:"+id,(i,n)=>GE("st").textContent=`문제 ${i}/${n}쪽 그리는 중…`);let key={};
       const fa=GE("fa").files[0];if(fa){const r=await pdfToImgs(fa,"gxa:"+id,(i,n)=>GE("st").textContent=`정답·해설 ${i}/${n}쪽 읽는 중…`);key=keyFromText(r.txt,from,to);var apages=r.pages}
-      const g={id,name:GE("nm").value.trim()||f.name.replace(/\.pdf$/i,""),from,to,pages:q.pages,apages:apages||0,key:Array.from({length:to-from+1},(_,k)=>key[from+k]==null?null:key[from+k]),res:[]};
+      if(!Object.keys(key).length)key=keyFromText(keyPart(q.txt),from,to);
+      const g={id,name:GE("nm").value.trim()||f.name.replace(/\.pdf$/i,""),from,to,pages:q.pages,apages:apages||0,key:Array.from({length:to-from+1},(_,k)=>key[from+k]==null?null:key[from+k]),res:[],scr:scriptOf(q.txt)};
+      const kn=Object.keys(key).map(Number).sort((x,y)=>x-y);if(kn.length&&kn.length<(to-from+1)*.8)g.nums=kn;
       gxKeyEdit(g,true)}catch(e){GE("st").textContent=(e&&e.message)||"읽지 못했어요."}}}
 function gxKeyEdit(g,isNew){
   const n=g.to-g.from+1,s=g.key.map(a=>a==null?"?":"ABCD"[a]).join(""),miss=g.key.filter(a=>a==null).length;
@@ -606,7 +617,8 @@ function gxRun(g,mode){
   busy=true;const lo=mode==="rc"?Math.max(101,g.from):g.from,hi=mode==="lc"?Math.min(100,g.to):g.to;
   const mins={lc:45,rc:75,all:120,free:0}[mode],end=mins?Date.now()+mins*60000:0,t0=Date.now();
   const ans={};let pg=1,from=lo,tick=null,au=null;
-  function grid(){const nums=[];for(let n=from;n<=Math.min(hi,from+19);n++)nums.push(n);
+  const ALL=(g.nums||Array.from({length:g.to-g.from+1},(_,k)=>g.from+k)).filter(n=>n>=lo&&n<=hi);let gi=0;
+  function grid(){const nums=ALL.slice(gi,gi+20);
     return `<table style="font-variant-numeric:tabular-nums">${nums.map(n=>`<tr><td style="width:52px"><b>${n}</b></td><td>${[0,1,2,3].map(c=>`<button class="btn sm ${ans[n]===c?"":"ghost"}" data-n="${n}" data-c="${c}" style="min-width:44px;margin:2px">${"ABCD"[c]}</button>`).join("")}</td></tr>`).join("")}</table>`}
   async function draw(){
     const img=await imgGet("gx:"+g.id+":"+pg);
@@ -614,24 +626,25 @@ function gxRun(g,mode){
      ${lo<=100?`<div class="card" style="margin-bottom:10px"><div class="row"><b>LC 음원</b><input type="file" id="mp" accept="audio/*"></div><audio id="au" controls style="width:100%;margin-top:6px"></audio></div>`:""}
      <div class="row" style="justify-content:space-between"><button class="btn ghost sm" id="pp"${pg>1?"":" disabled"}>◀ 쪽</button><span class="muted">${pg} / ${g.pages}쪽 <input id="pj" type="number" min="1" max="${g.pages}" value="${pg}" style="width:80px;min-height:36px"></span><button class="btn ghost sm" id="np"${pg<g.pages?"":" disabled"}>쪽 ▶</button></div>
      <div class="pic" style="max-height:62vh;overflow:auto">${img?`<img src="${img}" alt="${pg}쪽" style="width:100%">`:`<p class="muted">쪽 그림이 없어요. 이 회차를 넣은 기기에서 풀어 주세요.</p>`}</div>
-     <div class="card"><div class="row" style="justify-content:space-between"><b>답안지</b><span class="row"><button class="btn ghost sm" id="gp"${from>lo?"":" disabled"}>◀ 20문항</button><button class="btn ghost sm" id="gn"${from+20<=hi?"":" disabled"}>20문항 ▶</button></span></div>
-     <div class="muted">${Object.keys(ans).length} / ${hi-lo+1} 마킹</div><div id="omr">${grid()}</div></div>`;
+     <div class="card"><div class="row" style="justify-content:space-between"><b>답안지</b><span class="row"><button class="btn ghost sm" id="gp"${gi>0?"":" disabled"}>◀ 20문항</button><button class="btn ghost sm" id="gn"${gi+20<ALL.length?"":" disabled"}>20문항 ▶</button></span></div>
+     <div class="muted">${Object.keys(ans).length} / ${ALL.length} 마킹</div>${g.scr&&lo<=100?`<div class="row" style="margin:6px 0"><span class="muted">음원이 없으면 대본 읽어 주기:</span><input id="sn" type="number" min="1" max="100" value="${ALL.find(n=>n<=100&&ans[n]==null)||1}" style="width:80px"><button class="btn ghost sm" id="say">▶ 이 번호 듣기</button></div>`:""}<div id="omr">${grid()}</div></div>`;
     if(au&&GE("au")){GE("au").src=au.src;GE("au").currentTime=au.t||0}
     if(GE("mp"))GE("mp").onchange=e=>{const f=e.target.files[0];if(f){au={src:URL.createObjectURL(f),t:0};GE("au").src=au.src;GE("au").play().catch(()=>{})}};
     if(GE("au"))GE("au").ontimeupdate=e=>{if(au)au.t=e.target.currentTime};
     GE("pp").onclick=()=>{pg--;draw()};GE("np").onclick=()=>{pg++;draw()};GE("pj").onchange=e=>{const v=+e.target.value;if(v>=1&&v<=g.pages){pg=v;draw()}};
-    GE("gp").onclick=()=>{from-=20;GE("omr").innerHTML=grid();bind();GE("gp").disabled=from<=lo;GE("gn").disabled=from+20>hi};
-    GE("gn").onclick=()=>{from+=20;GE("omr").innerHTML=grid();bind();GE("gp").disabled=from<=lo;GE("gn").disabled=from+20>hi};
+    GE("gp").onclick=()=>{gi-=20;GE("omr").innerHTML=grid();bind();GE("gp").disabled=gi<=0;GE("gn").disabled=gi+20>=ALL.length};
+    GE("gn").onclick=()=>{gi+=20;GE("omr").innerHTML=grid();bind();GE("gp").disabled=gi<=0;GE("gn").disabled=gi+20>=ALL.length};
+    if(GE("say"))GE("say").onclick=()=>{const c=g.scr[+GE("sn").value];if(!c){GE("say").textContent="대본 없음";return}speak(scrLines(c))};
     GE("sub").onclick=()=>{const left=hi-lo+1-Object.keys(ans).length;if(left&&!confirm(`${left}문항이 비어 있어요. 제출할까요?`))return;fin()};
     bind();if(mins)upd()}
   function bind(){GE("omr").querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{ans[+b.dataset.n]=+b.dataset.c;GE("omr").innerHTML=grid();bind()})}
   function upd(){const el=GE("tm");if(!el)return;const s=Math.max(0,Math.round((end-Date.now())/1000));el.textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0");el.classList.toggle("low",s<300);if(s<=0){fin()}}
   function fin(){clearInterval(tick);busy=false;try{GE("au")&&GE("au").pause()}catch(e){}
     let lcr=0,rcr=0,lcn=0,rcn=0;const marks={};const lg=log();
-    for(let n=lo;n<=hi;n++){const a=g.key[n-g.from];marks[n]=ans[n]==null?-1:ans[n];if(a==null)continue;const ok=ans[n]===a;
+    for(const n of ALL){const a=g.key[n-g.from];marks[n]=ans[n]==null?-1:ans[n];if(a==null)continue;const ok=ans[n]===a;
       if(n<=100){lcn++;if(ok)lcr++}else{rcn++;if(ok)rcr++}lg.q++;if(ok)lg.c++;
       const p=TPART(n),pp=S.parts[p]||{c:0,w:0};ok?pp.c++:pp.w++;S.parts[p]=pp}
-    const r={d:TODAY(),mode,marks,m:Math.round((Date.now()-t0)/60000),lcr:lcn?lcr:null,rcr:rcn?rcr:null,lc:lcn===100?tScaled(lcr,true):null,rc:rcn===100?tScaled(rcr,false):null};
+    const r={d:TODAY(),mode,marks,m:Math.round((Date.now()-t0)/60000),lcr:lcn?lcr:null,rcr:rcn?rcr:null,lc:lcn===100?tScaled(lcr,true):null,rc:rcn===100?tScaled(rcr,false):null,part:!!g.nums};
     if(lcn&&lcn<100)r.lc=null;g.res.push(r);
     if(r.lc!=null&&r.rc!=null)S.scores.push({d:TODAY(),s:r.lc+r.rc,est:1});
     save();gxResult(g,r)}
