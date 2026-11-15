@@ -564,7 +564,7 @@ async function generate(part,level,focus,onStatus){
   return sets;
 }
 function genError(e){
-  if(e&&e.code==="none")return (window.claude&&window.claude.outside)?"문제 생성을 쓰려면 Studium 설정에 Gemini 키를 넣어 주세요(무료). 기본 문제는 그대로 풀 수 있어요.":"이 화면에서는 문제 생성 기능을 쓸 수 없어요. claude.ai에서 앱을 열면 돼요. 기본 문제는 그대로 풀 수 있어요.";
+  if(e&&e.code==="none")return (window.claude&&window.claude.outside)?"오른쪽 아래 ✦ AI 에서 Claude·Gemini 등 AI와 키를 골라 주세요(노벨리스트에 넣은 키도 쓸 수 있어요). 기본 문제는 그대로 풀 수 있어요.":"이 화면에서는 문제 생성 기능을 쓸 수 없어요. claude.ai에서 앱을 열면 돼요. 기본 문제는 그대로 풀 수 있어요.";
   if(e&&e.code==="not_granted")return "문제 생성 허락이 꺼져 있어요. 앱을 다시 열고 허락하면 쓸 수 있어요.";
   if(e&&e.code==="rate_limited")return "잠깐 너무 많이 만들었어요. 1~2분 뒤에 다시 눌러 주세요.";
   if(e&&e.code==="empty")return "만들어진 문제가 형식에 맞지 않아 버렸어요. 한 번만 다시 눌러 주세요.";

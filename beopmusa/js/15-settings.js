@@ -8,7 +8,7 @@ function viewSettings() {
       <div class="row">${'showDirectoryPicker' in window ? '<button class="btn" id="s-local">내 컴퓨터 폴더 고르기</button>' : ''}<button class="btn" id="s-drive">구글 드라이브로 연결</button></div>
       <p class="faint" style="margin:10px 0 0">구글 드라이브의 '${FOLDER}' 폴더를 읽고, 앱에서 넣은 자료는 '${FOLDER}/${INBOX}'에 올려요. 진도·필기는 드라이브 앱 전용 칸에서 기기끼리 맞춰요.</p></div>
     <div class="card ai"><div class="ai-head"><div class="mark">${ic('spark', 18)}</div><div class="grow"><b>AI</b><div class="faint">자료 정리, 질문·튜터, 서술형 채점, 새 문제·카드, 팟캐스트, 마인드맵, 약점 분석</div></div>${aiOn() ? `<span class="tag ok">${aiName()} 켜짐</span>` : ''}</div>
-      <label class="field"><span>어떤 AI를 쓸까요</span><div class="opt">${[['gemini', 'Gemini · 무료 한도'], ['groq', 'Groq · 무료 한도'], ['ollama', 'Ollama · 내 컴퓨터 공짜'], ['claude', 'Claude · 유료']].map(([v, t]) => `<label><input type="radio" name="prov" value="${v}" ${aiProv() === v ? 'checked' : ''}>${t}</label>`).join('')}</div></label>
+      <label class="field"><span>어떤 AI를 쓸까요</span><div class="opt">${[['gemini', 'Gemini · 무료 한도'], ['groq', 'Groq · 무료 한도'], ['openrouter', 'OpenRouter · 무료 모델'], ['ollama', 'Ollama · 내 컴퓨터 공짜'], ['claude', 'Claude · 유료']].map(([v, t]) => `<label><input type="radio" name="prov" value="${v}" ${aiProv() === v ? 'checked' : ''}>${t}</label>`).join('')}</div></label>
       ${aiProv() === 'gemini' ? `<label class="field"><span>Gemini API 키</span><div class="row"><input type="password" id="gk" class="grow" value="${esc(gemKey())}" placeholder="AIza…" autocomplete="off"></div></label>
         <p class="faint">Google AI Studio(aistudio.google.com)의 'Get API key'에서 무료로 받아요(하루 한도 안에서 공짜). PC 생성기에 등록한 키와 같은 것을 써도 돼요.</p>` : ''}
       ${aiProv() === 'claude' ? `<label class="field"><span>Claude API 키</span><div class="row"><input type="password" id="ck" class="grow" value="${esc(aiKey('claude'))}" placeholder="sk-ant-…" autocomplete="off"></div></label>
@@ -17,6 +17,9 @@ function viewSettings() {
       ${aiProv() === 'groq' ? `<label class="field"><span>Groq API 키</span><div class="row"><input type="password" id="gr" class="grow" value="${esc(aiKey('groq'))}" placeholder="gsk_…" autocomplete="off"></div></label>
         <label class="field"><span>모델 · 비워 두면 llama-3.3-70b-versatile (사진은 llama-4-scout로 알아서)</span><div class="row"><input type="text" id="grm" class="grow" value="${esc(store.get('grModel', ''))}" placeholder="llama-3.3-70b-versatile"></div></label>
         <p class="faint">console.groq.com → API Keys에서 무료로 받아요. 무료 한도(분·하루 요청 제한) 안에서 공짜고, 속도가 아주 빨라요.</p>` : ''}
+      ${aiProv() === 'openrouter' ? `<label class="field"><span>OpenRouter API 키</span><div class="row"><input type="password" id="or" class="grow" value="${esc(aiKey('openrouter'))}" placeholder="sk-or-…" autocomplete="off"></div></label>
+      <label class="field"><span>모델 · 비워 두면 무료 Llama 3.3 70B</span><div class="row"><input type="text" id="orm" class="grow" value="${esc(store.get('orModel', ''))}" placeholder="meta-llama/llama-3.3-70b-instruct:free"></div></label>` : ''}
+      <p class="faint">노벨리스트에 넣어 둔 API 키가 있으면 비워 둬도 그 키를 같이 써요.</p>
       ${aiProv() === 'ollama' ? `<label class="field"><span>주소 · 비워 두면 이 컴퓨터(localhost:11434)</span><div class="row"><input type="text" id="olu" class="grow" value="${esc(store.get('olUrl', ''))}" placeholder="http://localhost:11434"></div></label>
         <label class="field"><span>모델 · 비워 두면 exaone3.5:7.8b (한국어에 강해요)</span><div class="row"><input type="text" id="olm" class="grow" value="${esc(store.get('olModel', ''))}" placeholder="exaone3.5:7.8b"></div></label>
         <p class="faint">완전 공짜(내 컴퓨터에서 돌아요). ollama.com에서 설치하고 명령 창에서 <code>ollama pull exaone3.5:7.8b</code> 한 번. 폰·아이패드에서 쓰려면 PC 주소(예: http://192.168.0.x:11434)를 넣고, PC에서 OLLAMA_HOST=0.0.0.0, OLLAMA_ORIGINS=* 환경 변수를 켜 두세요.</p>` : ''}
@@ -57,7 +60,7 @@ function viewSettings() {
   };
   $('#csave').onclick = () => { cfg.client = $('#cid').value.trim() || GD_CLIENT_ID; saveCfg(); toast('저장했어요'); viewSettings(); };
   const saveAi = () => {
-    for (const [id, k] of [['#gk', 'gemKey'], ['#ck', 'ckKey'], ['#ckm', 'ckModel'], ['#gr', 'grKey'], ['#grm', 'grModel'], ['#olu', 'olUrl'], ['#olm', 'olModel']]) if ($(id)) store.set(k, $(id).value.trim());
+    for (const [id, k] of [['#gk', 'gemKey'], ['#or', 'orKey'], ['#orm', 'orModel'], ['#ck', 'ckKey'], ['#ckm', 'ckModel'], ['#gr', 'grKey'], ['#grm', 'grModel'], ['#olu', 'olUrl'], ['#olm', 'olModel']]) if ($(id)) store.set(k, $(id).value.trim());
   };
   main_.querySelectorAll('[name=prov]').forEach(r => r.onchange = () => { saveAi(); store.set('aiProv', r.value); viewSettings(); });
   $('#gsave').onclick = () => { saveAi(); toast('저장했어요'); viewSettings(); };

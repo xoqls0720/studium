@@ -1,10 +1,8 @@
 # 아이폰·아이패드(.ipa)와 안드로이드(.apk) 앱을 만들고, 릴리스와 AltStore 소스(altstore.json)를 갱신한다.
 # 웹 앱(Studium·생각과 글·토익·법무사)을 바꿔 main 에 올리면 자동으로 새 앱이 나온다.
 name: app
+# 지금은 깃허브 페이지(웹 앱)로 쓰기로 해서 자동 빌드는 껐다. 필요할 때 Actions 탭에서 'Run workflow' 로 돌린다.
 on:
-  push:
-    branches: [main]
-    paths: ["app/**", "index.html", "js/**", "css/**", "geul/**", "toeic/**", "beopmusa/**", "shim/**", ".github/workflows/app.yml"]
   workflow_dispatch: {}
 permissions:
   contents: write

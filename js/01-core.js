@@ -233,10 +233,12 @@ async function readJSON(path, {fresh = true} = {}) {
 // ── Gemini (키는 이 기기에만) ────────────────────────────────────────
 const GEM_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest'];
 // Gemini 키는 진도와 함께 드라이브 앱 전용 칸으로 기기끼리 맞춘다(한 기기에서 한 번만 넣으면 된다)
-const gemKey = () => prog.pref?.gemKey ? prog.pref.gemKey.v : store.get('gemKey', '');
-const AI_PROV = {gemini: 'Gemini', claude: 'Claude', groq: 'Groq', ollama: 'Ollama'};
+const gemKey = () => (prog.pref?.gemKey ? prog.pref.gemKey.v : store.get('gemKey', '')) || nvKey('gemKey');
+const AI_PROV = {gemini: 'Gemini', claude: 'Claude', groq: 'Groq', openrouter: 'OpenRouter', ollama: 'Ollama'};
+const nvKey = k => { try { const v = localStorage.getItem('nv.' + k); return v ? JSON.parse(v) : ''; } catch { return ''; } };   // 노벨리스트(같은 주소)에 넣어 둔 API 키도 같이 쓴다
+
 const aiProv = () => { const p = store.get('aiProv', 'gemini'); return AI_PROV[p] ? p : 'gemini'; };
-const aiKey = p => store.get({gemini: 'gemKey', claude: 'ckKey', groq: 'grKey'}[p] || '', '');
+const aiKey = p => store.get({gemini: 'gemKey', claude: 'ckKey', groq: 'grKey', openrouter: 'orKey'}[p] || '', '') || nvKey({gemini: 'gemKey', claude: 'apiKey', groq: 'grKey', openrouter: 'orKey'}[p] || '');
 // AI를 쓸 수 있는 상태인지(Ollama는 키가 없어도 켜 두면 시도한다)
 const aiOn = () => { const p = aiProv(); return p === 'ollama' || (p === 'gemini' ? !!gemKey() : !!aiKey(p)); };
 const aiName = () => AI_PROV[aiProv()];
@@ -274,7 +276,7 @@ async function gem(input, opts = {}) {
     if (!gemKey()) throw new Error(needGem && prov !== 'gemini' ? '파일 정리는 Gemini에만 있어요. 설정에 Gemini 키도 넣어 주세요' : '설정에서 Gemini 키를 넣어 주세요');
     return gemCall(msgs, opts);
   }
-  return prov === 'claude' ? claudeCall(msgs, opts) : prov === 'groq' ? groqCall(msgs, opts) : ollamaCall(msgs, opts);
+  return prov === 'claude' ? claudeCall(msgs, opts) : prov === 'groq' ? groqCall(msgs, opts) : prov === 'openrouter' ? orCall(msgs, opts) : ollamaCall(msgs, opts);
 }
 async function gemCall(contents, {schema, sys, temp = .5} = {}) {
   const key = gemKey();
@@ -343,6 +345,22 @@ async function groqCall(msgs, {schema, sys, temp = .5} = {}) {
   const t = (await r.json()).choices?.[0]?.message?.content || '';
   if (!t) throw new Error('Groq가 답을 내지 않았어요');
   return schema ? pickJSON(t, 'Groq') : t;
+}
+// OpenRouter (무료 모델이 많다 · OpenAI 방식)
+async function orCall(msgs, {schema, sys, temp = .5} = {}) {
+  const key = aiKey('openrouter');
+  if (!key) throw new Error('설정에서 OpenRouter API 키를 넣어 주세요 (openrouter.ai/keys)');
+  const model = store.get('orModel', '') || nvKey('set.orModel') || 'meta-llama/llama-3.3-70b-instruct:free';
+  const system = jsonSys(sys, schema);
+  const messages = [...(system ? [{role: 'system', content: system}] : []), ...msgs.map(m => ({role: m.role === 'model' ? 'assistant' : 'user',
+    content: m.parts.some(p => p.inline_data) ? m.parts.map(p => p.inline_data ? {type: 'image_url', image_url: {url: `data:${p.inline_data.mime_type};base64,${p.inline_data.data}`}} : {type: 'text', text: p.text || ' '}) : m.parts.map(p => p.text || '').join('\n')}))];
+  let r;
+  try { r = await fetch('https://openrouter.ai/api/v1/chat/completions', {method: 'POST', headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + key, 'X-Title': 'Studium'}, body: JSON.stringify({model, temperature: temp, messages})}); }
+  catch { throw new Error('OpenRouter에 연결하지 못했어요(인터넷 확인)'); }
+  if (!r.ok) { if (r.status === 401) throw new Error('OpenRouter API 키를 확인해 주세요'); if (r.status === 429) throw new Error('OpenRouter 한도에 걸렸어요. 잠시 뒤 다시 해 주세요'); throw new Error('OpenRouter 오류 ' + r.status); }
+  const t = (await r.json()).choices?.[0]?.message?.content || '';
+  if (!t) throw new Error('OpenRouter가 답을 내지 않았어요');
+  return schema ? pickJSON(t, 'OpenRouter') : t;
 }
 // Ollama (내 컴퓨터 · 공짜). PC 바로 보기에서 쓰는 걸 권해요(폰·아이패드에서는 PC 주소를 넣어야 해요).
 async function ollamaCall(msgs, {schema, sys, temp = .5} = {}) {

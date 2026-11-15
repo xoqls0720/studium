@@ -35,7 +35,7 @@
 
 - 아이폰·아이패드: Safari로 주소 열기 → 공유 → **홈 화면에 추가**. 안드로이드: Chrome → ⋮ → **앱 설치**.
 - 오른쪽 아래 **구글에 저장 켜기**로 로그인하면 진도가 구글 드라이브 '앱 전용 칸'에 저장돼 기기끼리 이어진다(Studium과 같은 로그인).
-- 문제 생성·첨삭은 Studium 설정에 넣은 **Gemini 키**를 같이 쓴다. claude.ai 아티팩트로 열면 Claude가 대신한다.
+- 문제 생성·첨삭 AI: **Claude · Gemini · Groq · OpenRouter · Ollama** 중에서 고른다(생각과 글·토익은 오른쪽 아래 **✦ AI**, Studium·법무사는 설정). 키는 같은 주소의 앱끼리 같이 쓰고, Studium에 키가 없으면 **노벨리스트에 넣어 둔 키**(nv.apiKey·gemKey·grKey·orKey)를 그대로 쓴다. claude.ai 아티팩트로 열면 Claude가 대신한다.
 - LEET 기출·ETS 샘플은 저장소에 없다. 앱이 내 구글 드라이브의 `LEET기출_앱용.json`, 시험지 PDF, `ETS_LR_샘플시험지.pdf`를 직접 읽는다.
 - `shim/claude.js`: claude.ai 밖에서 `window.claude`(저장·생성·내보내기)를 드라이브와 Gemini로 대신한다. 각 앱의 `artifact.html`은 claude.ai용, `index.html`은 홈 화면 앱용.
 

@@ -716,7 +716,7 @@ async function askText(prompt,tier){
   if(!sampleFn)throw {code:"none"};
   const r=await sampleFn(prompt,{modelTier:tier||"complex"});return (r&&r.text)||String(r||"")}
 function genError(e){
-  if(e&&e.code==="none")return (window.claude&&window.claude.outside)?"문제 생성·첨삭을 쓰려면 Studium 설정에 Gemini 키를 넣어 주세요(무료). 기본 문제와 개념어는 그대로 쓸 수 있어요.":"이 화면에서는 Claude 기능을 쓸 수 없어요. claude.ai에서 앱을 열면 돼요. 기본 문제와 개념어는 그대로 쓸 수 있어요.";
+  if(e&&e.code==="none")return (window.claude&&window.claude.outside)?"오른쪽 아래 ✦ AI 에서 Claude·Gemini 등 AI와 키를 골라 주세요(노벨리스트에 넣은 키도 쓸 수 있어요). 기본 문제와 개념어는 그대로 쓸 수 있어요.":"이 화면에서는 Claude 기능을 쓸 수 없어요. claude.ai에서 앱을 열면 돼요. 기본 문제와 개념어는 그대로 쓸 수 있어요.";
   if(e&&e.code==="not_granted")return "Claude 사용 허락이 꺼져 있어요. 앱을 다시 열고 허락하면 돼요.";
   if(e&&e.code==="rate_limited")return "잠깐 너무 많이 요청했어요. 1~2분 뒤에 다시 눌러 주세요.";
   if(e&&e.code==="empty")return "만들어진 문제가 형식에 맞지 않아 버렸어요. 한 번만 다시 눌러 주세요.";
@@ -1520,7 +1520,7 @@ function viewHome(){
   $app.innerHTML=`<h2>오늘</h2><p class="muted">${esc(st.name)} · ${streak()}일째 이어서 공부 중</p>
    <div class="grid"><div class="card"><div class="muted">오늘 카드</div><div class="big">${lg.w}</div></div><div class="card"><div class="muted">오늘 문제</div><div class="big">${lg.c}/${lg.q}</div></div><div class="card"><div class="muted">오늘 공부 시간</div><div class="big">${lg.m}분</div></div></div>
    <h3 style="margin-top:20px">오늘 할 것</h3><div class="list">${tasks.map(t=>`<a class="item" href="${t[1]}"><span>${esc(t[0])}</span>${t[2]?`<span class="pill g">됨</span>`:`<span class="pill">하기</span>`}</a>`).join("")}</div>
-   ${sampleState==="none"?`<p class="muted" style="margin-top:14px">지금은 문제 생성·첨삭을 쓸 수 없어요. 홈 화면 앱에서는 Studium 설정에 Gemini 키를 넣으면 되고, claude.ai에서 열면 바로 돼요.</p>`:""}`;
+   ${sampleState==="none"?`<p class="muted" style="margin-top:14px">지금은 문제 생성·첨삭을 쓸 수 없어요. 오른쪽 아래 ✦ AI에서 AI를 고르면 되고, claude.ai에서 열면 바로 돼요.</p>`:""}`;
 }
 
 // ================= 기록 =================
