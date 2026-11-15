@@ -20,6 +20,9 @@ jobs:
         shell: pwsh
         run: |
           git clone --depth 1 https://github.com/danielpaulus/go-ios goios-src
+          New-Item -ItemType Directory roots | Out-Null
+          foreach ($n in 'AppleIncRootCertificate.cer','AppleRootCA-G2.cer','AppleRootCA-G3.cer') { Invoke-WebRequest "https://www.apple.com/certificateauthority/$n" -OutFile "roots/$n" }
+          python tools/ipctl/patches/tss_roots.py goios-src/ios/imagemounter roots
           cd goios-src; go build -o ../tools/ipctl/ios-master.exe .; cd ..
           ./tools/ipctl/ios-master.exe version
       - name: go-ios + WebDriverAgent
