@@ -1,0 +1,24 @@
+{
+ "name": "태빈 토익 독학 · 목표 990",
+ "short_name": "토익 990",
+ "description": "토익 단어·문법·파트별·모의고사·기출 문제집",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#fcfcfa",
+ "theme_color": "#1d5a66",
+ "lang": "ko",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any maskable"
+  }
+ ]
+}

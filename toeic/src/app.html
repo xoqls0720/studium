@@ -266,7 +266,7 @@ async function generate(part,level,focus,onStatus){
   return sets;
 }
 function genError(e){
-  if(e&&e.code==="none")return "이 화면에서는 문제 생성 기능을 쓸 수 없어요. claude.ai에서 앱을 열면 돼요. 기본 문제는 그대로 풀 수 있어요.";
+  if(e&&e.code==="none")return (window.claude&&window.claude.outside)?"문제 생성을 쓰려면 Studium 설정에 Gemini 키를 넣어 주세요(무료). 기본 문제는 그대로 풀 수 있어요.":"이 화면에서는 문제 생성 기능을 쓸 수 없어요. claude.ai에서 앱을 열면 돼요. 기본 문제는 그대로 풀 수 있어요.";
   if(e&&e.code==="not_granted")return "문제 생성 허락이 꺼져 있어요. 앱을 다시 열고 허락하면 쓸 수 있어요.";
   if(e&&e.code==="rate_limited")return "잠깐 너무 많이 만들었어요. 1~2분 뒤에 다시 눌러 주세요.";
   if(e&&e.code==="empty")return "만들어진 문제가 형식에 맞지 않아 버렸어요. 한 번만 다시 눌러 주세요.";
@@ -577,21 +577,24 @@ function gxMockCard(){const L=gxList();
    <div class="row"><button class="btn" id="gxadd">기출 한 회 넣기</button></div>
    ${L.length?`<div class="list" style="margin-top:12px">${L.map((g,k)=>{const r=g.res||[],last=r[r.length-1];return `<button class="item" data-g="${k}"><span>${esc(g.name)}</span>${last?`<span class="pill">${last.lc!=null?"LC "+last.lc+" · ":""}${last.rc!=null?"RC "+last.rc:""}</span>`:`<span class="pill w">안 풂</span>`}</button>`}).join("")}</div>`:""}</div>`}
 function gxImport(){busy=true;
-  $app.innerHTML=`<p><a href="#mock">← 모의고사</a></p><h2>기출 한 회 넣기</h2><div class="card">
+  $app.innerHTML=`<p><a href="#mock">← 모의고사</a></p><h2>기출 한 회 넣기</h2>${window.claude&&window.claude.driveFile?`<div class="card" style="margin-bottom:12px"><p>드라이브 'TOEIC 공식 샘플'의 ETS 샘플 시험지를 바로 넣어요(정답·듣기 대본 포함).</p><button class="btn" id="ets">드라이브에서 ETS 샘플 넣기</button></div>`:""}<div class="card">
    <p><b>이름</b><br><input id="nm" placeholder="예: ETS 기출 1000 Vol.4 TEST 1" style="width:100%"></p>
    <p><b>범위</b><br><select id="rg"><option value="all">LC+RC (1~200번)</option><option value="lc">LC만 (1~100번)</option><option value="rc">RC만 (101~200번)</option></select></p>
    <p><b>문제 PDF</b> (이 회차 쪽만 잘라 넣으면 넘기기 편해요)<br><input type="file" id="fq" accept="application/pdf"></p>
    <p><b>정답·해설 PDF</b> (있으면 정답을 자동으로 찾아요)<br><input type="file" id="fa" accept="application/pdf"></p>
    <div class="row"><button class="btn" id="go">넣기</button></div><div id="st" class="muted" style="margin-top:8px"></div></div>
    <p class="muted">LC 음원(mp3)은 풀 때마다 고르면 돼요 — 음원 파일은 커서 저장하지 않아요.</p>`;
-  GE("go").onclick=async()=>{const f=GE("fq").files[0];if(!f){GE("st").textContent="문제 PDF를 골라 주세요.";return}
+  const run=async(f,fa0)=>{
     const rg=GE("rg").value,from=rg==="rc"?101:1,to=rg==="lc"?100:200,id="t"+Date.now().toString(36);
     try{const q=await pdfToImgs(f,"gx:"+id,(i,n)=>GE("st").textContent=`문제 ${i}/${n}쪽 그리는 중…`);let key={};
-      const fa=GE("fa").files[0];if(fa){const r=await pdfToImgs(fa,"gxa:"+id,(i,n)=>GE("st").textContent=`정답·해설 ${i}/${n}쪽 읽는 중…`);key=keyFromText(r.txt,from,to);var apages=r.pages}
+      const fa=fa0||GE("fa").files[0];if(fa){const r=await pdfToImgs(fa,"gxa:"+id,(i,n)=>GE("st").textContent=`정답·해설 ${i}/${n}쪽 읽는 중…`);key=keyFromText(r.txt,from,to);var apages=r.pages}
       if(!Object.keys(key).length)key=keyFromText(keyPart(q.txt),from,to);
       const g={id,name:GE("nm").value.trim()||f.name.replace(/\.pdf$/i,""),from,to,pages:q.pages,apages:apages||0,key:Array.from({length:to-from+1},(_,k)=>key[from+k]==null?null:key[from+k]),res:[],scr:scriptOf(q.txt)};
       const kn=Object.keys(key).map(Number).sort((x,y)=>x-y);if(kn.length&&kn.length<(to-from+1)*.8)g.nums=kn;
-      gxKeyEdit(g,true)}catch(e){GE("st").textContent=(e&&e.message)||"읽지 못했어요."}}}
+      gxKeyEdit(g,true)}catch(e){GE("st").textContent=(e&&e.message)||"읽지 못했어요."}};
+  GE("go").onclick=()=>{const f=GE("fq").files[0];if(!f){GE("st").textContent="문제 PDF를 골라 주세요.";return}run(f)};
+  if(GE("ets"))GE("ets").onclick=async()=>{try{GE("st").textContent="드라이브에서 받는 중…";const f=await window.claude.driveFile("ETS_LR_샘플시험지.pdf");if(!GE("nm").value.trim())GE("nm").value="ETS 공식 샘플";run(f)}catch(er){GE("st").textContent=er&&er.code==="auth"?"오른쪽 아래 '구글에 저장 켜기'로 먼저 로그인해 주세요.":(er.message||"받지 못했어요.")}};
+}
 function gxKeyEdit(g,isNew){
   const n=g.to-g.from+1,s=g.key.map(a=>a==null?"?":"ABCD"[a]).join(""),miss=g.key.filter(a=>a==null).length;
   $app.innerHTML=`<p><a href="#mock">← 모의고사</a></p><h2>${esc(g.name)} 정답</h2><div class="card">
