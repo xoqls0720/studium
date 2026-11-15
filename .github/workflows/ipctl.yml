@@ -35,6 +35,7 @@ jobs:
           $app = Get-ChildItem wda -Recurse -Directory -Filter '*.app' | Select-Object -First 1
           New-Item -ItemType Directory Payload | Out-Null
           Copy-Item $app.FullName Payload -Recurse
+          Get-ChildItem Payload -Recurse -Directory -Filter '*.dSYM' | Remove-Item -Recurse -Force
           Compress-Archive Payload WDA.zip; Rename-Item WDA.zip WDA.ipa
           Get-Item WDA.ipa, ios.exe | Format-Table Name, Length | Out-String | Tee-Object -Append build-info.txt
       - name: Icon
