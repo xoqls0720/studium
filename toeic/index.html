@@ -403,6 +403,7 @@ const PRON = {"achieve": ["어*치-*브", "əˈtʃiːv"], "acquire": ["어*콰�
 const $app=document.getElementById("app");
 const DAILY_NEW=30, INT=[0,1,2,4,8,16,30], GOAL=990, APPLY=new Date(2027,11,15);
 const L=["A","B","C","D"];
+let busy=false, curTick=null;
 function dayNum(d){d=d||new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*60000)/86400000)}
 function dayStr(n){const d=new Date(n*86400000);return (d.getUTCMonth()+1)+"/"+d.getUTCDate()}
 const TODAY=()=>dayNum();
@@ -412,7 +413,7 @@ function uid(){return "x"+Date.now().toString(36)+Math.random().toString(36).sli
 function dday(){return Math.max(0,Math.ceil((APPLY-new Date())/86400000))}
 
 // ================= 상태 =================
-const BLANK=()=>({v:2,words:{},xw:[],wrong:{},solved:{},lessons:{},logs:{},scores:[],diag:[],tags:{},parts:{},level:0,mocks:[],pr2:{}});
+const BLANK=()=>({v:2,words:{},xw:[],wrong:{},solved:{},lessons:{},logs:{},scores:[],diag:[],tags:{},parts:{},level:0,mocks:[],pr2:{},gx:[]});
 let S=BLANK();
 function fix(){const b=BLANK();for(const k in b)if(S[k]==null)S[k]=b[k];
   // v1 오답(문제 id만 있던 것)을 v2 형식으로
@@ -487,7 +488,7 @@ setInterval(()=>{if(!document.hidden&&Date.now()-lastAct<120000){log().m++;save(
 
 // ================= Claude 문제 생성 =================
 let sampleFn=null, sampleState="wait";
-(async()=>{try{if(window.claude&&window.claude.use){sampleFn=await window.claude.use("sample")}}catch(e){} sampleState=sampleFn?"ok":"none"; if(!busy)route()})();
+(async()=>{try{if(window.claude&&window.claude.use){sampleFn=await window.claude.use("sample")}}catch(e){} sampleState=sampleFn?"ok":"none"; setTimeout(()=>{if(!busy)route()},0)})();
 const LEVELS=[
  {name:"기초",score:"~450",desc:"아주 쉬운 어휘와 짧은 문장. 핵심 문법 하나만 묻는다. 오답 보기는 품사·형태가 확실히 다르다."},
  {name:"중급",score:"450~700",desc:"실제 토익 평균 난이도. 자주 나오는 비즈니스 어휘. 보기 두 개가 헷갈리게 만든다."},
@@ -625,7 +626,6 @@ function svgSan(code){try{
   r.removeAttribute("width");r.removeAttribute("height");
   return new XMLSerializer().serializeToString(r)
 }catch(e){return null}}
-let busy=false, curTick=null;
 // sets: [{scene?,passage?,audio?,items:[{id,src,part,tag,q,o,a,ex,say?}]}]
 function runSets(sets,opt){
   opt=opt||{}; busy=true;
@@ -826,13 +826,127 @@ function viewMock(){
    <div class="muted" style="margin-bottom:6px">난이도</div><div class="seg" id="lv">${LEVELS.map((l,k)=>`<button data-l="${k}" class="${k===S.level?"on":""}">${l.name}</button>`).join("")}</div></div>
    <div class="grid" style="margin-top:12px">${Object.entries(MOCKS).map(([k,M])=>`<div class="card"><h3>${M.name}</h3><p class="muted">${M.desc}<br>제한 시간 ${M.min}분</p><button class="btn" data-k="${k}">문제 만들고 시작</button><p class="muted" data-m="${k}"></p></div>`).join("")}</div>
    <div class="card" style="margin-top:12px"><h3>지난 모의고사</h3>${hist.length?`<table><tr><th>날짜</th><th>종류</th><th>맞힌 수</th></tr>${hist.map(h=>`<tr><td>${dayStr(h.d)}</td><td>${MOCKS[h.k]?MOCKS[h.k].name:h.k}</td><td>${h.r} / ${h.n} (${Math.round(h.r/h.n*100)}%)</td></tr>`).join("")}</table>`:'<p class="muted">아직 없어요.</p>'}</div>
-   <p class="muted">실제 토익은 LC 100문제 45분, RC 100문제 75분이에요. 하프 모의고사를 이틀에 나눠 풀면 실전 한 회의 절반 분량이에요.</p>`;
+   <p class="muted">실제 토익은 LC 100문제 45분, RC 100문제 75분이에요. 하프 모의고사를 이틀에 나눠 풀면 실전 한 회의 절반 분량이에요.</p>${gxMockCard()}`;
+  document.getElementById("gxadd").onclick=gxImport;
+  $app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>gxOpen(+b.dataset.g));
   document.querySelectorAll("#lv button").forEach(b=>b.onclick=()=>{S.level=+b.dataset.l;save();viewMock()});
   $app.querySelectorAll("[data-k]").forEach(b=>b.onclick=async()=>{const k=b.dataset.k,M=MOCKS[k],m=$app.querySelector(`[data-m="${k}"]`);b.disabled=true;
     try{let all=[];for(let j=0;j<M.plan.length;j++){const [p]=M.plan[j];m.textContent=`문제 만드는 중 ${j+1}/${M.plan.length} (${PARTS[p].name})…`;all=all.concat(await generate(p,S.level,[],null))}
       runSets(all,{title:M.name,mock:k,seconds:M.min*60,onDone:()=>viewMock()})}
     catch(e){m.textContent=genError(e);b.disabled=false}});
 }
+
+
+// ================= 기출 문제집 (내가 가진 PDF + 음원) =================
+// ETS 기출은 저작물이라 앱에 싣지 않는다. 태빈이 산 기출문제집 PDF(스캔본도 됨)를 넣으면
+// 이 기기에서 쪽 그림으로 보여 주고, 답안지(OMR)·시간·채점·파트별 분석을 붙인다.
+const GE=id=>document.getElementById(id);
+const TPART=n=>n<=6?"p1":n<=31?"p2":n<=70?"p3":n<=100?"p4":n<=130?"p5":n<=146?"p6":"p7";
+let pdfLib=null;
+function loadPdfJs(){if(pdfLib)return Promise.resolve(pdfLib);return new Promise((ok,no)=>{const s=document.createElement("script");s.src="pdf.min.js";
+  s.onload=()=>{try{window.pdfjsLib.GlobalWorkerOptions.workerSrc="pdf.worker.min.js";pdfLib=window.pdfjsLib;ok(pdfLib)}catch(e){no(e)}};s.onerror=()=>no(new Error("PDF 도구를 불러오지 못했어요"));document.head.appendChild(s)})}
+function idb(){return new Promise((ok,no)=>{try{const r=indexedDB.open("toeic-gx",1);r.onupgradeneeded=()=>r.result.createObjectStore("img");r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}catch(e){no(e)}})}
+async function imgPut(k,v){try{const d=await idb();await new Promise(ok=>{const t=d.transaction("img","readwrite");t.objectStore("img").put(v,k);t.oncomplete=ok;t.onerror=ok})}catch(e){}}
+async function imgGet(k){try{const d=await idb();return await new Promise(ok=>{const r=d.transaction("img").objectStore("img").get(k);r.onsuccess=()=>ok(r.result||null);r.onerror=()=>ok(null)})}catch(e){return null}}
+async function pdfToImgs(file,key,onp){const lib=await loadPdfJs(),doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;let txt="";
+  for(let i=1;i<=doc.numPages;i++){onp&&onp(i,doc.numPages);const pg=await doc.getPage(i),vp=pg.getViewport({scale:1.6}),cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;
+    await pg.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise;if(key)await imgPut(key+":"+i,cv.toDataURL("image/jpeg",.8));
+    try{const tc=await pg.getTextContent();txt+=tc.items.map(t=>t.str).join(" ")+"\n"}catch(e){}}
+  return {pages:doc.numPages,txt}}
+function keyFromText(t,from,to){ // "101 (A) 102 (C)" 또는 "101. A" 꼴 정답표
+  const out={},re=/(\d{1,3})\s*[.)]?\s*\(?([ABCD])\)?(?![a-z])/g;let m;while((m=re.exec(t))){const n=+m[1];if(n>=from&&n<=to&&out[n]==null)out[n]="ABCD".indexOf(m[2])}
+  return out}
+function tScaled(raw,lc){return Math.max(5,Math.min(495,Math.round((lc?raw*5+20:raw*5)/5)*5))}
+function gxList(){return S.gx||(S.gx=[])}
+function gxMockCard(){const L=gxList();
+  return `<div class="card" style="margin-top:12px"><h3>기출 문제집 풀기</h3>
+   <p class="muted">ETS 기출 문제는 앱에 미리 넣을 수 없어서, 가지고 있는 기출문제집 PDF(스캔본도 돼요)와 음원을 넣는 방식이에요. 쪽을 보며 답안지에 마킹하고, 실전 시간·채점·파트별 분석·오답 쪽 다시 보기까지 이어져요. 쪽 그림은 이 기기에만 저장돼요.</p>
+   <div class="row"><button class="btn" id="gxadd">기출 한 회 넣기</button></div>
+   ${L.length?`<div class="list" style="margin-top:12px">${L.map((g,k)=>{const r=g.res||[],last=r[r.length-1];return `<button class="item" data-g="${k}"><span>${esc(g.name)}</span>${last?`<span class="pill">${last.lc!=null?"LC "+last.lc+" · ":""}${last.rc!=null?"RC "+last.rc:""}</span>`:`<span class="pill w">안 풂</span>`}</button>`}).join("")}</div>`:""}</div>`}
+function gxImport(){busy=true;
+  $app.innerHTML=`<p><a href="#mock">← 모의고사</a></p><h2>기출 한 회 넣기</h2><div class="card">
+   <p><b>이름</b><br><input id="nm" placeholder="예: ETS 기출 1000 Vol.4 TEST 1" style="width:100%"></p>
+   <p><b>범위</b><br><select id="rg"><option value="all">LC+RC (1~200번)</option><option value="lc">LC만 (1~100번)</option><option value="rc">RC만 (101~200번)</option></select></p>
+   <p><b>문제 PDF</b> (이 회차 쪽만 잘라 넣으면 넘기기 편해요)<br><input type="file" id="fq" accept="application/pdf"></p>
+   <p><b>정답·해설 PDF</b> (있으면 정답을 자동으로 찾아요)<br><input type="file" id="fa" accept="application/pdf"></p>
+   <div class="row"><button class="btn" id="go">넣기</button></div><div id="st" class="muted" style="margin-top:8px"></div></div>
+   <p class="muted">LC 음원(mp3)은 풀 때마다 고르면 돼요 — 음원 파일은 커서 저장하지 않아요.</p>`;
+  GE("go").onclick=async()=>{const f=GE("fq").files[0];if(!f){GE("st").textContent="문제 PDF를 골라 주세요.";return}
+    const rg=GE("rg").value,from=rg==="rc"?101:1,to=rg==="lc"?100:200,id="t"+Date.now().toString(36);
+    try{const q=await pdfToImgs(f,"gx:"+id,(i,n)=>GE("st").textContent=`문제 ${i}/${n}쪽 그리는 중…`);let key={};
+      const fa=GE("fa").files[0];if(fa){const r=await pdfToImgs(fa,"gxa:"+id,(i,n)=>GE("st").textContent=`정답·해설 ${i}/${n}쪽 읽는 중…`);key=keyFromText(r.txt,from,to);var apages=r.pages}
+      const g={id,name:GE("nm").value.trim()||f.name.replace(/\.pdf$/i,""),from,to,pages:q.pages,apages:apages||0,key:Array.from({length:to-from+1},(_,k)=>key[from+k]==null?null:key[from+k]),res:[]};
+      gxKeyEdit(g,true)}catch(e){GE("st").textContent=(e&&e.message)||"읽지 못했어요."}}}
+function gxKeyEdit(g,isNew){
+  const n=g.to-g.from+1,s=g.key.map(a=>a==null?"?":"ABCD"[a]).join(""),miss=g.key.filter(a=>a==null).length;
+  $app.innerHTML=`<p><a href="#mock">← 모의고사</a></p><h2>${esc(g.name)} 정답</h2><div class="card">
+   <p>${g.from}~${g.to}번 정답 ${n}개를 A~D로 차례대로 적어 주세요. ${miss<n?`정답 PDF에서 ${n-miss}개를 읽어 채웠어요 — 한 번만 대조해 주세요.`:"정답 PDF에서 읽지 못했으면 해설 쪽을 보며 적거나, 비워 두고 저장한 뒤 나중에 채워도 돼요(채점만 안 돼요)."}</p>
+   <textarea id="ky" style="min-height:120px;font-family:var(--en);letter-spacing:.15em;text-transform:uppercase">${miss===n?"":s}</textarea>
+   <div class="row" style="margin-top:10px"><button class="btn" id="ok">저장</button></div><div id="st" class="muted"></div></div>`;
+  GE("ok").onclick=()=>{const v=GE("ky").value.toUpperCase().replace(/[^ABCD?]/g,"");
+    if(v&&v.length!==n){GE("st").textContent=`${v.length}개예요. ${n}개여야 해요.`;return}
+    g.key=v?[...v].map(c=>c==="?"?null:"ABCD".indexOf(c)):g.key.map(()=>null);
+    if(isNew)gxList().push(g);save();gxOpen(gxList().indexOf(g))}}
+function gxOpen(k){const g=gxList()[k];busy=false;
+  const lc=g.from<=100,rc=g.to>=101,noKey=g.key.some(a=>a==null);
+  $app.innerHTML=`<p><a href="#mock">← 모의고사</a></p><h2>${esc(g.name)}</h2><div class="card">
+   ${noKey?`<p class="muted">정답이 다 차지 않아 그 문항은 채점이 안 돼요.</p>`:""}
+   <div class="row">${lc?`<button class="btn" data-s="lc">LC 실전 45분</button>`:""}${rc?`<button class="btn" data-s="rc">RC 실전 75분</button>`:""}${lc&&rc?`<button class="btn ghost" data-s="all">전체 2시간</button>`:""}<button class="btn ghost" data-s="free">시간 없이 풀기</button></div>
+   <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="ke">정답 고치기</button><button class="btn ghost sm" id="dl">이 회차 지우기</button></div></div>
+   ${g.res.length?`<div class="card" style="margin-top:12px"><h3>푼 기록</h3><table><tr><th>날짜</th><th>LC</th><th>RC</th><th></th></tr>${g.res.map((r,j)=>`<tr><td>${dayStr(r.d)}</td><td>${r.lc!=null?r.lcr+"개 · 약 "+r.lc:"-"}</td><td>${r.rc!=null?r.rcr+"개 · 약 "+r.rc:"-"}</td><td><button class="btn ghost sm" data-r="${j}">채점표</button></td></tr>`).join("")}</table><p class="muted">점수는 맞힌 수로 어림한 값이에요. 실제 환산은 회차마다 달라요(문제집 뒤 환산표가 더 정확해요).</p></div>`:""}`;
+  $app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>gxRun(g,b.dataset.s));
+  $app.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>gxResult(g,g.res[+b.dataset.r]));
+  GE("ke").onclick=()=>gxKeyEdit(g,false);
+  GE("dl").onclick=()=>{if(!confirm("이 회차를 지울까요?"))return;gxList().splice(k,1);save();location.hash="#mock";route()}}
+function gxRun(g,mode){
+  busy=true;const lo=mode==="rc"?Math.max(101,g.from):g.from,hi=mode==="lc"?Math.min(100,g.to):g.to;
+  const mins={lc:45,rc:75,all:120,free:0}[mode],end=mins?Date.now()+mins*60000:0,t0=Date.now();
+  const ans={};let pg=1,from=lo,tick=null,au=null;
+  function grid(){const nums=[];for(let n=from;n<=Math.min(hi,from+19);n++)nums.push(n);
+    return `<table style="font-variant-numeric:tabular-nums">${nums.map(n=>`<tr><td style="width:52px"><b>${n}</b></td><td>${[0,1,2,3].map(c=>`<button class="btn sm ${ans[n]===c?"":"ghost"}" data-n="${n}" data-c="${c}" style="min-width:44px;margin:2px">${"ABCD"[c]}</button>`).join("")}</td></tr>`).join("")}</table>`}
+  async function draw(){
+    const img=await imgGet("gx:"+g.id+":"+pg);
+    $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>${esc(g.name)}</h2><span class="row">${mins?`<span class="timer" id="tm"></span>`:""}<button class="btn sm" id="sub">제출</button></span></div>
+     ${lo<=100?`<div class="card" style="margin-bottom:10px"><div class="row"><b>LC 음원</b><input type="file" id="mp" accept="audio/*"></div><audio id="au" controls style="width:100%;margin-top:6px"></audio></div>`:""}
+     <div class="row" style="justify-content:space-between"><button class="btn ghost sm" id="pp"${pg>1?"":" disabled"}>◀ 쪽</button><span class="muted">${pg} / ${g.pages}쪽 <input id="pj" type="number" min="1" max="${g.pages}" value="${pg}" style="width:80px;min-height:36px"></span><button class="btn ghost sm" id="np"${pg<g.pages?"":" disabled"}>쪽 ▶</button></div>
+     <div class="pic" style="max-height:62vh;overflow:auto">${img?`<img src="${img}" alt="${pg}쪽" style="width:100%">`:`<p class="muted">쪽 그림이 없어요. 이 회차를 넣은 기기에서 풀어 주세요.</p>`}</div>
+     <div class="card"><div class="row" style="justify-content:space-between"><b>답안지</b><span class="row"><button class="btn ghost sm" id="gp"${from>lo?"":" disabled"}>◀ 20문항</button><button class="btn ghost sm" id="gn"${from+20<=hi?"":" disabled"}>20문항 ▶</button></span></div>
+     <div class="muted">${Object.keys(ans).length} / ${hi-lo+1} 마킹</div><div id="omr">${grid()}</div></div>`;
+    if(au&&GE("au")){GE("au").src=au.src;GE("au").currentTime=au.t||0}
+    if(GE("mp"))GE("mp").onchange=e=>{const f=e.target.files[0];if(f){au={src:URL.createObjectURL(f),t:0};GE("au").src=au.src;GE("au").play().catch(()=>{})}};
+    if(GE("au"))GE("au").ontimeupdate=e=>{if(au)au.t=e.target.currentTime};
+    GE("pp").onclick=()=>{pg--;draw()};GE("np").onclick=()=>{pg++;draw()};GE("pj").onchange=e=>{const v=+e.target.value;if(v>=1&&v<=g.pages){pg=v;draw()}};
+    GE("gp").onclick=()=>{from-=20;GE("omr").innerHTML=grid();bind();GE("gp").disabled=from<=lo;GE("gn").disabled=from+20>hi};
+    GE("gn").onclick=()=>{from+=20;GE("omr").innerHTML=grid();bind();GE("gp").disabled=from<=lo;GE("gn").disabled=from+20>hi};
+    GE("sub").onclick=()=>{const left=hi-lo+1-Object.keys(ans).length;if(left&&!confirm(`${left}문항이 비어 있어요. 제출할까요?`))return;fin()};
+    bind();if(mins)upd()}
+  function bind(){GE("omr").querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{ans[+b.dataset.n]=+b.dataset.c;GE("omr").innerHTML=grid();bind()})}
+  function upd(){const el=GE("tm");if(!el)return;const s=Math.max(0,Math.round((end-Date.now())/1000));el.textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0");el.classList.toggle("low",s<300);if(s<=0){fin()}}
+  function fin(){clearInterval(tick);busy=false;try{GE("au")&&GE("au").pause()}catch(e){}
+    let lcr=0,rcr=0,lcn=0,rcn=0;const marks={};const lg=log();
+    for(let n=lo;n<=hi;n++){const a=g.key[n-g.from];marks[n]=ans[n]==null?-1:ans[n];if(a==null)continue;const ok=ans[n]===a;
+      if(n<=100){lcn++;if(ok)lcr++}else{rcn++;if(ok)rcr++}lg.q++;if(ok)lg.c++;
+      const p=TPART(n),pp=S.parts[p]||{c:0,w:0};ok?pp.c++:pp.w++;S.parts[p]=pp}
+    const r={d:TODAY(),mode,marks,m:Math.round((Date.now()-t0)/60000),lcr:lcn?lcr:null,rcr:rcn?rcr:null,lc:lcn===100?tScaled(lcr,true):null,rc:rcn===100?tScaled(rcr,false):null};
+    if(lcn&&lcn<100)r.lc=null;g.res.push(r);
+    if(r.lc!=null&&r.rc!=null)S.scores.push({d:TODAY(),s:r.lc+r.rc,est:1});
+    save();gxResult(g,r)}
+  if(mins)curTick=tick=setInterval(upd,1000);
+  draw()}
+function gxResult(g,r){busy=false;const nums=Object.keys(r.marks).map(Number).sort((a,b)=>a-b);
+  const by={};nums.forEach(n=>{const a=g.key[n-g.from];if(a==null)return;const p=TPART(n);by[p]=by[p]||{c:0,n:0};by[p].n++;if(r.marks[n]===a)by[p].c++});
+  const wrong=nums.filter(n=>{const a=g.key[n-g.from];return a!=null&&r.marks[n]!==a});
+  $app.innerHTML=`<p><a href="#mock">← 모의고사</a></p><h2>${esc(g.name)} 채점</h2>
+   <div class="grid">${r.lcr!=null?`<div class="card"><div class="muted">LC 맞힌 수</div><div class="big">${r.lcr}</div>${r.lc!=null?`<div class="muted">어림 ${r.lc}점</div>`:""}</div>`:""}${r.rcr!=null?`<div class="card"><div class="muted">RC 맞힌 수</div><div class="big">${r.rcr}</div>${r.rc!=null?`<div class="muted">어림 ${r.rc}점</div>`:""}</div>`:""}<div class="card"><div class="muted">걸린 시간</div><div class="big">${r.m}분</div></div></div>
+   <div class="card" style="margin-top:12px"><h3>파트별</h3><table><tr><th>파트</th><th>정답률</th></tr>${Object.entries(by).map(([p,v])=>`<tr><td>${esc(PARTS[p]?PARTS[p].name:p)}</td><td>${v.c}/${v.n} (${Math.round(v.c/v.n*100)}%)</td></tr>`).join("")}</table></div>
+   <div class="card" style="margin-top:12px"><h3>틀린 문항 ${wrong.length}</h3><p class="muted">번호를 누르면 내 답·정답과 해설 쪽을 볼 수 있어요. 틀린 이유를 한 줄로 적어 두면 다음 회차에서 같은 함정에 덜 걸려요.</p>
+   <div class="seg">${wrong.map(n=>`<button data-w="${n}">${n} <span class="muted">${r.marks[n]<0?"–":"ABCD"[r.marks[n]]}→${"ABCD"[g.key[n-g.from]]}</span></button>`).join("")}</div><div id="one"></div></div>`;
+  $app.querySelectorAll("[data-w]").forEach(b=>b.onclick=async()=>{const n=+b.dataset.w;r.why=r.why||{};
+    GE("one").innerHTML=`<div class="ex">${n}번 — 내 답 ${r.marks[n]<0?"없음":"ABCD"[r.marks[n]]}, 정답 ${"ABCD"[g.key[n-g.from]]} (${esc(PARTS[TPART(n)].name)})</div>
+     <textarea class="short" id="wy" style="width:100%;margin-top:8px;min-height:70px" placeholder="틀린 이유 한 줄 (예: 시제 단서 놓침)">${esc(r.why[n]||"")}</textarea>
+     ${g.apages?`<div class="row" style="margin-top:8px"><span class="muted">해설 쪽</span><input id="ap" type="number" min="1" max="${g.apages}" value="1" style="width:90px"><button class="btn ghost sm" id="sh">보기</button></div><div id="aimg"></div>`:""}`;
+    GE("wy").oninput=e=>{r.why[n]=e.target.value;save()};
+    if(GE("sh"))GE("sh").onclick=async()=>{const u=await imgGet("gxa:"+g.id+":"+GE("ap").value);GE("aimg").innerHTML=u?`<img src="${u}" style="width:100%;border:1px solid var(--line);border-radius:8px;margin-top:6px">`:`<p class="muted">이 기기에 해설 쪽 그림이 없어요.</p>`}})}
 
 // ================= 오답노트 =================
 function viewReview(){

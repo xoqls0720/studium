@@ -10,6 +10,15 @@ ${kind === 'image' ? '자료는 책·필기·칠판을 찍은 사진이다. 글�
 - note: 기본서처럼 정리한 본문(마크다운). '## 소제목'으로 나누고 개념 정의 → 설명 → 예시. 비교는 표, 나열은 목록. ★자료에 표가 있으면 빼지 말고 마크다운 표로 그대로 옮긴다(머리글·수치 전부). 그래프·그림·사진이 있던 자리에는 바로 그 위치에 [[그림 p쪽번호: 한 줄 설명]] 표시를 넣고(예: [[그림 p12: 수요곡선의 우측 이동]]), 이어서 무엇이 어떻게 변하는지 글로 짚는다. 쪽 번호는 원본 자료 기준. 강조된 곳은 앞에 '★'. 자료 분량에 맞게 충분히 자세히.
 - points: 핵심 6~10개 · terms: 주요 용어 6~15개(t, d) · emphasis: 자료에서 특히 강조한 것(없으면 빈 배열)
 - mcq: 객관식 8문제(c 보기 5개, a 정답 순서 0부터, e 해설, 정답 위치 고르게) · ox: 5문제(a, e) · short: 서술형 3문제(a 모범 답안, k 핵심어 3~6개)`;
+// 기출·족보(지난 시험지): 문제를 그대로 옮기고, 무엇이 얼마나 나왔는지(출제 경향)를 노트로
+const EXAM_PROMPT = (subject, title) => `너는 대학 시험 대비 조교다. 함께 준 자료는 '${subject}' 과목의 지난 시험지(기출·족보, '${title}')다.
+규칙: 시험지의 문제를 빠짐없이, 원문 그대로 옮긴다(오타만 바로잡음). 지어내지 않는다. 한국어.
+- title: '기출 · ' 뒤에 시험 이름(예: '기출 · 2025-1 중간고사'). 모르면 '기출 · ${title}'
+- note: 출제 경향 분석(마크다운). '## 형식'(문항 수·유형·배점), '## 단원별로 나온 것'(표: 단원·개념 | 문항 번호 | 비중), '## 다시 나올 만한 것'(이유와 함께), '## 서술형 답안 쓰는 요령'. 시험지에 있는 내용만 근거로.
+- points: 시험에 나온 핵심 개념 6~12개 · terms: 문제에 나온 용어(t, d) · emphasis: 두 번 이상 나왔거나 배점이 큰 것
+- mcq: 시험지의 객관식 전부(c 보기 원문, a 정답 0부터, e 해설). 보기가 4개면 4개 그대로. 정답이 시험지에 없으면 직접 풀고 해설 첫머리에 '(정답 추정)'
+- ox: 시험지의 O·X 문제 전부(a, e). 없으면 빈 배열
+- short: 단답·서술·논술 문제 전부(q 원문, a 모범 답안, k 채점 핵심어 3~6개). 답이 없으면 모범 답안을 쓰고 첫머리에 '(모범 답안 예시)'`;
 const MIME = {pdf: 'application/pdf', txt: 'text/plain', md: 'text/plain', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif',
   mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', ogg: 'audio/ogg', aac: 'audio/aac', mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm'};
 const extOf = n => (n.match(/\.([^.]+)$/)?.[1] || '').toLowerCase();
@@ -58,7 +67,8 @@ function viewAdd() {
       <div data-p="yt" hidden><input type="text" id="a-url" placeholder="https://youtu.be/…" style="width:100%"><p class="faint" style="margin:8px 0 0">유튜브 영상은 Gemini가 직접 보고 정리해요.</p></div>
       <div data-p="text" hidden><input type="text" id="a-ttl" placeholder="제목" style="width:100%;margin-bottom:8px"><textarea id="a-text" placeholder="필기, 기사, 정리하고 싶은 글을 붙여 넣으세요"></textarea></div>
       <div id="a-list" class="alist"></div>
-      <label class="row faint" style="margin-top:10px"><input type="checkbox" id="a-group" checked>사진 여러 장은 한 자료로 묶기</label></div>
+      <label class="row faint" style="margin-top:10px"><input type="checkbox" id="a-group" checked>사진 여러 장은 한 자료로 묶기</label>
+      <label class="row" style="margin-top:8px"><input type="checkbox" id="a-exam">이건 <b>기출·족보</b>(지난 시험지)예요 — 문제를 그대로 옮기고 출제 경향을 정리해요</label></div>
     <div class="row"><button class="btn pri" id="a-go">${ic('spark', 18)}정리하기</button><span class="grow faint" id="a-note">${aiOn() ? '' : 'Gemini 키가 없으면 원본만 드라이브에 올리고, PC 생성기가 정리해요.'}</span></div>
     <div id="a-out" style="margin-top:16px"></div></div>`);
   let tab = 'file', picked = [];
@@ -106,7 +116,7 @@ function viewAdd() {
       row.innerHTML = `<div class="mark"><span class="spin"></span></div><div class="grow"><b>${esc(label)}</b><div class="faint" data-st>준비 중…</div></div>`;
       const st = t => row.querySelector('[data-st]').textContent = t;
       try {
-        const r = await ingest({lib, libName, subject}, it, st);
+        const r = await ingest({lib, libName, subject, exam: $('#a-exam').checked}, it, st);
         row.innerHTML = `<div class="mark" style="color:var(--ok)">${ic('check')}</div><div class="grow"><b>${esc(r.title)}</b><div class="faint">${r.ready ? `정리 완료 · 문제 ${r.n}개` : '드라이브에 올렸어요 · PC 생성기가 정리하면 나타나요'}</div></div>${r.ready ? `<button class="btn sm" data-go="#/s/${r.sid}/u/${r.uid}">열기</button>` : ''}`;
         bindGo(row);
       } catch (e) {
@@ -120,7 +130,7 @@ function viewAdd() {
 // 아이폰 카메라는 사진마다 'image.jpg' 라 이름이 같으면 앞 자료를 덮어쓴다 → 찍은 시각을 붙인 이름을 쓴다
 const shotName = ext => `사진_${new Date().toISOString().slice(0, 19).replace(/\D/g, '')}_${Math.random().toString(36).slice(2, 5)}.${ext}`;
 const takenName = (sid, file) => Object.values(prog.my || {}).some(m => !m.del && m.sid === sid && m.file === file);
-async function ingest({lib, libName, subject}, it, st) {
+async function ingest({lib, libName, subject, exam}, it, st) {
   const sid = await sha12(subjKey(lib, subject)), folder = `${libName}/${subject}`;
   let fileName, blob, mime, parts = [], kind = 'doc', title;
   if (it.kind === 'link') {
@@ -163,7 +173,8 @@ async function ingest({lib, libName, subject}, it, st) {
     return {title, ready: false};
   }
   st('Gemini가 정리하는 중… (1~3분)');
-  const d = await gem({parts: [...parts, {text: MATERIAL_PROMPT(subject, title, kind)}]}, {schema: UNIT_S, temp: .4});
+  const d = await gem({parts: [...parts, {text: exam ? EXAM_PROMPT(subject, title) : MATERIAL_PROMPT(subject, title, kind)}]}, {schema: UNIT_S, temp: exam ? .2 : .4});
+  if (exam) { d.exam = true; if (!/^기출/.test(d.title || '')) d.title = '기출 · ' + (d.title || title); }
   d.mcq = (d.mcq || []).filter(q => Array.isArray(q.c) && q.a >= 0 && q.a < q.c.length);
   Object.assign(d, {id: uid, file: fileName, subject, by: 'app', made: new Date().toISOString().slice(0, 19), hash: 'app:' + fileName});
   const path = `${folder}/${uid}.json`, body = JSON.stringify(d);
@@ -171,7 +182,7 @@ async function ingest({lib, libName, subject}, it, st) {
   state.units[uid] = d;
   if (GD.valid()) { st('드라이브에 저장하는 중…'); await GD.put(`${FOLDER === '' ? '' : ''}${path}`, new Blob([body], {type: 'application/json'})).catch(e => { console.warn(e); toast('드라이브 저장에 실패했어요 — 이 기기에서만 보여요. 다시 넣어 주세요'); }); }
   const n = d.mcq.length + (d.ox || []).length + (d.short || []).length;
-  prog.my[uid] = {t: Date.now(), lib, libName, subject, sid, folder, title: d.title || title, file: fileName, n};
+  prog.my[uid] = {t: Date.now(), lib, libName, subject, sid, folder, title: d.title || title, file: fileName, n, ...(exam ? {exam: true} : {})};
   state.subs = null; saveProg();
   return {title: d.title || title, ready: true, n, sid, uid};
 }

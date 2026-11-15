@@ -111,7 +111,8 @@ function examScope(s) {
   const ex = prog.exams?.[s.id];
   if (!ex?.date || !ex.range?.length) return null;
   const d = ddays(ex.date);
-  return d >= 0 && d <= 21 ? new Set(ex.range) : null;
+  // 기출·족보로 넣은 자료는 범위와 상관없이 늘 시험 범위로 친다
+  return d >= 0 && d <= 21 ? new Set([...ex.range, ...Object.entries(prog.my || {}).filter(([, m]) => m.exam && !m.del && m.sid === s.id).map(([k]) => k)]) : null;
 }
 async function todayQueue() {
   const subs = allSubjects(), due = [], fresh = [], inScope = new Set();

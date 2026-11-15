@@ -305,7 +305,7 @@ const LEET = {
   {k:"추리논증",n:"40문항 · 5지선다",d:"법학·인문 철학·과학·경제 소재로 원리 적용, 수리 추론, 논증 분석, 논증 평가(강화·약화), 퀴즈(논리 게임)를 푼다.",how:["원리 적용: 규정을 요건 → 효과로 쪼개 사례에 기계적으로 대응","논증 분석: 결론 → 전제 → 숨은 전제 순서로 찾기","강화·약화: 주장과 근거를 잇는 고리를 찾고 그 고리를 건드리는 선택지","퀴즈: 조건을 표로 옮기고 가장 많이 제약된 칸부터","한 문제에 오래 붙잡히지 않기 — 정확성이 우선이지만 버릴 문제는 버린다"]},
   {k:"논술",n:"2문항 · 서술",d:"제시문을 요약·비교하고, 원리를 사례에 적용하거나 자신의 견해를 논증한다.",how:["문제가 요구한 동사(요약하라/비교하라/평가하라)를 하나도 빠뜨리지 않는다","개요를 먼저: 쟁점 → 각 입장의 핵심 → 적용 → 내 견해와 근거","제시문 문장을 베끼지 말고 자기 말로 재진술","분량을 채우는 것보다 논리의 빈틈이 없는 것이 점수"]}
  ],
- books:"실제 기출은 법학전문대학원협의회(leet.or.kr)에서 해마다 공개하고, 공식 해설서가 '법학적성시험 문제 해설'로 나온다. 이 앱의 지문·문제는 기출 형식을 본떠 새로 만든 연습용이라, 2단계부터는 공식 기출을 함께 푼다."
+ books:"실제 기출은 법학전문대학원협의회(leet.or.kr)에서 해마다 공개하고, 공식 해설서가 '법학적성시험 문제 해설'로 나온다. 받은 기출 PDF는 아래 '기출'에 넣으면 앱 안에서 실전처럼 풀 수 있다. 'Claude가 만든 연습' 지문·문제는 기출 형식을 본뜬 새 연습용이다."
 };
 
 const STAGES_G = [
@@ -330,7 +330,7 @@ function uid(){return "x"+Date.now().toString(36)+Math.random().toString(36).sli
 function $(id){return document.getElementById(id)}
 
 // ================= 상태 =================
-const BLANK=()=>({v:1,words:{},xw:[],wrong:{},done:{},logs:{},tags:{},drafts:[],stage:0,sets:[]});
+const BLANK=()=>({v:1,words:{},xw:[],wrong:{},done:{},logs:{},tags:{},drafts:[],stage:0,sets:[],gx:[],gxr:{}});
 let S=BLANK();
 function fix(){const b=BLANK();for(const k in b)if(S[k]==null)S[k]=b[k]}
 function log(){const k=TODAY();S.logs[k]=S.logs[k]||{w:0,q:0,c:0,m:0,ch:0};return S.logs[k]}
@@ -525,6 +525,7 @@ function viewLeet(){
   $app.innerHTML=`<h2>LEET · 법학적성시험</h2>
    ${LEET.parts.map(p=>`<details><summary>${esc(p.k)} <span class="muted">${esc(p.n)}</span></summary><p>${esc(p.d)}</p><ul class="pts">${p.how.map(h=>`<li>${esc(h)}</li>`).join("")}</ul></details>`).join("")}
    <p class="muted">${esc(LEET.books)}</p>
+   ${gxCard()}
    <div class="card" style="margin-top:12px"><h3>언어이해 연습 세트</h3><p class="muted">1,600~2,000자 지문 하나와 4문항. 문단마다 한 줄 요약을 쓰고 나서 문제로 넘어가요.</p>
    <div class="seg" id="fd">${FIELDS.map((f,k)=>`<button data-k="${k}"${k===0?" class=on":""}>${f}</button>`).join("")}</div>
    <div class="row" style="margin-top:12px"><button class="btn" id="rd">지문 만들기</button></div><div id="rm" class="muted"></div></div>
@@ -534,6 +535,7 @@ function viewLeet(){
    <div class="card" style="margin-top:12px"><h3>LEET 논술</h3><p>제시문 비교·적용 과제는 <a href="#write">글쓰기</a>의 'LEET 논술'에서 쓰고 첨삭받아요.</p></div>
    ${S.sets.length?`<div class="card" style="margin-top:12px"><h3>지난 지문 다시 풀기</h3><div class="list">${S.sets.slice(-8).reverse().map((s,n)=>`<button class="item" data-s="${S.sets.length-1-n}"><span>${esc(s.title)}</span><span class="muted">${dayStr(s.d)}</span></button>`).join("")}</div></div>`:""}`;
   let fk=0,tk=0;
+  $("gxadd").onclick=gxImport;
   $("fd").querySelectorAll("button").forEach(b=>b.onclick=()=>{fk=+b.dataset.k;$("fd").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))});
   $("ty").querySelectorAll("button").forEach(b=>b.onclick=()=>{tk=+b.dataset.k;$("ty").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))});
   $app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>readingSet(S.sets[+b.dataset.s]));
@@ -568,6 +570,199 @@ function readingSet(set){
 지문:\n${set.passage}\n\n학생 요약:\n${sums.map((s,n)=>(n+1)+"문단: "+(s||"(비움)")).join("\n")}`,"default");
       $("fb").innerHTML=`<div class="ex fb">${esc(r)}</div>`}catch(e){$("fb").innerHTML=`<p class="muted">${esc(genError(e))}</p>`}};
   $("go").onclick=()=>runQuiz(set.items.map(x=>Object.assign({},x,{passage:set.passage,gen:1})),{title:"언어이해"});
+}
+
+
+// ================= LEET 기출 (내가 받은 시험지 PDF) =================
+// 기출 시험지는 법학전문대학원협의회 저작물이라 앱에 싣지 않는다. 태빈이 leet.or.kr에서 받은 PDF를
+// 이 기기에서 읽어 문항으로 나누고, 태빈 계정에만 저장한다.
+const GX_AREA={"언어이해":{min:70,n:30},"추리논증":{min:125,n:40}};
+let pdfLib=null;
+function loadPdfJs(){if(pdfLib)return Promise.resolve(pdfLib);
+  return new Promise((ok,no)=>{const s=document.createElement("script");s.src="pdf.min.js";
+    s.onload=()=>{try{window.pdfjsLib.GlobalWorkerOptions.workerSrc="pdf.worker.min.js";pdfLib=window.pdfjsLib;ok(pdfLib)}catch(e){no(e)}};
+    s.onerror=()=>no(new Error("pdf.js를 불러오지 못했어요"));document.head.appendChild(s)})}
+// 쪽 이미지는 이 기기(IndexedDB)에만
+function idb(){return new Promise((ok,no)=>{try{const r=indexedDB.open("geul-gx",1);r.onupgradeneeded=()=>r.result.createObjectStore("img");r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}catch(e){no(e)}})}
+async function imgPut(k,v){try{const d=await idb();await new Promise(ok=>{const t=d.transaction("img","readwrite");t.objectStore("img").put(v,k);t.oncomplete=ok;t.onerror=ok})}catch(e){}}
+async function imgGet(k){try{const d=await idb();return await new Promise(ok=>{const r=d.transaction("img").objectStore("img").get(k);r.onsuccess=()=>ok(r.result||null);r.onerror=()=>ok(null)})}catch(e){return null}}
+// 두 단 편집을 고려해 쪽마다 글줄을 읽는 순서대로 모은다
+async function pageLines(page){
+  const vp=page.getViewport({scale:1}),W=vp.width,tc=await page.getTextContent();
+  const its=tc.items.filter(t=>t.str).map(t=>({s:t.str,x:t.transform[4],y:t.transform[5],w:t.width||0}));
+  const right=its.filter(t=>t.x>W*0.52).length, twoCol=right>its.length*0.25;
+  const col=t=>twoCol&&t.x>W*0.5?1:0;
+  its.sort((a,b)=>col(a)-col(b)||b.y-a.y||a.x-b.x);
+  const lines=[];let cur=null;
+  its.forEach(t=>{if(cur&&cur.c===col(t)&&Math.abs(cur.y-t.y)<3){cur.s+=(t.x-cur.ex>1.5&&!/\s$/.test(cur.s)?" ":"")+t.s;cur.ex=t.x+t.w}
+    else if(t.s.trim()){cur={c:col(t),y:t.y,s:t.s,ex:t.x+t.w};lines.push(cur)}});
+  return lines.map(l=>l.s.replace(/\s+/g," ").trim()).filter(l=>l&&!/^-?\s*\d+\s*-?$/.test(l)&&!/^(언어이해|추리논증)\s*영역/.test(l)&&!/^\d+\s*\/\s*\d+$/.test(l))}
+async function readPdf(file,onp,imgKey){
+  const lib=await loadPdfJs(),doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  const pages=[];
+  for(let i=1;i<=doc.numPages;i++){onp&&onp(i,doc.numPages);const pg=await doc.getPage(i);pages.push(await pageLines(pg));
+    if(imgKey){try{const vp=pg.getViewport({scale:1.6}),cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;
+      await pg.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise;await imgPut(imgKey+":"+i,cv.toDataURL("image/jpeg",.8))}catch(e){}}}
+  return pages}
+const CIR="①②③④⑤";
+function parseExam(pages,N){
+  const items=[],passages={};let exp=1,cur=null,grp=null,mode=null;
+  pages.forEach((ls,pi)=>ls.forEach(l=>{
+    const g=l.match(/^\[\s*(\d{1,2})\s*[～~∼〜\-–]\s*(\d{1,2})\s*\]\s*(.*)$/);
+    if(g&&+g[1]===exp){grp=g[1]+"~"+g[2];passages[grp]={a:+g[1],b:+g[2],t:g[3]?g[3]+"\n":"",pg:pi+1};mode="p";cur=null;return}
+    const m=l.match(/^(\d{1,2})\s*\.\s*(.*)$/);
+    if(m&&+m[1]===exp&&exp<=N){cur={n:exp,raw:m[2]+"\n",pg:pi+1,grp:(grp&&passages[grp].b>=exp)?grp:null};items.push(cur);exp++;mode="q";return}
+    if(mode==="p"&&grp)passages[grp].t+=l+"\n";else if(cur)cur.raw+=l+"\n"}));
+  items.forEach(it=>{const r=it.raw,i1=r.indexOf("①");
+    if(i1<0){it.q=r.trim();it.o=null;return}
+    it.q=r.slice(0,i1).trim();const os=[];let rest=r.slice(i1);
+    for(let k=0;k<5;k++){const s=rest.indexOf(CIR[k]);if(s<0)break;const e=k<4?rest.indexOf(CIR[k+1],s+1):-1;os.push(rest.slice(s+1,e<0?undefined:e).replace(/\s+/g," ").trim());if(e<0)break;rest=rest.slice(e)}
+    it.o=os.length===5?os:null;delete it.raw;if(!it.o)it.bad=r.trim()});
+  const flow=s=>s.trim().split("\n").reduce((o,l)=>o+(o&&!/\n$/.test(o)?" ":"")+l+(/[다요까]\.$|[.?!]$/.test(l)?"\n":""),"").trim();
+  Object.values(passages).forEach(p=>p.t=flow(p.t));items.forEach(it=>{if(it.q)it.q=flow(it.q)});
+  return {items,passages}}
+function parseAnswers(pages,N){
+  const t=pages.flat().join(" ");let seq=(t.match(/[①②③④⑤]/g)||[]).map(c=>CIR.indexOf(c));
+  if(seq.length<N){const m=t.replace(/\d+\s*번/g," ").match(/(?:^|\s)[1-5](?=\s|$)/g)||[];if(m.length>=N*2){const nums=m.map(x=>+x.trim());seq=[]}}
+  return seq.length>=N?seq.slice(0,N):[]}
+// 저장: 목록은 S.gx, 시험 본문은 따로(localStorage + 계정 문서)
+function gxKey(id){return "tb-geul-gx-"+id}
+async function gxSave(ex){try{localStorage.setItem(gxKey(ex.id),JSON.stringify(ex))}catch(e){}
+  try{if(ref){const db=await claudeUse("db"),user=await claudeUse("user");const uidv=await user.id();await db.collection("data/users/"+uidv).doc("gx-"+ex.id).set({json:JSON.stringify(ex)})}}catch(e){}}
+async function gxLoad(id){try{const l=localStorage.getItem(gxKey(id));if(l)return JSON.parse(l)}catch(e){}
+  try{const db=await claudeUse("db"),user=await claudeUse("user");if(db&&user){const uidv=await user.id();const g=await readRef(db.collection("data/users/"+uidv).doc("gx-"+id));if(g&&g.json){try{localStorage.setItem(gxKey(id),g.json)}catch(e){}return JSON.parse(g.json)}}}catch(e){}
+  return null}
+function gxCard(){
+  const L=S.gx||[];
+  return `<div class="card" style="margin-top:12px"><h3>기출 (내가 받은 시험지)</h3>
+   <p class="muted">기출 시험지는 앱에 미리 실을 수 없어요. 법학전문대학원협의회 누리집(leet.or.kr)의 기출문제 게시판에서 학년도별 문제지·정답 PDF를 받아 여기에 넣으면, 문항으로 나눠 실전 시간 재기·채점·오답·해설까지 이어서 쓸 수 있어요. 넣은 시험지는 네 계정에만 저장돼요.</p>
+   <div class="row"><button class="btn" id="gxadd">시험지 PDF 넣기</button><a class="btn ghost" href="https://www.leet.or.kr" target="_blank" rel="noopener">leet.or.kr 열기</a></div>
+   ${L.length?`<div class="list" style="margin-top:12px">${L.slice().sort((a,b)=>b.year-a.year||a.area.localeCompare(b.area)).map(g=>{const r=(S.gxr||{})[g.id]||[],best=r.length?Math.max(...r.map(x=>x.s)):null;
+     return `<a class="item" href="#gx/${g.id}"><span>${g.year}학년도 ${esc(g.area)} <span class="muted">${g.n}문항</span></span>${best==null?`<span class="pill w">안 풂</span>`:`<span class="pill ${best/g.n>=.75?"g":"b"}">최고 ${best}/${g.n}</span>`}</a>`}).join("")}</div>`:""}</div>`}
+function gxImport(){
+  busy=true;const yr=new Date().getFullYear();
+  $app.innerHTML=`<p><a href="#leet">← LEET</a></p><h2>기출 시험지 넣기</h2>
+   <div class="card"><p class="muted">leet.or.kr → 기출문제에서 받은 PDF를 골라 주세요. 정답 PDF가 따로 있으면 함께 넣으면 정답이 자동으로 채워져요.</p>
+   <div class="row" style="margin:8px 0"><select id="ar"><option>언어이해</option><option>추리논증</option></select>
+   <input id="yr" type="number" min="2009" max="${yr+1}" value="${yr}" style="width:120px"> <span class="muted">학년도</span></div>
+   <p><b>문제지 PDF</b><br><input type="file" id="fq" accept="application/pdf"></p>
+   <p><b>정답 PDF (있으면)</b><br><input type="file" id="fa" accept="application/pdf"></p>
+   <div class="row"><button class="btn" id="go">읽기</button></div><div id="st" class="muted" style="margin-top:10px"></div></div>`;
+  $("go").onclick=async()=>{const f=$("fq").files[0];if(!f){$("st").textContent="문제지 PDF를 골라 주세요.";return}
+    const area=$("ar").value,year=+$("yr").value,N=GX_AREA[area].n,id=year+"-"+(area==="언어이해"?"lang":"reason");
+    try{
+      const pages=await readPdf(f,(i,n)=>$("st").textContent=`문제지 ${i}/${n}쪽 읽는 중…`,"gx:"+id);
+      const ex=parseExam(pages,N);
+      if(ex.items.length<N*0.6)throw new Error(`문항을 ${ex.items.length}개밖에 찾지 못했어요. 스캔본(그림) PDF면 글자를 읽을 수 없어요.`);
+      let ans=[];const fa=$("fa").files[0];
+      if(fa){$("st").textContent="정답 읽는 중…";ans=parseAnswers(await readPdf(fa,null,null),N)}
+      const exam={id,area,year,n:ex.items.length,items:ex.items,passages:ex.passages,pages:pages.length};
+      ans.forEach((a,k)=>{if(exam.items[k])exam.items[k].a=a});
+      gxConfirm(exam)}
+    catch(e){$("st").textContent=(e&&e.message)||"읽지 못했어요."}};
+}
+function gxConfirm(exam){
+  const bad=exam.items.filter(i=>!i.o).length,ansStr=exam.items.map(i=>i.a==null?"?":i.a+1).join("");
+  $app.innerHTML=`<p><a href="#leet">← LEET</a></p><h2>${exam.year}학년도 ${esc(exam.area)} 확인</h2>
+   <div class="card"><p>${exam.n}문항을 찾았어요.${bad?` 보기 다섯 개를 나누지 못한 문항이 ${bad}개 있어요 — 그 문항은 원본 쪽 그림으로 풀게 돼요.`:""}</p>
+   <p><b>정답</b> — ${exam.n}개 숫자(1~5)를 차례로. 정답 PDF에서 읽은 값이 있으면 채워져 있으니 한 번만 대조해 주세요.</p>
+   <input id="an" style="width:100%;font-variant-numeric:tabular-nums;letter-spacing:.12em" value="${ansStr.includes("?")?"":ansStr}" placeholder="예: 3152431…">
+   <div class="row" style="margin-top:12px"><button class="btn" id="ok">저장</button></div><div id="st" class="muted"></div></div>
+   <details><summary>나눈 문항 미리 보기</summary>${exam.items.slice(0,5).map(i=>`<div class="tech"><b>${i.n}. ${esc((i.q||"").slice(0,120))}</b>${i.o?i.o.map((o,k)=>CIR[k]+" "+esc(o.slice(0,60))).join("<br>"):"(보기 분리 실패)"}</div>`).join("")}</details>`;
+  $("ok").onclick=async()=>{const v=$("an").value.replace(/[^1-5①-⑤]/g,"");
+    const arr=[...v].map(c=>CIR.includes(c)?CIR.indexOf(c):+c-1);
+    if(arr.length&&arr.length!==exam.n){$("st").textContent=`정답이 ${arr.length}개예요. ${exam.n}개여야 해요. (모르면 비워 두고 저장해도 돼요)`;return}
+    exam.items.forEach((it,k)=>{it.a=arr.length?arr[k]:null});
+    S.gx=(S.gx||[]).filter(g=>g.id!==exam.id);S.gx.push({id:exam.id,area:exam.area,year:exam.year,n:exam.n});save();
+    $("st").textContent="저장 중…";await gxSave(exam);location.hash="#gx/"+exam.id;route()};
+}
+async function viewGx(id){
+  const meta=(S.gx||[]).find(g=>g.id===id);if(!meta){location.hash="#leet";return}
+  $app.innerHTML=`<p class="muted">불러오는 중…</p>`;const ex=await gxLoad(id);
+  if(!ex){$app.innerHTML=`<p><a href="#leet">← LEET</a></p><p>이 시험지 본문을 찾지 못했어요. 다시 넣어 주세요.</p>`;return}
+  const r=(S.gxr||{})[id]||[],noAns=ex.items.some(i=>i.a==null),A=GX_AREA[ex.area];
+  $app.innerHTML=`<p><a href="#leet">← LEET</a></p><h2>${ex.year}학년도 ${esc(ex.area)}</h2>
+   <div class="card"><p>${ex.n}문항 · 실제 시험 ${A.min}분</p>${noAns?`<p class="muted">정답이 비어 있어 채점은 안 돼요. <button class="btn ghost sm" id="fix">정답 넣기</button></p>`:""}
+   <div class="row"><button class="btn" id="real">실전 (${A.min}분)</button><button class="btn ghost" id="prac">연습 (한 문제씩 바로 확인)</button></div></div>
+   ${r.length?`<div class="card" style="margin-top:12px"><h3>푼 기록</h3><table><tr><th>날짜</th><th>점수</th><th>걸린 시간</th><th></th></tr>${r.slice().reverse().map((x,k)=>`<tr><td>${dayStr(x.d)}</td><td>${x.s}/${ex.n}</td><td>${x.m}분</td><td><button class="btn ghost sm" data-r="${r.length-1-k}">다시 보기</button></td></tr>`).join("")}</table></div>`:""}
+   <div class="row" style="margin-top:12px"><button class="btn ghost sm" id="del">이 시험지 지우기</button></div>`;
+  if($("fix"))$("fix").onclick=()=>gxConfirm(ex);
+  $("real").onclick=()=>gxRun(ex,true);$("prac").onclick=()=>gxRun(ex,false);
+  $app.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>gxResult(ex,r[+b.dataset.r]));
+  $("del").onclick=()=>{if(!confirm("이 시험지를 지울까요? 푼 기록도 함께 지워져요."))return;S.gx=S.gx.filter(g=>g.id!==id);if(S.gxr)delete S.gxr[id];save();try{localStorage.removeItem(gxKey(id))}catch(e){}location.hash="#leet";route()};
+}
+function gxPassage(ex,it){const p=it.grp&&ex.passages[it.grp];return p?p.t:""}
+async function gxPageImgs(ex,it,box){
+  const pgs=new Set([it.pg]);const p=it.grp&&ex.passages[it.grp];if(p)pgs.add(p.pg);
+  const imgs=[];for(const n of [...pgs].sort((a,b)=>a-b)){const u=await imgGet("gx:"+ex.id+":"+n);if(u)imgs.push(`<img src="${u}" alt="${n}쪽" style="width:100%;border:1px solid var(--line);border-radius:8px;margin:6px 0">`)}
+  box.innerHTML=imgs.length?imgs.join(""):`<p class="muted">원본 쪽 그림은 시험지를 넣은 기기에만 있어요.</p>`}
+function gxRun(ex,real){
+  busy=true;const N=ex.n,ans=new Array(N).fill(null),t0=Date.now(),end=real?t0+GX_AREA[ex.area].min*60000:0;let i=0,tick=null;
+  function fin(){clearInterval(tick);busy=false;
+    let s=0;ex.items.forEach((it,k)=>{if(it.a!=null&&ans[k]===it.a)s++});
+    const rec={d:TODAY(),s,m:Math.round((Date.now()-t0)/60000),ans:ans.slice(),real};S.gxr=S.gxr||{};(S.gxr[ex.id]=S.gxr[ex.id]||[]).push(rec);
+    const lg=log();ex.items.forEach((it,k)=>{if(it.a==null||ans[k]==null)return;lg.q++;const ok=ans[k]===it.a;if(ok)lg.c++;
+      const tag="기출 "+ex.area,tg=S.tags[tag]||{c:0,w:0};ok?tg.c++:tg.w++;S.tags[tag]=tg;
+      const wid="gx-"+ex.id+"-"+it.n;
+      if(ok){delete S.wrong[wid]}else if(it.o){const w=S.wrong[wid]||{n:0};w.n++;w.t=TODAY();w.why=w.why||"";
+        w.item={id:wid,src:`${ex.year} ${ex.area} ${it.n}번`,tag:"기출 "+ex.area,q:it.q,o:it.o,a:it.a,ex:it.ex||"정답 근거는 기출 화면의 'Claude 해설'에서 볼 수 있어요.",passage:gxPassage(ex,it).slice(0,3000)||undefined};S.wrong[wid]=w}});
+    trimWrong();save();gxResult(ex,rec)}
+  function draw(){
+    const it=ex.items[i],pas=gxPassage(ex,it);
+    $app.innerHTML=`<div class="row" style="justify-content:space-between"><h2>${ex.year} ${esc(ex.area)} ${it.n}번</h2><span class="row">${real?`<span class="timer" id="tm"></span>`:""}<button class="btn ghost sm" id="sub">${real?"제출":"끝내기"}</button></span></div>
+     <div class="seg" style="margin-bottom:12px">${ex.items.map((x,k)=>`<button data-j="${k}" class="${k===i?"on":""}" style="min-width:40px${ans[k]!=null&&k!==i?";border-color:var(--accent)":""}">${x.n}</button>`).join("")}</div>
+     <div class="card">${pas?`<div class="passage">${esc(pas)}</div>`:""}<p class="q" style="white-space:pre-wrap">${esc(it.q||it.bad||"")}</p>
+     ${it.o?`<div class="opts">${it.o.map((o,k)=>`<button class="opt${ans[i]===k?" on":""}" data-k="${k}" style="${ans[i]===k?"border-color:var(--accent);background:var(--accent-soft)":""}">${CIR[k]} ${esc(o)}</button>`).join("")}</div>`
+       :`<div class="seg">${[0,1,2,3,4].map(k=>`<button data-k="${k}" class="${ans[i]===k?"on":""}">${CIR[k]}</button>`).join("")}</div>`}
+     <details style="margin-top:12px"${it.o?"":" open"}><summary>원본 쪽 보기 (표·그림·&lt;보기&gt;)</summary><div id="img"></div></details>
+     <div id="ex"></div>
+     <div class="row" style="justify-content:space-between;margin-top:14px"><button class="btn ghost" id="pv"${i?"":" disabled"}>이전</button><button class="btn" id="nx">${i<N-1?"다음":real?"제출":"끝내기"}</button></div></div>`;
+    $app.querySelector("details").addEventListener("toggle",function(){if(this.open&&!$("img").innerHTML)gxPageImgs(ex,it,$("img"))});
+    if(!it.o)gxPageImgs(ex,it,$("img"));
+    $app.querySelectorAll("[data-j]").forEach(b=>b.onclick=()=>{i=+b.dataset.j;draw()});
+    $app.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{if(!real&&ans[i]!=null)return;ans[i]=+b.dataset.k;
+      if(real){draw();return}
+      const ok=it.a!=null&&ans[i]===it.a;draw();
+      $("ex").innerHTML=it.a==null?`<p class="muted">정답이 비어 있어 확인할 수 없어요.</p>`:`<div class="ex"><b>${ok?"맞았어요.":"틀렸어요. 정답은 "+CIR[it.a]+"."}</b></div><div class="row" style="margin-top:8px"><button class="btn ghost sm" id="why">Claude 해설</button></div><div id="wx"></div>`;
+      if($("why"))$("why").onclick=()=>gxExplain(ex,it,$("wx"))});
+    if(!real&&ans[i]!=null&&it.a!=null){$("ex").innerHTML=`<div class="ex"><b>${ans[i]===it.a?"맞았어요.":"틀렸어요. 정답은 "+CIR[it.a]+"."}</b>${it.ex?"\n\n"+esc(it.ex):""}</div>${it.ex?"":`<div class="row" style="margin-top:8px"><button class="btn ghost sm" id="why">Claude 해설</button></div><div id="wx"></div>`}`;if($("why"))$("why").onclick=()=>gxExplain(ex,it,$("wx"))}
+    $("pv").onclick=()=>{i--;draw();window.scrollTo(0,0)};
+    $("nx").onclick=()=>{if(i<N-1){i++;draw();window.scrollTo(0,0)}else ask2()};
+    $("sub").onclick=ask2;
+    if(real)upd()}
+  function ask2(){const left=ans.filter(x=>x==null).length;if(left&&!confirm(`${left}문항을 비워 두었어요. ${real?"제출":"끝낼"}할까요?`))return;fin()}
+  function upd(){const el=$("tm");if(!el)return;const s=Math.max(0,Math.round((end-Date.now())/1000));el.textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0");el.classList.toggle("low",s<600);if(s<=0)fin()}
+  if(real)curTick=tick=setInterval(upd,1000);
+  draw()}
+let curTick=null;
+async function gxExplain(ex,it,box){
+  if(it.ex){box.innerHTML=`<div class="ex fb">${esc(it.ex)}</div>`;return}
+  box.innerHTML=`<p class="muted">Claude가 풀이를 쓰는 중이에요… (20~40초)</p>`;
+  try{const r=await askText(`LEET ${ex.area} ${ex.year}학년도 ${it.n}번 문항을 학생이 풀었어. 정답은 ${CIR[it.a]}번이야(공식 정답).
+${gxPassage(ex,it)?"지문:\n"+gxPassage(ex,it)+"\n\n":""}문항:\n${it.q}\n${(it.o||[]).map((o,k)=>CIR[k]+" "+o).join("\n")}
+
+풀이를 단계별로 써 줘. 해요체, 마크다운 기호(#, *) 없이, 소제목은 【 】.
+【문제가 묻는 것】 발문이 요구하는 판단 한두 문장.
+【정답 ${CIR[it.a]}의 근거】 지문의 어느 문장(문단)에서 어떻게 따라 나오는지 단계별로.
+【오답 하나씩】 ①~⑤ 중 오답마다 왜 틀렸는지 한 줄씩, 가장 매력적인 오답은 함정의 구조까지.
+【다음에 쓸 요령】 이 유형에서 가져갈 풀이 습관 한 줄.
+공식 정답과 다르게 판단하지 마. 지문만으로 설명이 안 되면 그 점을 솔직히 적어.`,"complex");
+    it.ex=r.trim();box.innerHTML=`<div class="ex fb">${esc(it.ex)}</div>`;gxSave(ex)}
+  catch(e){box.innerHTML=`<p class="muted">${esc(genError(e))}</p>`}}
+function gxResult(ex,rec){
+  busy=false;const wrong=ex.items.map((it,k)=>({it,k})).filter(x=>x.it.a!=null&&rec.ans[x.k]!==x.it.a);
+  $app.innerHTML=`<p><a href="#gx/${ex.id}">← ${ex.year} ${esc(ex.area)}</a></p><h2>결과</h2>
+   <div class="card"><div class="big">${rec.s} / ${ex.n}</div><p class="muted">${rec.m}분 걸렸어요. 틀린 문항은 오답에도 모였어요.</p></div>
+   <div class="card" style="margin-top:12px"><h3>답안지</h3><div class="seg">${ex.items.map((it,k)=>{const ok=it.a!=null&&rec.ans[k]===it.a;return `<button data-k="${k}" style="min-width:52px;${it.a==null?"":ok?"border-color:var(--good);background:var(--good-soft)":"border-color:var(--bad);background:var(--bad-soft)"}">${it.n} ${rec.ans[k]==null?"–":CIR[rec.ans[k]]}</button>`}).join("")}</div></div>
+   <div id="one"></div>`;
+  $app.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{const k=+b.dataset.k,it=ex.items[k],pas=gxPassage(ex,it);
+    $("one").innerHTML=`<div class="card" style="margin-top:12px"><h3>${it.n}번</h3>${pas?`<details><summary>지문</summary><div class="passage">${esc(pas)}</div></details>`:""}<p class="q" style="white-space:pre-wrap">${esc(it.q||it.bad||"")}</p>
+     ${it.o?`<div class="opts">${it.o.map((o,j)=>`<div class="opt${j===it.a?" ok":j===rec.ans[k]?" no":""}">${CIR[j]} ${esc(o)}</div>`).join("")}</div>`:""}
+     <p>내 답 ${rec.ans[k]==null?"없음":CIR[rec.ans[k]]} · 정답 ${it.a==null?"?":CIR[it.a]}</p>
+     <details><summary>원본 쪽 보기</summary><div id="img"></div></details>
+     ${it.a!=null?`<div class="row" style="margin-top:8px"><button class="btn ghost sm" id="why">Claude 해설</button></div><div id="wx"></div>`:""}</div>`;
+    $("one").querySelectorAll("details")[pas?1:0].addEventListener("toggle",function(){if(this.open&&!$("img").innerHTML)gxPageImgs(ex,it,$("img"))});
+    if($("why"))$("why").onclick=()=>gxExplain(ex,it,$("wx"));$("one").scrollIntoView({behavior:"smooth"})});
 }
 
 // ================= 글쓰기 =================
@@ -744,10 +939,11 @@ function viewStats(){
 }
 
 // ================= 화면 전환 =================
-function route(){busy=false;const h=(location.hash||"#home").slice(1),[v,a,b]=h.split("/");
-  document.querySelectorAll("#nav a").forEach(x=>x.classList.toggle("on",x.getAttribute("href")==="#"+v));
+function route(){busy=false;clearInterval(curTick);const h=(location.hash||"#home").slice(1),[v,a,b]=h.split("/");
+  document.querySelectorAll("#nav a").forEach(x=>x.classList.toggle("on",x.getAttribute("href")==="#"+(v==="gx"?"leet":v)));
   if(v==="logic")a?viewUnit(LOGIC,"logic",a,"논리학"):viewUnits(LOGIC,"logic","논리학","LEET 추리논증과 논리적 글쓰기의 뼈대. 단원마다 확인 문제 80점이 넘으면 통과예요.");
   else if(v==="psy")a?viewUnit(PSY,"psy",a,"심리학"):viewUnits(PSY,"psy","심리학 · 융을 중심으로","융의 분석심리학 아홉 단원과 다른 심리학 비교 한 단원. 단원마다 '글쓰기에 쓰는 법'이 붙어 있어요.");
+  else if(v==="gx"&&a)viewGx(a);
   else if(v==="write")a&&KINDS[a]?editor(a,b):viewWrite();
   else ({home:viewHome,plan:viewPlan,words:viewWords,leet:viewLeet,review:viewReview,stats:viewStats}[v]||viewHome)();
   window.scrollTo(0,0)}
