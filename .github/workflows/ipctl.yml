@@ -21,7 +21,10 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/danielpaulus/go-ios goios-src
           New-Item -ItemType Directory roots | Out-Null
-          foreach ($n in 'AppleIncRootCertificate.cer','AppleRootCA-G2.cer','AppleRootCA-G3.cer') { Invoke-WebRequest "https://www.apple.com/certificateauthority/$n" -OutFile "roots/$n" }
+          foreach ($u in 'https://www.apple.com/appleca/AppleIncRootCertificate.cer','https://www.apple.com/certificateauthority/AppleRootCA-G2.cer','https://www.apple.com/certificateauthority/AppleRootCA-G3.cer') {
+            try { Invoke-WebRequest $u -OutFile ("roots/" + [IO.Path]::GetFileName($u)) } catch { Write-Host "skip $u" }
+          }
+          Get-ChildItem roots
           python tools/ipctl/patches/tss_roots.py goios-src/ios/imagemounter roots
           cd goios-src; go build -o ../tools/ipctl/ios-master.exe .; cd ..
           ./tools/ipctl/ios-master.exe version

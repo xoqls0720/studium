@@ -130,6 +130,17 @@ class App:
                 self.say("진단 중: ios " + l)
                 if l.startswith("bg "):
                     ios_bg(*l[3:].split()); o.write(f"$ ios {l[3:]} (백그라운드)\n\n"); time.sleep(5); continue
+                if l.startswith("tls "):
+                    import ssl, socket
+                    host = l[4:].strip()
+                    try:
+                        with socket.create_connection((host, 443), timeout=10) as sk, ssl.create_default_context().wrap_socket(sk, server_hostname=host) as ss:
+                            o.write(f"$ tls {host}: 검증 통과 {ss.getpeercert().get('issuer')}\n\n")
+                    except Exception as e:
+                        o.write(f"$ tls {host}: 검증 실패 {e}\n")
+                    try: o.write(ssl.get_server_certificate((host, 443)) + "\n\n")
+                    except Exception as e: o.write(f"인증서 읽기 실패 {e}\n\n")
+                    continue
                 if l.startswith("sleep "):
                     time.sleep(float(l[6:])); continue
                 try:
