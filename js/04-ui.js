@@ -3,7 +3,11 @@
 function inline(s) {
   return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1<i>$2</i>')
     .replace(/`([^`]+)`/g, '<code>$1</code>').replace(/★([^<\n]*)/g, '<span class="star">★$1</span>')
-    .replace(/\[\[그림\s*p?\.?\s*(\d+)\s*[::]?\s*([^\]]*)\]\]/g, (_, n, cap) => `<button class="figchip" data-fig="${n}">그림 p.${n}${cap.trim() ? ' · ' + cap.trim() : ''}</button>`);
+    .replace(/\[\[그림\s*p?\.?\s*(\d+)\s*[::]?\s*([^\]]*)\]\]/g, (_, n, cap) => `<button class="figchip" data-fig="${n}">그림 p.${n}${cap.trim() ? ' · ' + cap.trim() : ''}</button>`)
+    // [[화면 12:30: 캡션]] — 강의 영상 그 시각의 화면(판서·표·그래프)을 연다
+    .replace(/\[\[화면\s*(?:(\d+):)?(\d{1,2}):(\d{2})\s*[::]?\s*([^\]]*)\]\]/g, (_, h, m, x, cap) => `<button class="figchip" data-at="${(+h || 0) * 3600 + (+m) * 60 + (+x)}">화면 ${h ? h + ':' : ''}${m}:${x}${cap.trim() ? ' · ' + cap.trim() : ''}</button>`)
+    // ![캡션](https://…) — 그림을 본문에 바로 넣는다
+    .replace(/!\[([^\]]*)\]\(((?:https:\/\/|data:image\/)[^)\s]+)\)/g, (_, cap, url) => `<span style="display:block;margin:14px 0"><img src="${url}" alt="${cap}" loading="lazy" style="max-width:100%;border-radius:8px;display:block">${cap ? `<span class="faint" style="display:block;font-size:13px;margin-top:4px">${cap}</span>` : ''}</span>`);
 }
 function md(src_) {
   const lines = String(src_ || '').replace(/\r/g, '').split('\n'), out = [];

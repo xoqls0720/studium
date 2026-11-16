@@ -80,6 +80,7 @@ async function viewUnit(s, uid) {
   readBtn.onclick = () => { setRead(u.id, !isRead(u.id)); paintRead(); };
   hydrateSlides(document.getElementById('u-slides'), u, d).catch(() => {});
   main_.querySelectorAll('.figchip').forEach(b => b.onclick = () => {
+    if (b.dataset.at) { if (state.openAt) state.openAt(+b.dataset.at); else { document.getElementById('u-slides')?.scrollIntoView({behavior: 'smooth'}); toast('강의 화면이 드라이브에 올라오면 그 시각으로 바로 열려요'); } return; }
     if (state.openFig) state.openFig(+b.dataset.fig);
     else { document.getElementById('u-slides')?.scrollIntoView({behavior: 'smooth'}); toast('원본 PDF가 연결되면 그 쪽으로 바로 열려요'); }
   });
